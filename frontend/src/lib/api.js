@@ -13,11 +13,12 @@ async function api(path, options = {}) {
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
+  const json = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `API error ${res.status}`);
+    throw new Error(json.error || json.message || `API error ${res.status}`);
   }
-  return res.json();
+  // Backend wraps responses: { success: true, data: {...} }
+  return json.data !== undefined ? json.data : json;
 }
 
 // Dashboard
