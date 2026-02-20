@@ -1,0 +1,382 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: CrewBooks - Business Management for Construction Subcontractors
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        USERS_TABLE: !Ref UsersTable
+        JOBS_TABLE: !Ref JobsTable
+        EXPENSES_TABLE: !Ref ExpensesTable
+        INVOICES_TABLE: !Ref InvoicesTable
+        PHOTOS_BUCKET: !Ref PhotosBucket
+        FRONTEND_URL: !Ref FrontendURL
+        REGION: !Ref AWS::Region
+
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  FrontendURL:
+    Type: String
+    Default: http://localhost:3000
+
+Resources:
+  # ========== COGNITO ==========
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub crewbooks-users-${Stage}
+      AutoVerifiedAttributes: [email]
+      UsernameAttributes: [email]
+      Schema:
+        - { Name: email, Required: true, Mutable: true }
+        - { Name: name, Required: true, Mutable: true }
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: false
+      LambdaConfig:
+        PostConfirmation: !GetAtt AuthPostConfirmationFunction.Arn
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub crewbooks-web-${Stage}
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+
+  # ========== API GATEWAY ==========
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub crewbooks-api-${Stage}
+      StageName: !Ref Stage
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
+
+  # ========== DYNAMODB ==========
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub crewbooks-users-${Stage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: PK, AttributeType: S }
+        - { AttributeName: SK, AttributeType: S }
+      KeySchema:
+        - { AttributeName: PK, KeyType: HASH }
+        - { AttributeName: SK, KeyType: RANGE }
+
+  JobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub crewbooks-jobs-${Stage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: PK, AttributeType: S }
+        - { AttributeName: SK, AttributeType: S }
+        - { AttributeName: GSI1PK, AttributeType: S }
+        - { AttributeName: GSI1SK, AttributeType: S }
+      KeySchema:
+        - { AttributeName: PK, KeyType: HASH }
+        - { AttributeName: SK, KeyType: RANGE }
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - { AttributeName: GSI1PK, KeyType: HASH }
+            - { AttributeName: GSI1SK, KeyType: RANGE }
+          Projection:
+            ProjectionType: ALL
+
+  ExpensesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub crewbooks-expenses-${Stage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: PK, AttributeType: S }
+        - { AttributeName: SK, AttributeType: S }
+      KeySchema:
+        - { AttributeName: PK, KeyType: HASH }
+        - { AttributeName: SK, KeyType: RANGE }
+
+  InvoicesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub crewbooks-invoices-${Stage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: PK, AttributeType: S }
+        - { AttributeName: SK, AttributeType: S }
+        - { AttributeName: GSI1PK, AttributeType: S }
+        - { AttributeName: GSI1SK, AttributeType: S }
+      KeySchema:
+        - { AttributeName: PK, KeyType: HASH }
+        - { AttributeName: SK, KeyType: RANGE }
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - { AttributeName: GSI1PK, KeyType: HASH }
+            - { AttributeName: GSI1SK, KeyType: RANGE }
+          Projection:
+            ProjectionType: ALL
+
+  # ========== S3 ==========
+  PhotosBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub crewbooks-photos-${Stage}-${AWS::AccountId}
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT]
+            AllowedOrigins: ['*']
+            MaxAge: 3600
+
+  # ========== LAMBDA FUNCTIONS ==========
+  AuthPostConfirmationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-auth-postConfirm-${Stage}
+      Handler: lambdas/auth/postConfirmation.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+
+  AuthPostConfirmationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt AuthPostConfirmationFunction.Arn
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  # --- Jobs (single Lambda, routes by HTTP method) ---
+  JobsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-jobs-${Stage}
+      Handler: lambdas/jobs/index.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExpensesTable
+      Events:
+        CreateJob:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /jobs
+            Method: POST
+        ListJobs:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /jobs
+            Method: GET
+        GetJob:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/jobs/{jobId}"
+            Method: GET
+        UpdateJob:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/jobs/{jobId}"
+            Method: PUT
+        DeleteJob:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/jobs/{jobId}"
+            Method: DELETE
+
+  # --- Expenses ---
+  ExpensesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-expenses-${Stage}
+      Handler: lambdas/expenses/index.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExpensesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+      Events:
+        CreateExpense:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/jobs/{jobId}/expenses"
+            Method: POST
+        ListExpenses:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/jobs/{jobId}/expenses"
+            Method: GET
+        DeleteExpense:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/jobs/{jobId}/expenses/{expenseId}"
+            Method: DELETE
+
+  # --- Invoices ---
+  InvoicesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-invoices-${Stage}
+      Handler: lambdas/invoices/index.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InvoicesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - sns:Publish
+              Resource: '*'
+      Events:
+        CreateInvoice:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/jobs/{jobId}/invoices"
+            Method: POST
+        SendInvoice:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/jobs/{jobId}/invoices/{invoiceId}/send"
+            Method: POST
+        MarkPaid:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/jobs/{jobId}/invoices/{invoiceId}/pay"
+            Method: PUT
+        GetPublicInvoice:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/invoices/{invoiceId}"
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+  # --- Dashboard ---
+  DashboardFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-dashboard-${Stage}
+      Handler: lambdas/dashboard/index.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InvoicesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExpensesTable
+      Events:
+        GetDashboard:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /dashboard
+            Method: GET
+
+  # --- Photos ---
+  PhotosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-photos-${Stage}
+      Handler: lambdas/photos/index.handler
+      CodeUri: .
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref PhotosBucket
+      Events:
+        GetUploadUrl:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /photos/upload-url
+            Method: POST
+
+  # --- Payment Reminders (EventBridge) ---
+  PaymentReminderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-reminders-${Stage}
+      Handler: lambdas/invoices/reminders.handler
+      CodeUri: .
+      Timeout: 120
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InvoicesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - sns:Publish
+              Resource: '*'
+
+  PaymentReminderRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: 'cron(0 14 * * ? *)'
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt PaymentReminderFunction.Arn
+          Id: PaymentReminderTarget
+
+  PaymentReminderPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt PaymentReminderFunction.Arn
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt PaymentReminderRule.Arn
+
+Outputs:
+  ApiUrl:
+    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
+  UserPoolId:
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Value: !Ref UserPoolClient
+  PhotosBucketName:
+    Value: !Ref PhotosBucket
