@@ -260,8 +260,8 @@ function ExpenseFormModal({ jobId, onClose, onSaved }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }} onClick={onClose}>
-      <div className="w-full max-w-lg rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto" style={{ background: "var(--card)" }} onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--bg)" }} onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-lg mx-auto p-6 pb-24">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-extrabold" style={{ color: "var(--text)" }}>Add Expense</h2>
           <button onClick={onClose} className="p-2 rounded-xl" style={{ color: "var(--muted)" }}><X size={24} /></button>
