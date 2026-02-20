@@ -1,27 +1,94 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DollarSign, TrendingUp, TrendingDown, Clock, AlertTriangle, ChevronRight } from "lucide-react";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { getDashboard } from "@/lib/api";
-import { formatMoney, overdueSeverity } from "@/lib/utils";
+import { AppShell } from "@/components/layout/AppShell";
+import { getDashboard, getJobs } from "@/lib/api";
+import { money, moneyCompact, statusBadge, statusLabel, overdueSeverity, relDate } from "@/lib/utils";
+import { DollarSign, Clock, TrendingUp, ArrowRight, Send, CheckCircle2, AlertTriangle, FileText } from "lucide-react";
+
+const FILTERS = ["owed", "paid", "all"];
+
 export default function MoneyPage() {
-  const [data, setData] = useState(null); const [loading, setLoading] = useState(true); const router = useRouter();
-  useEffect(() => { getDashboard().then(setData).catch(console.error).finally(() => setLoading(false)); }, []);
-  if (loading) return <div className="px-4 max-w-lg mx-auto"><PageHeader title="Money" /><div className="space-y-4 mt-4">{[1,2,3].map(i=><div key={i} className="skeleton h-28 rounded-2xl" />)}</div></div>;
-  if (!data) return null;
+  const [jobs, setJobs] = useState([]);
+  const [filter, setFilter] = useState("owed");
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({});
+  const router = useRouter();
+
+  useEffect(() => {
+    Promise.all([getJobs(), getDashboard().catch(() => null)])
+      .then(([j, d]) => {
+        setJobs(j.jobs || j || []);
+        if (d) setStats(d);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = jobs.filter(j => {
+    if (filter === "owed") return ["active", "complete"].includes(j.status);
+    if (filter === "paid") return j.status === "paid";
+    return true;
+  });
+
+  const totalOwed = filtered.filter(j => j.status !== "paid").reduce((s, j) => s + (Number(j.bidAmount) || 0), 0);
+  const totalPaid = jobs.filter(j => j.status === "paid").reduce((s, j) => s + (Number(j.bidAmount) || 0), 0);
+
   return (
-    <div className="px-4 max-w-lg mx-auto">
-      <PageHeader title="Money" subtitle="Financial overview" />
-      <div className="card mt-4 bg-gradient-to-br from-brand-600 to-brand-800 border-brand-500 text-center"><p className="text-brand-200 text-sm uppercase tracking-wider">Total Owed</p><p className="text-5xl font-extrabold text-white mt-2">{formatMoney(data.totalOwed)}</p>{data.overdueInvoices?.length > 0 && <p className="text-brand-200 text-sm mt-2">{data.overdueInvoices.length} overdue</p>}</div>
+    <AppShell title="Money" subtitle="Track payments">
+      {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3 mt-4">
-        <div className="card text-center"><TrendingUp size={24} className="text-green-400 mx-auto mb-2" /><p className="text-xs text-navy-400">This Month</p><p className="text-xl font-bold text-green-400">{formatMoney(data.paidThisMonth)}</p></div>
-        <div className="card text-center"><DollarSign size={24} className="text-purple-400 mx-auto mb-2" /><p className="text-xs text-navy-400">All Time</p><p className="text-xl font-bold text-purple-400">{formatMoney(data.totalEarned)}</p></div>
-        <div className="card text-center"><TrendingDown size={24} className="text-amber-400 mx-auto mb-2" /><p className="text-xs text-navy-400">Total Costs</p><p className="text-xl font-bold text-amber-400">{formatMoney(data.profitability.totalActualCost)}</p></div>
-        <div className="card text-center"><TrendingUp size={24} className="text-green-400 mx-auto mb-2" /><p className="text-xs text-navy-400">Margin</p><p className="text-xl font-bold text-green-400">{data.profitability.marginPercent}%</p></div>
+        <div className="card text-center py-5">
+          <DollarSign size={24} style={{ color: "var(--red)", margin: "0 auto" }} />
+          <p className="text-2xl font-extrabold mt-2" style={{ color: "var(--text)" }}>{money(totalOwed)}</p>
+          <p className="text-xs font-semibold" style={{ color: "var(--muted)" }}>Outstanding</p>
+        </div>
+        <div className="card text-center py-5">
+          <CheckCircle2 size={24} style={{ color: "var(--green)", margin: "0 auto" }} />
+          <p className="text-2xl font-extrabold mt-2" style={{ color: "var(--text)" }}>{money(totalPaid)}</p>
+          <p className="text-xs font-semibold" style={{ color: "var(--muted)" }}>Collected</p>
+        </div>
       </div>
-      {data.overdueInvoices?.length > 0 && <section className="mt-6"><h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><AlertTriangle size={20} className="text-red-400" />Collect Now</h2><div className="space-y-2">{data.overdueInvoices.map(inv => { const sev = overdueSeverity(inv.daysOverdue); return (<button key={inv.invoiceId} onClick={() => router.push(`/jobs/${inv.jobId}`)} className={`card w-full text-left flex items-center justify-between ${sev.bg}`}><div><p className="font-semibold text-white">{inv.clientName}</p><p className="text-sm text-navy-400">{inv.jobName}</p><div className="flex items-center gap-1.5 mt-1"><Clock size={12} className={sev.color} /><span className={`text-xs font-semibold ${sev.color}`}>{inv.daysOverdue}d overdue</span></div></div><div className="text-right"><p className="text-xl font-bold text-white">{formatMoney(inv.amount)}</p></div></button>); })}</div></section>}
-      <section className="mt-6 mb-8"><h2 className="text-lg font-bold text-white mb-3">Profit Summary</h2><div className="card space-y-3"><div className="flex justify-between"><span className="text-navy-300 text-sm">Total Bids</span><span className="text-green-400 font-medium">{formatMoney(data.profitability.totalBidValue)}</span></div><div className="flex justify-between"><span className="text-navy-300 text-sm">Total Costs</span><span className="text-red-400 font-medium">-{formatMoney(data.profitability.totalActualCost)}</span></div><div className="border-t border-navy-600 pt-3 flex justify-between"><span className="font-bold text-white">Net Profit</span><span className="text-lg font-bold text-green-400">{formatMoney(data.profitability.totalMargin)}</span></div></div></section>
-    </div>
+
+      {/* Filter tabs */}
+      <div className="flex gap-2 mt-4 p-1 rounded-xl" style={{ background: "var(--input)" }}>
+        {FILTERS.map(f => (
+          <button key={f} onClick={() => setFilter(f)}
+            className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all capitalize"
+            style={{ background: filter === f ? "var(--card)" : "transparent", color: filter === f ? "var(--text)" : "var(--muted)", boxShadow: filter === f ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>
+            {f === "owed" ? `Owed (${jobs.filter(j=>["active","complete"].includes(j.status)).length})` : f === "paid" ? `Paid (${jobs.filter(j=>j.status==="paid").length})` : `All (${jobs.length})`}
+          </button>
+        ))}
+      </div>
+
+      {/* Job payment list */}
+      {loading ? (
+        <div className="space-y-3 mt-4">{[1,2,3].map(i=><div key={i} className="skeleton h-20" />)}</div>
+      ) : filtered.length === 0 ? (
+        <div className="mt-16 text-center">
+          <div className="empty-icon"><DollarSign size={40} style={{ color: "var(--muted)" }} /></div>
+          <p className="font-bold" style={{ color: "var(--text)" }}>{filter === "paid" ? "No payments collected yet" : "Nobody owes you money"}</p>
+          <p className="text-sm mt-1" style={{ color: "var(--text2)" }}>{filter === "owed" ? "That's a good thing!" : "Create jobs and send invoices"}</p>
+        </div>
+      ) : (
+        <div className="space-y-2 mt-4">
+          {filtered.map(job => (
+            <button key={job.jobId} onClick={() => router.push(`/jobs/${job.jobId}`)} className="card-hover w-full text-left">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-bold" style={{ color: "var(--text)" }}>{job.clientName}</p>
+                  <p className="text-sm" style={{ color: "var(--text2)" }}>{job.jobName}</p>
+                  <span className={statusBadge(job.status) + " mt-2"}>{statusLabel(job.status)}</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-xl font-extrabold" style={{ color: job.status === "paid" ? "var(--green)" : "var(--text)" }}>{money(job.bidAmount)}</p>
+                  {job.status === "paid" && <p className="text-xs" style={{ color: "var(--green)" }}>✓ Collected</p>}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </AppShell>
   );
 }

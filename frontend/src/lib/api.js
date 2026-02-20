@@ -1,43 +1,52 @@
-import { getToken } from "./auth";
+import { cognitoGetUser } from "./auth";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+const BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
-async function request(path, opts = {}) {
-  const token = await getToken();
-  if (!token && !opts.public) throw new Error("Not authenticated");
-  const res = await fetch(`${API}${path}`, {
-    ...opts,
-    headers: { "Content-Type": "application/json", ...(token && { Authorization: token }), ...opts.headers },
+async function api(path, options = {}) {
+  const user = await cognitoGetUser();
+  const res = await fetch(`${BASE}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${user.token}`,
+      ...options.headers,
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined,
   });
-  const data = await res.json();
-  if (!res.ok || !data.success) throw new Error(data.error || `Request failed: ${res.status}`);
-  return data.data;
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `API error ${res.status}`);
+  }
+  return res.json();
 }
 
 // Dashboard
-export const getDashboard = () => request("/dashboard");
+export const getDashboard = () => api("/dashboard");
 
 // Jobs
-export const getJobs = (status) => request(`/jobs${status ? `?status=${status}` : ""}`);
-export const getJob = (jobId) => request(`/jobs/${jobId}`);
-export const createJob = (data) => request("/jobs", { method: "POST", body: JSON.stringify(data) });
-export const updateJob = (jobId, data) => request(`/jobs/${jobId}`, { method: "PUT", body: JSON.stringify(data) });
-export const deleteJob = (jobId) => request(`/jobs/${jobId}`, { method: "DELETE" });
+export const getJobs = (status) => api(`/jobs${status ? `?status=${status}` : ""}`);
+export const getJob = (id) => api(`/jobs/${id}`);
+export const createJob = (data) => api("/jobs", { method: "POST", body: data });
+export const updateJob = (id, data) => api(`/jobs/${id}`, { method: "PUT", body: data });
+export const deleteJob = (id) => api(`/jobs/${id}`, { method: "DELETE" });
 
 // Expenses
-export const getExpenses = (jobId) => request(`/jobs/${jobId}/expenses`);
-export const createExpense = (jobId, data) => request(`/jobs/${jobId}/expenses`, { method: "POST", body: JSON.stringify(data) });
-export const deleteExpense = (jobId, expenseId) => request(`/jobs/${jobId}/expenses/${expenseId}`, { method: "DELETE" });
+export const getExpenses = (jobId) => api(`/jobs/${jobId}/expenses`);
+export const createExpense = (jobId, data) => api(`/jobs/${jobId}/expenses`, { method: "POST", body: data });
+export const deleteExpense = (jobId, expenseId) => api(`/jobs/${jobId}/expenses/${expenseId}`, { method: "DELETE" });
 
 // Invoices
-export const createInvoice = (jobId, data = {}) => request(`/jobs/${jobId}/invoices`, { method: "POST", body: JSON.stringify(data) });
-export const sendInvoice = (jobId, invoiceId) => request(`/jobs/${jobId}/invoices/${invoiceId}/send`, { method: "POST" });
-export const markInvoicePaid = (jobId, invoiceId) => request(`/jobs/${jobId}/invoices/${invoiceId}/pay`, { method: "PUT" });
+export const createInvoice = (jobId, data) => api(`/jobs/${jobId}/invoices`, { method: "POST", body: data });
+export const sendInvoice = (jobId, invoiceId) => api(`/jobs/${jobId}/invoices/${invoiceId}/send`, { method: "POST" });
+export const markInvoicePaid = (jobId, invoiceId) => api(`/jobs/${jobId}/invoices/${invoiceId}/pay`, { method: "PUT" });
 
 // Photos
-export const getUploadUrl = (data) => request("/photos/upload-url", { method: "POST", body: JSON.stringify(data) });
-export const uploadFile = async (file, jobId) => {
-  const { uploadUrl, key, fileUrl } = await getUploadUrl({ jobId, contentType: file.type });
-  await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-  return { key, fileUrl };
-};
+export const getUploadUrl = (jobId, fileName, contentType) =>
+  api("/photos/upload-url", { method: "POST", body: { jobId, fileName, contentType } });
+
+// Public invoice (no auth)
+export async function getPublicInvoice(invoiceId) {
+  const res = await fetch(`${BASE}/invoices/${invoiceId}`);
+  if (!res.ok) throw new Error("Invoice not found");
+  return res.json();
+}

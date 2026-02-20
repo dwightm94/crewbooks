@@ -1,12 +1,72 @@
-import { clsx } from "clsx";
-export function cn(...inputs) { return clsx(inputs); }
-export function formatMoney(a) { if (a == null) return "$0.00"; return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(a); }
-export function formatMoneyCompact(a) { if (!a) return "$0"; if (a >= 1000) return `$${(a/1000).toFixed(1)}K`; return formatMoney(a); }
-export function formatDate(d) { if (!d) return ""; return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
-export function statusBadge(s) { const m = { bidding:"badge-bidding", active:"badge-active", complete:"badge-complete", paid:"badge-paid", overdue:"badge-overdue", sent:"badge-active", draft:"badge-bidding" }; return `badge ${m[s]||"badge-bidding"}`; }
-export function statusLabel(s) { const m = { bidding:"Bidding", active:"Active", complete:"Complete", paid:"Paid", overdue:"Overdue", sent:"Sent", draft:"Draft" }; return m[s]||s; }
-export function calcMargin(bid, actual) { if (!bid) return 0; return ((bid-actual)/bid)*100; }
-export function marginColor(p) { if (p >= 20) return "text-green-400"; if (p >= 10) return "text-amber-400"; return "text-red-400"; }
-export function overdueSeverity(days) { if (days > 30) return { color:"text-red-500", bg:"bg-red-500/10", label:"Critical" }; if (days > 14) return { color:"text-amber-500", bg:"bg-amber-500/10", label:"Warning" }; return { color:"text-yellow-400", bg:"bg-yellow-400/10", label:"Overdue" }; }
-export function formatPhone(p) { if (!p) return ""; const d = p.replace(/\D/g,""); if (d.length===10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`; return p; }
-export const categoryIcons = { materials:"🧱", labor:"👷", equipment:"🔧", subcontractor:"🤝", permits:"📋", other:"📦" };
+export const money = (n) => {
+  const num = Number(n) || 0;
+  return num >= 1000 ? `$${(num / 1).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : `$${num.toFixed(2)}`;
+};
+
+export const moneyExact = (n) => `$${(Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+export const moneyCompact = (n) => {
+  const num = Number(n) || 0;
+  if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `$${(num / 1000).toFixed(num >= 10000 ? 0 : 1)}K`;
+  return `$${num.toFixed(0)}`;
+};
+
+export const STATUS_MAP = {
+  bidding: { label: "Bidding", badge: "badge badge-blue", color: "var(--blue)" },
+  active: { label: "Active", badge: "badge badge-green", color: "var(--green)" },
+  complete: { label: "Complete", badge: "badge badge-yellow", color: "var(--yellow)" },
+  paid: { label: "Paid", badge: "badge badge-purple", color: "var(--purple)" },
+};
+
+export const statusBadge = (s) => STATUS_MAP[s]?.badge || "badge";
+export const statusLabel = (s) => STATUS_MAP[s]?.label || s;
+export const statusColor = (s) => STATUS_MAP[s]?.color || "var(--muted)";
+
+export const INVOICE_STATUS = {
+  draft: { label: "Draft", badge: "badge badge-blue" },
+  sent: { label: "Sent", badge: "badge badge-yellow" },
+  viewed: { label: "Viewed", badge: "badge badge-purple" },
+  paid: { label: "Paid", badge: "badge badge-green" },
+  overdue: { label: "Overdue", badge: "badge badge-red" },
+};
+
+export const EXPENSE_CATEGORIES = [
+  { value: "materials", label: "Materials", icon: "🧱" },
+  { value: "labor", label: "Labor", icon: "👷" },
+  { value: "equipment", label: "Equipment", icon: "🔧" },
+  { value: "permits", label: "Permits", icon: "📋" },
+  { value: "transport", label: "Transport", icon: "🚛" },
+  { value: "other", label: "Other", icon: "📦" },
+];
+
+export const overdueSeverity = (days) => {
+  if (days >= 30) return { level: "critical", color: "var(--red)", bg: "var(--red-bg)", label: "Past Due" };
+  if (days >= 15) return { level: "warning", color: "var(--yellow)", bg: "var(--yellow-bg)", label: "Overdue" };
+  return { level: "mild", color: "var(--blue)", bg: "var(--blue-bg)", label: "Due Soon" };
+};
+
+export const margin = (bid, spent) => {
+  const b = Number(bid) || 0, s = Number(spent) || 0;
+  if (b === 0) return { amount: 0, percent: 0 };
+  return { amount: b - s, percent: Math.round(((b - s) / b) * 100) };
+};
+
+export const marginColor = (pct) => {
+  if (pct >= 30) return "var(--green)";
+  if (pct >= 15) return "var(--yellow)";
+  return "var(--red)";
+};
+
+export const relDate = (d) => {
+  if (!d) return "";
+  const now = new Date(), date = new Date(d);
+  const days = Math.floor((now - date) / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+export const daysBetween = (a, b) => Math.floor((new Date(b) - new Date(a)) / 86400000);

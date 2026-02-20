@@ -1,14 +1,13 @@
 {
   "name": "CrewBooks",
   "short_name": "CrewBooks",
-  "description": "The dead-simple business app for construction crews",
+  "description": "Track every dollar. Know who owes you.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0B1120",
+  "background_color": "#FFFFFF",
   "theme_color": "#F59E0B",
-  "orientation": "portrait",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }

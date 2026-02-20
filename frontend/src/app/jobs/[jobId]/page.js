@@ -1,62 +1,289 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { DollarSign, Plus, Send, CheckCircle, Trash2, MapPin, Phone, Mail } from "lucide-react";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { useJobs } from "@/hooks/useJobs";
-import { createInvoice, sendInvoice, markInvoicePaid } from "@/lib/api";
-import { formatMoney, statusBadge, statusLabel, calcMargin, marginColor, categoryIcons, formatPhone } from "@/lib/utils";
+import { AppShell } from "@/components/layout/AppShell";
+import { getJob, getExpenses, updateJob, createExpense, deleteExpense, createInvoice } from "@/lib/api";
+import { money, moneyExact, statusBadge, statusLabel, margin, marginColor, EXPENSE_CATEGORIES, relDate, INVOICE_STATUS } from "@/lib/utils";
+import { Edit3, Trash2, Plus, Receipt, FileText, Camera, CheckCircle2, Send, DollarSign, MapPin, Phone, Mail, X } from "lucide-react";
+
+const TABS = ["overview", "expenses", "invoices"];
 
 export default function JobDetailPage() {
-  const { jobId } = useParams(); const router = useRouter();
-  const { currentJob: job, expenses, loading, fetchJob, fetchExpenses, updateJob, addExpense, removeExpense } = useJobs();
-  const [showForm, setShowForm] = useState(false);
-  const [expForm, setExpForm] = useState({ description:"", amount:"", category:"materials" });
-  const [busy, setBusy] = useState(false);
+  const { jobId } = useParams();
+  const [job, setJob] = useState(null);
+  const [expenses, setExpenses] = useState([]);
+  const [tab, setTab] = useState("overview");
+  const [loading, setLoading] = useState(true);
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const router = useRouter();
 
-  useEffect(() => { fetchJob(jobId); fetchExpenses(jobId); }, [jobId]);
+  const load = async () => {
+    try {
+      const [j, e] = await Promise.all([getJob(jobId), getExpenses(jobId).catch(() => ({ expenses: [] }))]);
+      setJob(j.job || j);
+      setExpenses(e.expenses || e || []);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, [jobId]);
 
-  if (loading && !job) return <div className="px-4 max-w-lg mx-auto"><PageHeader title="Loading..." backHref="/jobs" /><div className="space-y-4 mt-4">{[1,2,3].map(i=><div key={i} className="skeleton h-24 rounded-2xl" />)}</div></div>;
-  if (!job) return <div className="px-4 max-w-lg mx-auto"><PageHeader title="Not Found" backHref="/jobs" /></div>;
+  if (loading) return <AppShell title="Loading..."><div className="space-y-4 mt-4">{[1,2,3].map(i=><div key={i} className="skeleton h-24" />)}</div></AppShell>;
+  if (!job) return <AppShell title="Job not found" back="/jobs"><p className="mt-8 text-center" style={{color:"var(--text2)"}}>This job doesn't exist.</p></AppShell>;
 
-  const margin = calcMargin(job.bidAmount, job.actualCost);
-  const remaining = (job.bidAmount || 0) - (job.actualCost || 0);
+  const totalExpenses = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const m = margin(job.bidAmount, totalExpenses);
 
-  async function handleStatus(s) { setBusy(true); await updateJob(jobId, { status: s }); setBusy(false); }
-  async function handleInvoice() { setBusy(true); try { const inv = await createInvoice(jobId, { amount: job.bidAmount }); await sendInvoice(jobId, inv.invoiceId); alert("Invoice sent!"); } catch (e) { alert(e.message); } setBusy(false); }
-  async function handlePaid() { setBusy(true); try { const inv = await createInvoice(jobId, { amount: job.bidAmount }); await markInvoicePaid(jobId, inv.invoiceId); alert("Marked paid!"); } catch (e) { alert(e.message); } setBusy(false); }
-  async function handleAddExp(e) { e.preventDefault(); await addExpense(jobId, {...expForm, amount: parseFloat(expForm.amount)}); setExpForm({ description:"", amount:"", category:"materials" }); setShowForm(false); }
+  const markComplete = async () => { await updateJob(jobId, { ...job, status: "complete" }); load(); };
+  const markPaid = async () => { await updateJob(jobId, { ...job, status: "paid" }); load(); };
+  const genInvoice = async () => {
+    try { await createInvoice(jobId, { amount: job.bidAmount, lineItems: [{ description: job.jobName, amount: job.bidAmount }] }); load(); } catch(e) { alert(e.message); }
+  };
 
   return (
-    <div className="px-4 max-w-lg mx-auto">
-      <PageHeader title={job.jobName} subtitle={job.clientName} backHref="/jobs" />
-      {/* Status + contact */}
-      <div className="card mt-4">
-        <div className="flex items-center justify-between mb-3"><span className={statusBadge(job.status)}>{statusLabel(job.status)}</span>{job.address && <span className="text-xs text-navy-400 flex items-center gap-1"><MapPin size={12} />{job.address}</span>}</div>
-        <div className="flex gap-3">{job.clientPhone && <a href={`tel:${job.clientPhone}`} className="btn-secondary text-sm flex-1"><Phone size={16} />{formatPhone(job.clientPhone)}</a>}{job.clientEmail && <a href={`mailto:${job.clientEmail}`} className="btn-secondary text-sm flex-1"><Mail size={16} />Email</a>}</div>
-      </div>
-      {/* Financials */}
-      <div className="card mt-4">
-        <h3 className="text-sm font-semibold text-navy-400 uppercase tracking-wider mb-3">Financials</h3>
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div><p className="text-xs text-navy-400">Bid</p><p className="text-lg font-bold text-white">{formatMoney(job.bidAmount)}</p></div>
-          <div><p className="text-xs text-navy-400">Spent</p><p className="text-lg font-bold text-red-400">{formatMoney(job.actualCost)}</p></div>
-          <div><p className="text-xs text-navy-400">Left</p><p className={`text-lg font-bold ${remaining >= 0 ? "text-green-400" : "text-red-400"}`}>{formatMoney(remaining)}</p></div>
+    <AppShell title={job.jobName} subtitle={job.clientName} back="/jobs"
+      action={
+        <div className="flex gap-2">
+          {job.status === "active" && <button onClick={markComplete} className="btn btn-brand btn-sm"><CheckCircle2 size={16} />Complete</button>}
+          {job.status === "complete" && <button onClick={markPaid} className="btn btn-brand btn-sm"><DollarSign size={16} />Paid</button>}
         </div>
-        {job.bidAmount > 0 && <div className="mt-4"><div className="flex justify-between text-xs mb-1"><span className="text-navy-400">Budget used</span><span className={marginColor(margin)}>{margin.toFixed(1)}%</span></div><div className="h-3 bg-navy-700 rounded-full overflow-hidden"><div className={`h-full rounded-full ${margin >= 20 ? "bg-green-500" : margin >= 10 ? "bg-amber-500" : "bg-red-500"}`} style={{width: `${Math.min(100, (job.actualCost/job.bidAmount)*100)}%`}} /></div></div>}
+      }>
+
+      {/* Financial Summary Bar */}
+      <div className="card mt-4">
+        <div className="grid grid-cols-3 text-center divide-x" style={{ borderColor: "var(--border)" }}>
+          <div className="py-2">
+            <p className="text-xs font-semibold" style={{ color: "var(--muted)" }}>Bid</p>
+            <p className="text-lg font-extrabold" style={{ color: "var(--text)" }}>{money(job.bidAmount)}</p>
+          </div>
+          <div className="py-2">
+            <p className="text-xs font-semibold" style={{ color: "var(--muted)" }}>Spent</p>
+            <p className="text-lg font-extrabold" style={{ color: "var(--red)" }}>{money(totalExpenses)}</p>
+          </div>
+          <div className="py-2">
+            <p className="text-xs font-semibold" style={{ color: "var(--muted)" }}>Margin</p>
+            <p className="text-lg font-extrabold" style={{ color: marginColor(m.percent) }}>{m.percent}%</p>
+          </div>
+        </div>
+        {/* Progress bar */}
+        <div className="mt-3 h-3 rounded-full overflow-hidden" style={{ background: "var(--input)" }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((totalExpenses / (job.bidAmount || 1)) * 100, 100)}%`, background: marginColor(m.percent) }} />
+        </div>
+        <p className="text-xs mt-2 text-center font-semibold" style={{ color: "var(--text2)" }}>
+          {money(m.amount)} remaining of {money(job.bidAmount)} bid
+        </p>
       </div>
-      {/* Actions */}
-      <div className="grid grid-cols-2 gap-3 mt-4">
-        {job.status === "bidding" && <button onClick={() => handleStatus("active")} disabled={busy} className="btn-primary"><CheckCircle size={18} />Start Job</button>}
-        {job.status === "active" && <button onClick={() => handleStatus("complete")} disabled={busy} className="btn-primary"><CheckCircle size={18} />Complete</button>}
-        {["active","complete"].includes(job.status) && <button onClick={handleInvoice} disabled={busy} className="btn-primary"><Send size={18} />Send Invoice</button>}
-        {["active","complete"].includes(job.status) && <button onClick={handlePaid} disabled={busy} className="btn-secondary"><DollarSign size={18} />Mark Paid</button>}
+
+      {/* Status + Quick Actions */}
+      <div className="flex items-center gap-2 mt-4">
+        <span className={statusBadge(job.status)}>{statusLabel(job.status)}</span>
+        {job.status === "complete" && (
+          <button onClick={genInvoice} className="btn btn-outline btn-sm ml-auto"><FileText size={16} />Generate Invoice</button>
+        )}
       </div>
-      {/* Expenses */}
-      <div className="mt-6 mb-8">
-        <div className="flex items-center justify-between mb-3"><h3 className="text-lg font-bold text-white">Expenses</h3><button onClick={() => setShowForm(!showForm)} className="text-brand-500 text-sm font-semibold flex items-center gap-1"><Plus size={16} />Add</button></div>
-        {showForm && <form onSubmit={handleAddExp} className="card mb-3 space-y-3"><input type="text" value={expForm.description} onChange={e=>setExpForm({...expForm, description:e.target.value})} placeholder="What?" className="input-field" required /><div className="flex gap-3"><input type="number" value={expForm.amount} onChange={e=>setExpForm({...expForm, amount:e.target.value})} placeholder="$ Amount" className="input-field flex-1" required min="0.01" step="0.01" /><select value={expForm.category} onChange={e=>setExpForm({...expForm, category:e.target.value})} className="input-field flex-1"><option value="materials">🧱 Materials</option><option value="labor">👷 Labor</option><option value="equipment">🔧 Equipment</option><option value="subcontractor">🤝 Sub</option><option value="permits">📋 Permits</option><option value="other">📦 Other</option></select></div><button type="submit" className="btn-primary w-full">Add Expense</button></form>}
-        {expenses?.expenses?.length > 0 ? <div className="space-y-2">{expenses.expenses.map(exp => (<div key={exp.expenseId} className="card flex items-center justify-between"><div className="flex items-center gap-3"><span className="text-xl">{categoryIcons[exp.category]||"📦"}</span><div><p className="font-medium text-white text-sm">{exp.description}</p><p className="text-xs text-navy-400 capitalize">{exp.category}</p></div></div><div className="flex items-center gap-2"><p className="font-bold text-white">{formatMoney(exp.amount)}</p><button onClick={() => removeExpense(jobId, exp.expenseId)} className="text-navy-500 p-1"><Trash2 size={14} /></button></div></div>))}<div className="card bg-navy-700/50 flex justify-between"><span className="text-navy-300 font-medium">Total</span><span className="font-bold text-white">{formatMoney(expenses.total)}</span></div></div> : <div className="text-center py-8 text-navy-400"><p>No expenses yet</p></div>}
+
+      {/* Tabs */}
+      <div className="flex gap-1 mt-4 p-1 rounded-xl" style={{ background: "var(--input)" }}>
+        {TABS.map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all capitalize"
+            style={{ background: tab === t ? "var(--card)" : "transparent", color: tab === t ? "var(--text)" : "var(--muted)", boxShadow: tab === t ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>
+            {t} {t === "expenses" ? `(${expenses.length})` : ""}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      <div className="mt-4">
+        {tab === "overview" && <OverviewTab job={job} />}
+        {tab === "expenses" && <ExpensesTab expenses={expenses} jobId={jobId} onAdd={() => setShowExpenseForm(true)} onRefresh={load} />}
+        {tab === "invoices" && <InvoicesTab job={job} jobId={jobId} onGenerate={genInvoice} />}
+      </div>
+
+      {/* Expense Form Modal */}
+      {showExpenseForm && <ExpenseFormModal jobId={jobId} onClose={() => setShowExpenseForm(false)} onSaved={() => { setShowExpenseForm(false); load(); }} />}
+    </AppShell>
+  );
+}
+
+function OverviewTab({ job }) {
+  return (
+    <div className="space-y-4">
+      {job.address && (
+        <div className="card">
+          <div className="flex items-start gap-3">
+            <MapPin size={18} style={{ color: "var(--brand)", marginTop: 2 }} />
+            <div>
+              <p className="text-xs font-semibold" style={{ color: "var(--muted)" }}>Address</p>
+              <p className="font-semibold" style={{ color: "var(--text)" }}>{job.address}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="card">
+        <h3 className="section-title">Client</h3>
+        <p className="font-bold text-lg" style={{ color: "var(--text)" }}>{job.clientName}</p>
+        {job.clientPhone && <a href={`tel:${job.clientPhone}`} className="flex items-center gap-2 mt-2 font-medium" style={{ color: "var(--blue)" }}><Phone size={16} />{job.clientPhone}</a>}
+        {job.clientEmail && <a href={`mailto:${job.clientEmail}`} className="flex items-center gap-2 mt-2 font-medium" style={{ color: "var(--blue)" }}><Mail size={16} />{job.clientEmail}</a>}
+      </div>
+      {job.notes && (
+        <div className="card">
+          <h3 className="section-title">Notes</h3>
+          <p className="whitespace-pre-wrap" style={{ color: "var(--text2)" }}>{job.notes}</p>
+        </div>
+      )}
+      {job.startDate && (
+        <div className="card">
+          <h3 className="section-title">Schedule</h3>
+          <p style={{ color: "var(--text)" }}>Started: {new Date(job.startDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExpensesTab({ expenses, jobId, onAdd, onRefresh }) {
+  const byCategory = expenses.reduce((a, e) => {
+    const cat = e.category || "other";
+    a[cat] = (a[cat] || 0) + (Number(e.amount) || 0);
+    return a;
+  }, {});
+  const total = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const doDelete = async (expenseId) => { if (confirm("Delete this expense?")) { await deleteExpense(jobId, expenseId); onRefresh(); } };
+
+  return (
+    <div className="space-y-4">
+      <button onClick={onAdd} className="btn btn-brand w-full"><Plus size={18} />Add Expense</button>
+
+      {/* Category breakdown */}
+      {Object.keys(byCategory).length > 0 && (
+        <div className="card">
+          <h3 className="section-title">Breakdown</h3>
+          <div className="space-y-3">
+            {EXPENSE_CATEGORIES.filter(c => byCategory[c.value]).map(cat => {
+              const amt = byCategory[cat.value];
+              const pct = total > 0 ? (amt / total) * 100 : 0;
+              return (
+                <div key={cat.value}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium" style={{ color: "var(--text)" }}>{cat.icon} {cat.label}</span>
+                    <span className="font-bold" style={{ color: "var(--text)" }}>{money(amt)}</span>
+                  </div>
+                  <div className="h-2 rounded-full mt-1" style={{ background: "var(--input)" }}>
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--brand)" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Expense list */}
+      {expenses.length === 0 ? (
+        <div className="text-center py-8">
+          <Receipt size={40} style={{ color: "var(--muted)", margin: "0 auto" }} />
+          <p className="mt-2 font-medium" style={{ color: "var(--text2)" }}>No expenses yet</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {expenses.map(exp => {
+            const cat = EXPENSE_CATEGORIES.find(c => c.value === exp.category) || EXPENSE_CATEGORIES[5];
+            return (
+              <div key={exp.expenseId || exp.SK} className="card">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{cat.icon}</span>
+                    <div>
+                      <p className="font-semibold" style={{ color: "var(--text)" }}>{exp.description || cat.label}</p>
+                      <p className="text-xs" style={{ color: "var(--muted)" }}>{relDate(exp.date || exp.createdAt)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p className="font-bold" style={{ color: "var(--text)" }}>{money(exp.amount)}</p>
+                    <button onClick={() => doDelete(exp.expenseId || exp.SK?.split("#")[1])} style={{ color: "var(--red)" }}><Trash2 size={16} /></button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InvoicesTab({ job, jobId, onGenerate }) {
+  const invoices = job.invoices || [];
+  return (
+    <div className="space-y-4">
+      {job.status === "complete" && invoices.length === 0 && (
+        <button onClick={onGenerate} className="btn btn-brand w-full"><FileText size={18} />Generate Invoice</button>
+      )}
+      {invoices.length === 0 ? (
+        <div className="text-center py-8">
+          <FileText size={40} style={{ color: "var(--muted)", margin: "0 auto" }} />
+          <p className="mt-2 font-medium" style={{ color: "var(--text2)" }}>No invoices yet</p>
+          <p className="text-sm" style={{ color: "var(--muted)" }}>Mark the job as complete to generate one</p>
+        </div>
+      ) : (
+        invoices.map(inv => {
+          const st = INVOICE_STATUS[inv.status] || INVOICE_STATUS.draft;
+          return (
+            <div key={inv.invoiceId} className="card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-bold" style={{ color: "var(--text)" }}>{money(inv.amount)}</p>
+                  <span className={st.badge + " mt-1"}>{st.label}</span>
+                </div>
+                <div className="flex gap-2">
+                  {inv.status === "draft" && <button className="btn btn-brand btn-sm"><Send size={14} />Send</button>}
+                  {inv.status === "sent" && <button className="btn btn-brand btn-sm"><DollarSign size={14} />Mark Paid</button>}
+                </div>
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+function ExpenseFormModal({ jobId, onClose, onSaved }) {
+  const [form, setForm] = useState({ description: "", amount: "", category: "materials", date: new Date().toISOString().split("T")[0] });
+  const [saving, setSaving] = useState(false);
+  const up = (f) => (e) => setForm({ ...form, [f]: e.target.value });
+
+  const submit = async (e) => {
+    e.preventDefault(); setSaving(true);
+    try { await createExpense(jobId, { ...form, amount: Number(form.amount) }); onSaved(); }
+    catch { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
+      <div className="w-full max-w-lg rounded-t-3xl p-6 animate-slide-up" style={{ background: "var(--card)" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-extrabold" style={{ color: "var(--text)" }}>Add Expense</h2>
+          <button onClick={onClose} className="p-2 rounded-xl" style={{ color: "var(--muted)" }}><X size={24} /></button>
+        </div>
+        <form onSubmit={submit} className="space-y-4">
+          <div><label className="field-label">Amount ($) *</label><input type="number" inputMode="decimal" value={form.amount} onChange={up("amount")} placeholder="0.00" className="field text-2xl font-bold" required autoFocus /></div>
+          <div><label className="field-label">Category</label>
+            <div className="grid grid-cols-3 gap-2">
+              {EXPENSE_CATEGORIES.map(cat => (
+                <button type="button" key={cat.value} onClick={() => setForm({ ...form, category: cat.value })}
+                  className="card text-center py-3 transition-all"
+                  style={{ borderColor: form.category === cat.value ? "var(--brand)" : "var(--border)", borderWidth: "2px" }}>
+                  <span className="text-xl block">{cat.icon}</span>
+                  <span className="text-xs font-bold" style={{ color: form.category === cat.value ? "var(--brand)" : "var(--text2)" }}>{cat.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div><label className="field-label">Description</label><input value={form.description} onChange={up("description")} placeholder="What was it for?" className="field" /></div>
+          <div><label className="field-label">Date</label><input type="date" value={form.date} onChange={up("date")} className="field" /></div>
+          <button type="submit" disabled={saving} className="btn btn-brand w-full text-lg">{saving ? "Saving..." : "Add Expense"}</button>
+        </form>
       </div>
     </div>
   );

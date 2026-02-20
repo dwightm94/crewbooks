@@ -1,12 +1,11 @@
 {
-  "name": "crewbooks-frontend",
-  "version": "0.1.0",
+  "name": "crewbooks",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "next start"
   },
   "dependencies": {
     "next": "^14.2.0",
@@ -17,14 +16,12 @@
     "zustand": "^4.5.0",
     "lucide-react": "^0.263.1",
     "clsx": "^2.1.0",
-    "date-fns": "^3.6.0"
+    "date-fns": "^3.6.0",
+    "recharts": "^2.12.0"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.0",
     "postcss": "^8.4.0",
-    "autoprefixer": "^10.4.0",
-    "@types/node": "^20.0.0",
-    "eslint": "^8.0.0",
-    "eslint-config-next": "^14.2.0"
+    "autoprefixer": "^10.4.0"
   }
 }

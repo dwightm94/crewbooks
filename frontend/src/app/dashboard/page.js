@@ -1,118 +1,149 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DollarSign, AlertTriangle, TrendingUp, Briefcase, Plus, ArrowUpRight } from "lucide-react";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { AppShell } from "@/components/layout/AppShell";
+import { Plus, AlertTriangle, TrendingUp, Briefcase, DollarSign, Clock, ArrowRight } from "lucide-react";
 import { getDashboard } from "@/lib/api";
-import { formatMoney, formatMoneyCompact, statusBadge, statusLabel, overdueSeverity, calcMargin, marginColor } from "@/lib/utils";
+import { money, moneyCompact, statusBadge, statusLabel, overdueSeverity, margin, marginColor, relDate } from "@/lib/utils";
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(null);
   const router = useRouter();
-  useEffect(() => { getDashboard().then(setData).catch(console.error).finally(() => setLoading(false)); }, []);
 
-  if (loading) return (
-    <div className="px-4">
-      <PageHeader title="Dashboard" />
-      <div className="space-y-4 mt-4">{[1,2,3].map(i=><div key={i} className="skeleton h-28 rounded-2xl" />)}</div>
-    </div>
-  );
+  useEffect(() => {
+    getDashboard()
+      .then(setData)
+      .catch(e => { console.error(e); setErr(e.message); })
+      .finally(() => setLoading(false));
+  }, []);
 
-  if (!data) return (
-    <div className="px-4">
-      <PageHeader title="Dashboard" />
-      <div className="mt-24 text-center">
-        <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6" style={{backgroundColor: "var(--bg-input)"}}>
-          <Briefcase size={44} style={{color: "var(--text-muted)"}} />
-        </div>
-        <h2 className="text-2xl font-bold mb-2" style={{color: "var(--text-primary)"}}>No jobs yet</h2>
-        <p className="mb-8" style={{color: "var(--text-secondary)"}}>Create your first job to start tracking.</p>
-        <button onClick={() => router.push("/jobs/new")} className="btn-primary mx-auto"><Plus size={20} />Create First Job</button>
-      </div>
-    </div>
-  );
+  const addBtn = <button onClick={() => router.push("/jobs/new")} className="btn btn-brand btn-sm"><Plus size={18} />New Job</button>;
 
   return (
-    <div className="px-4">
-      <PageHeader title="Dashboard" action={<button onClick={() => router.push("/jobs/new")} className="p-2.5 rounded-2xl active:scale-95 transition-transform" style={{backgroundColor: "var(--brand)"}}><Plus size={20} className="text-white" /></button>} />
+    <AppShell title="CrewBooks" action={addBtn}>
+      {loading ? (
+        <div className="space-y-4 mt-4">{[1, 2, 3].map(i => <div key={i} className="skeleton h-28" />)}</div>
+      ) : err || !data ? (
+        <EmptyDashboard router={router} />
+      ) : (
+        <FilledDashboard data={data} router={router} />
+      )}
+    </AppShell>
+  );
+}
 
-      {/* Hero — total owed */}
-      <div className="card mt-4 text-center py-8" style={{background: "linear-gradient(135deg, var(--brand), var(--brand-dark))", border: "none"}}>
-        <p className="text-sm font-semibold uppercase tracking-wider text-white/80">You're Owed</p>
-        <p className="text-5xl font-extrabold text-white mt-2 tracking-tight">{formatMoney(data.totalOwed)}</p>
-        {data.totalOverdue > 0 && (
-          <div className="flex items-center justify-center gap-1.5 mt-3 text-white/90">
-            <AlertTriangle size={16} />
-            <span className="text-sm font-bold">{formatMoney(data.totalOverdue)} overdue</span>
+function EmptyDashboard({ router }) {
+  return (
+    <div className="mt-16 text-center">
+      <div className="empty-icon"><Briefcase size={40} style={{ color: "var(--muted)" }} /></div>
+      <h2 className="text-2xl font-extrabold mb-2" style={{ color: "var(--text)" }}>No jobs yet</h2>
+      <p className="mb-8 text-base" style={{ color: "var(--text2)" }}>Create your first job to start tracking money.</p>
+      <button onClick={() => router.push("/jobs/new")} className="btn btn-brand mx-auto"><Plus size={20} />Create First Job</button>
+    </div>
+  );
+}
+
+function FilledDashboard({ data, router }) {
+  const { totalOwed = 0, totalOverdue = 0, totalEarned = 0, paidThisMonth = 0, counts = {}, overdueInvoices = [], recentJobs = [], profitability = {} } = data;
+  return (
+    <div className="mt-4 space-y-5">
+      {/* Hero: Total Owed */}
+      <div className="rounded-3xl p-6 text-center" style={{ background: "linear-gradient(135deg, var(--brand), var(--brand-hover))" }}>
+        <p className="text-sm font-bold uppercase tracking-wider text-white/80">You're Owed</p>
+        <p className="text-5xl font-extrabold text-white mt-1 tracking-tight">{money(totalOwed)}</p>
+        {totalOverdue > 0 && (
+          <div className="flex items-center justify-center gap-1.5 mt-3 bg-white/20 rounded-full px-4 py-1.5 mx-auto w-fit">
+            <AlertTriangle size={16} className="text-white" />
+            <span className="text-sm font-bold text-white">{money(totalOverdue)} overdue</span>
           </div>
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 mt-4">
-        {[
-          {l:"This Month", v:formatMoneyCompact(data.paidThisMonth), icon:TrendingUp, color:"var(--success)"},
-          {l:"Active Jobs", v:data.counts?.active || 0, icon:Briefcase, color:"var(--info)"},
-          {l:"Total Earned", v:formatMoneyCompact(data.totalEarned), icon:DollarSign, color:"#A855F7"},
-          {l:"Margin", v:`${data.profitability?.marginPercent || 0}%`, icon:ArrowUpRight, color:"var(--success)"},
-        ].map(({l,v,icon:Icon,color})=>(
-          <div key={l} className="card flex items-center gap-3">
-            <div className="p-2.5 rounded-xl" style={{backgroundColor: `${color}15`}}>
-              <Icon size={20} style={{color}} />
-            </div>
-            <div>
-              <p className="text-xs font-medium" style={{color: "var(--text-muted)"}}>{l}</p>
-              <p className="text-lg font-bold" style={{color}}>{v}</p>
-            </div>
-          </div>
-        ))}
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard label="This Month" value={moneyCompact(paidThisMonth)} icon={TrendingUp} color="var(--green)" />
+        <StatCard label="Active Jobs" value={counts.active || 0} icon={Briefcase} color="var(--blue)" />
+        <StatCard label="Total Earned" value={moneyCompact(totalEarned)} icon={DollarSign} color="var(--purple)" />
+        <StatCard label="Avg Margin" value={`${profitability?.marginPercent || 0}%`} icon={TrendingUp} color={marginColor(profitability?.marginPercent || 0)} />
       </div>
 
-      {/* Overdue */}
-      {data.overdueInvoices?.length > 0 && (
-        <section className="mt-6">
-          <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{color: "var(--text-primary)"}}>
-            <AlertTriangle size={18} style={{color: "var(--danger)"}} />Overdue
-          </h2>
-          <div className="space-y-2">{data.overdueInvoices.map(inv => {
-            const sev = overdueSeverity(inv.daysOverdue);
-            return (
-              <button key={inv.invoiceId} onClick={() => router.push(`/jobs/${inv.jobId}`)} className="card w-full text-left flex items-center justify-between">
-                <div>
-                  <p className="font-semibold" style={{color: "var(--text-primary)"}}>{inv.clientName}</p>
-                  <p className="text-sm" style={{color: "var(--text-secondary)"}}>{inv.jobName}</p>
-                  <p className="text-xs font-bold mt-1" style={{color: "var(--danger)"}}>{inv.daysOverdue}d overdue</p>
-                </div>
-                <p className="text-xl font-extrabold" style={{color: "var(--text-primary)"}}>{formatMoney(inv.amount)}</p>
-              </button>
-            );
-          })}</div>
+      {/* Overdue Invoices */}
+      {overdueInvoices.length > 0 && (
+        <section>
+          <h2 className="section-title flex items-center gap-2"><AlertTriangle size={14} style={{ color: "var(--red)" }} />Overdue Payments</h2>
+          <div className="space-y-2">
+            {overdueInvoices.map(inv => {
+              const sev = overdueSeverity(inv.daysOverdue);
+              return (
+                <button key={inv.invoiceId} onClick={() => router.push(`/jobs/${inv.jobId}`)} className="card-hover w-full text-left">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-base" style={{ color: "var(--text)" }}>{inv.clientName}</p>
+                      <p className="text-sm" style={{ color: "var(--text2)" }}>{inv.jobName}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: sev.bg, color: sev.color }}>
+                          <Clock size={12} className="mr-1" />{inv.daysOverdue}d overdue
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-extrabold" style={{ color: sev.color }}>{money(inv.amount)}</p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </section>
       )}
 
       {/* Recent Jobs */}
-      {data.recentJobs?.length > 0 && (
-        <section className="mt-6 mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold" style={{color: "var(--text-primary)"}}>Recent Jobs</h2>
-            <button onClick={() => router.push("/jobs")} className="text-sm font-bold" style={{color: "var(--brand)"}}>See All</button>
+      {recentJobs.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between">
+            <h2 className="section-title">Recent Jobs</h2>
+            <button onClick={() => router.push("/jobs")} className="text-sm font-bold flex items-center gap-1" style={{ color: "var(--brand)" }}>See All <ArrowRight size={14} /></button>
           </div>
-          <div className="space-y-2">{data.recentJobs.map(job => (
-            <button key={job.jobId} onClick={() => router.push(`/jobs/${job.jobId}`)} className="card w-full text-left flex items-center justify-between">
-              <div>
-                <p className="font-semibold" style={{color: "var(--text-primary)"}}>{job.jobName}</p>
-                <p className="text-sm" style={{color: "var(--text-secondary)"}}>{job.clientName}</p>
-                <span className={statusBadge(job.status)}>{statusLabel(job.status)}</span>
-              </div>
-              <div className="text-right">
-                <p className="font-bold" style={{color: "var(--text-primary)"}}>{formatMoney(job.bidAmount)}</p>
-                {job.margin && <p className={`text-xs font-bold ${marginColor(parseFloat(job.margin))}`}>{job.margin}%</p>}
-              </div>
-            </button>
-          ))}</div>
+          <div className="space-y-2">
+            {recentJobs.map(job => {
+              const m = margin(job.bidAmount, job.totalExpenses);
+              return (
+                <button key={job.jobId} onClick={() => router.push(`/jobs/${job.jobId}`)} className="card-hover w-full text-left">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold" style={{ color: "var(--text)" }}>{job.jobName}</p>
+                      <p className="text-sm" style={{ color: "var(--text2)" }}>{job.clientName}</p>
+                      <span className={statusBadge(job.status) + " mt-2"}>{statusLabel(job.status)}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-extrabold" style={{ color: "var(--text)" }}>{money(job.bidAmount)}</p>
+                      {job.totalExpenses > 0 && (
+                        <p className="text-xs font-bold" style={{ color: marginColor(m.percent) }}>{m.percent}% margin</p>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </section>
       )}
+    </div>
+  );
+}
+
+function StatCard({ label, value, icon: Icon, color }) {
+  return (
+    <div className="card flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)` }}>
+        <Icon size={20} style={{ color }} />
+      </div>
+      <div>
+        <p className="text-xs font-semibold" style={{ color: "var(--muted)" }}>{label}</p>
+        <p className="text-xl font-extrabold" style={{ color }}>{value}</p>
+      </div>
     </div>
   );
 }
