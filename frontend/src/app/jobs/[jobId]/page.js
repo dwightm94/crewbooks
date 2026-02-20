@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { getJob, getExpenses, updateJob, createExpense, deleteExpense, createInvoice } from "@/lib/api";
+import { getJob, getExpenses, updateJob, createExpense, deleteExpense, createInvoice, sendInvoice, markInvoicePaid } from "@/lib/api";
 import { money, moneyExact, statusBadge, statusLabel, margin, marginColor, EXPENSE_CATEGORIES, relDate, INVOICE_STATUS } from "@/lib/utils";
 import { Edit3, Trash2, Plus, Receipt, FileText, Camera, CheckCircle2, Send, DollarSign, MapPin, Phone, Mail, X } from "lucide-react";
 
@@ -12,6 +12,7 @@ export default function JobDetailPage() {
   const { jobId } = useParams();
   const [job, setJob] = useState(null);
   const [expenses, setExpenses] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [tab, setTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -20,8 +21,10 @@ export default function JobDetailPage() {
   const load = async () => {
     try {
       const [j, e] = await Promise.all([getJob(jobId), getExpenses(jobId).catch(() => ({ expenses: [] }))]);
-      setJob(j.job || j);
+      const jobData = j.job || j;
+      setJob(jobData);
       setExpenses(e.expenses || e || []);
+      setInvoices(jobData.invoices || []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -36,7 +39,11 @@ export default function JobDetailPage() {
   const markComplete = async () => { await updateJob(jobId, { ...job, status: "complete" }); load(); };
   const markPaid = async () => { await updateJob(jobId, { ...job, status: "paid" }); load(); };
   const genInvoice = async () => {
-    try { await createInvoice(jobId, { amount: job.bidAmount, lineItems: [{ description: job.jobName, amount: job.bidAmount }] }); load(); } catch(e) { alert(e.message); }
+    try {
+      const inv = await createInvoice(jobId, { amount: job.bidAmount, lineItems: [{ description: job.jobName, amount: job.bidAmount }] });
+      setInvoices(prev => [...prev, inv]);
+      setTab("invoices");
+    } catch(e) { alert(e.message); }
   };
 
   return (
@@ -96,7 +103,7 @@ export default function JobDetailPage() {
       <div className="mt-4">
         {tab === "overview" && <OverviewTab job={job} />}
         {tab === "expenses" && <ExpensesTab expenses={expenses} jobId={jobId} onAdd={() => setShowExpenseForm(true)} onRefresh={load} />}
-        {tab === "invoices" && <InvoicesTab job={job} jobId={jobId} onGenerate={genInvoice} />}
+        {tab === "invoices" && <InvoicesTab invoices={invoices} job={job} jobId={jobId} onGenerate={genInvoice} onRefresh={load} />}
       </div>
 
       {/* Expense Form Modal */}
@@ -212,8 +219,9 @@ function ExpensesTab({ expenses, jobId, onAdd, onRefresh }) {
   );
 }
 
-function InvoicesTab({ job, jobId, onGenerate }) {
-  const invoices = job.invoices || [];
+function InvoicesTab({ invoices, job, jobId, onGenerate, onRefresh }) {
+  const doSend = async (invoiceId) => { try { await sendInvoice(jobId, invoiceId); onRefresh(); } catch(e) { alert(e.message); } };
+  const doPay = async (invoiceId) => { try { await markInvoicePaid(jobId, invoiceId); onRefresh(); } catch(e) { alert(e.message); } };
   return (
     <div className="space-y-4">
       {job.status === "complete" && invoices.length === 0 && (
@@ -232,12 +240,13 @@ function InvoicesTab({ job, jobId, onGenerate }) {
             <div key={inv.invoiceId} className="card">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-bold" style={{ color: "var(--text)" }}>{money(inv.amount)}</p>
+                  <p className="font-bold text-lg" style={{ color: "var(--text)" }}>{money(inv.amount)}</p>
                   <span className={st.badge + " mt-1"}>{st.label}</span>
+                  {inv.dueDate && <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Due: {inv.dueDate}</p>}
                 </div>
                 <div className="flex gap-2">
-                  {inv.status === "draft" && <button className="btn btn-brand btn-sm"><Send size={14} />Send</button>}
-                  {inv.status === "sent" && <button className="btn btn-brand btn-sm"><DollarSign size={14} />Mark Paid</button>}
+                  {inv.status === "draft" && <button onClick={() => doSend(inv.invoiceId)} className="btn btn-brand btn-sm"><Send size={14} />Send</button>}
+                  {inv.status === "sent" && <button onClick={() => doPay(inv.invoiceId)} className="btn btn-brand btn-sm"><DollarSign size={14} />Mark Paid</button>}
                 </div>
               </div>
             </div>
