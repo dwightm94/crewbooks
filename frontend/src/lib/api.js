@@ -51,3 +51,19 @@ export async function getPublicInvoice(invoiceId) {
   if (!res.ok) throw new Error("Invoice not found");
   return res.json();
 }
+
+// === PHASE 2: Crew & Scheduling ===
+
+// Crew Members
+export const getCrew = () => api("/crew");
+export const getCrewMember = (id) => api(`/crew/${id}`);
+export const createCrewMember = (data) => api("/crew", { method: "POST", body: data });
+export const updateCrewMember = (id, data) => api(`/crew/${id}`, { method: "PUT", body: data });
+export const deleteCrewMember = (id) => api(`/crew/${id}`, { method: "DELETE" });
+
+// Assignments
+export const getAssignments = (date) => api(`/assignments?date=${date}`);
+export const createAssignment = (data) => api("/assignments", { method: "POST", body: data });
+export const deleteAssignment = (date, memberId) => api(`/assignments?date=${date}&memberId=${memberId}`, { method: "DELETE" });
+export const notifyCrew = (date) => api("/assignments/notify", { method: "POST", body: { date } });
+export const getTracker = () => api("/assignments/tracker");

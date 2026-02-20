@@ -1,0 +1,160 @@
+# ============================================================
+# PHASE 2 ADDITIONS - Add these to template.yaml
+# ============================================================
+# 
+# 1. Add to Globals > Function > Environment > Variables:
+#      CREW_TABLE: !Ref CrewTable
+#      ASSIGNMENTS_TABLE: !Ref AssignmentsTable
+#
+# 2. Add these new DynamoDB tables after InvoicesTable:
+
+  CrewTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub crewbooks-crew-${Stage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: PK, AttributeType: S }
+        - { AttributeName: SK, AttributeType: S }
+        - { AttributeName: GSI1PK, AttributeType: S }
+        - { AttributeName: GSI1SK, AttributeType: S }
+      KeySchema:
+        - { AttributeName: PK, KeyType: HASH }
+        - { AttributeName: SK, KeyType: RANGE }
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - { AttributeName: GSI1PK, KeyType: HASH }
+            - { AttributeName: GSI1SK, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+
+  AssignmentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub crewbooks-assignments-${Stage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: PK, AttributeType: S }
+        - { AttributeName: SK, AttributeType: S }
+        - { AttributeName: GSI1PK, AttributeType: S }
+        - { AttributeName: GSI1SK, AttributeType: S }
+      KeySchema:
+        - { AttributeName: PK, KeyType: HASH }
+        - { AttributeName: SK, KeyType: RANGE }
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - { AttributeName: GSI1PK, KeyType: HASH }
+            - { AttributeName: GSI1SK, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+
+# 3. Add these Lambda functions after PhotosFunction:
+
+  # --- Crew Members ---
+  CrewFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-crew-${Stage}
+      Handler: lambdas/crew/index.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CrewTable
+      Events:
+        CreateMember:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /crew
+            Method: POST
+        ListMembers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /crew
+            Method: GET
+        GetMember:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/crew/{memberId}"
+            Method: GET
+        UpdateMember:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/crew/{memberId}"
+            Method: PUT
+        DeleteMember:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/crew/{memberId}"
+            Method: DELETE
+
+  # --- Assignments & Scheduling ---
+  AssignmentsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-assignments-${Stage}
+      Handler: lambdas/assignments/index.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AssignmentsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CrewTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: '*'
+      Events:
+        CreateAssignment:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /assignments
+            Method: POST
+        ListAssignments:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /assignments
+            Method: GET
+        DeleteAssignment:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /assignments
+            Method: DELETE
+        NotifyCrew:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /assignments/notify
+            Method: POST
+        GetTracker:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /assignments/tracker
+            Method: GET
+        CrewView:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/crew-view/{token}"
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        CrewClock:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/crew-view/{token}/clock"
+            Method: POST
+            Auth:
+              Authorizer: NONE
