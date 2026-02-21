@@ -212,19 +212,21 @@ export default function SchedulePage() {
 }
 
 function AssignModal({ crew, jobs, onAssign, onClose }) {
-  const [memberId, setMemberId] = useState("");
-  const [jobId, setJobId] = useState("");
+  const [memberId, setMemberId] = useState(crew.length === 1 ? crew[0].memberId : "");
+  const [jobId, setJobId] = useState(jobs.length === 1 ? jobs[0].jobId : "");
   const [startTime, setStartTime] = useState("7:00 AM");
   const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState(null);
   const times = ["6:00 AM", "6:30 AM", "7:00 AM", "7:30 AM", "8:00 AM", "8:30 AM", "9:00 AM", "10:00 AM"];
 
   const handleAssign = async () => {
-    if (!memberId || !jobId) return;
+    setErr(null);
+    if (!memberId || !jobId) { setErr("Please select a crew member and job"); return; }
     setSaving(true);
     try {
       await onAssign(memberId, jobId, startTime);
     } catch (e) {
-      alert("Failed to assign: " + e.message);
+      setErr("Failed: " + e.message);
       setSaving(false);
     }
   };
@@ -279,10 +281,11 @@ function AssignModal({ crew, jobs, onAssign, onClose }) {
             </div>
           </div>
 
-          <button onClick={handleAssign}
-            disabled={!memberId || !jobId || saving}
+          {err && <div className="rounded-xl p-3 text-sm font-bold text-center" style={{ background: "var(--red-bg, #fee)", color: "var(--red, red)" }}>{err}</div>}
+          <button type="button" onClick={handleAssign}
+            disabled={saving}
             className="btn btn-brand w-full text-lg">
-            {saving ? "Assigning..." : "Assign"}
+            {saving ? "Assigning..." : `Assign${memberId && jobId ? "" : " (select both)"}`}
           </button>
         </div>
       </div>
