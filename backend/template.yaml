@@ -619,6 +619,9 @@ Resources:
         ListPhotos:
           Type: Api
           Properties: { RestApiId: !Ref ApiGateway, Path: "/jobs/{jobId}/photos", Method: GET }
+        DeletePhoto:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: "/jobs/{jobId}/photos/{photoId}", Method: DELETE }
 
 Outputs:
   ApiUrl:

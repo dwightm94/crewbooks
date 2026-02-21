@@ -46,7 +46,8 @@ function EmptyDashboard({ router }) {
 }
 
 function FilledDashboard({ data, router }) {
-  const { totalOwed = 0, totalOverdue = 0, totalEarned = 0, paidThisMonth = 0, counts = {}, overdueInvoices = [], recentJobs = [], profitability = {} } = data;
+  const { totalOwed = 0, totalOverdue = 0, totalEarned = 0, paidThisMonth = 0, counts = {}, overdueInvoices = [], recentJobs: rawJobs = [], profitability = {} } = data;
+  const recentJobs = rawJobs.filter(j => j.jobName);
   return (
     <div className="mt-4 space-y-5">
       {/* Hero: Total Owed */}

@@ -15,7 +15,7 @@ export default function JobsPage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => { getJobs().then(r => setJobs(r.jobs || r || [])).catch(() => {}).finally(() => setLoading(false)); }, []);
+  useEffect(() => { getJobs().then(r => { const all = r.jobs || r || []; setJobs(all.filter(j => j.jobName)); }).catch(() => {}).finally(() => setLoading(false)); }, []);
 
   const filtered = jobs.filter(j => {
     if (filter !== "all" && j.status !== filter) return false;
