@@ -75,3 +75,10 @@ export const uploadJobPhoto = (jobId, fileName, contentType, category) =>
 export const getJobLogs = (jobId) => api(`/jobs/${jobId}/logs`);
 export const createJobLog = (jobId, data) => api(`/jobs/${jobId}/logs`, { method: "POST", body: data });
 export const deleteJobPhoto = (jobId, photoId) => api(`/jobs/${jobId}/photos/${photoId}`, { method: "DELETE" });
+
+// === PHASE 4: Compliance ===
+export const getComplianceDocs = () => api("/compliance");
+export const getComplianceDoc = (id) => api(`/compliance/${id}`);
+export const createComplianceDoc = (data) => api("/compliance", { method: "POST", body: data });
+export const updateComplianceDoc = (id, data) => api(`/compliance/${id}`, { method: "PUT", body: data });
+export const deleteComplianceDoc = (id) => api(`/compliance/${id}`, { method: "DELETE" });
