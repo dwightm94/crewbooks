@@ -67,3 +67,10 @@ export const createAssignment = (data) => api("/assignments", { method: "POST", 
 export const deleteAssignment = (date, memberId) => api(`/assignments?date=${date}&memberId=${memberId}`, { method: "DELETE" });
 export const notifyCrew = (date) => api("/assignments/notify", { method: "POST", body: { date } });
 export const getTracker = () => api("/assignments/tracker");
+
+// === PHASE 3: Photos & Daily Logs ===
+export const getJobPhotos = (jobId) => api(`/jobs/${jobId}/photos`);
+export const uploadJobPhoto = (jobId, fileName, contentType, category) =>
+  api(`/jobs/${jobId}/photos`, { method: "POST", body: { fileName, contentType, category } });
+export const getJobLogs = (jobId) => api(`/jobs/${jobId}/logs`);
+export const createJobLog = (jobId, data) => api(`/jobs/${jobId}/logs`, { method: "POST", body: data });
