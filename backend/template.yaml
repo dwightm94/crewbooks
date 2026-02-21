@@ -594,6 +594,32 @@ Resources:
           Type: Api
           Properties: { RestApiId: !Ref ApiGateway, Path: "/crew-view/{token}/clock", Method: POST, Auth: { Authorizer: NONE } }
 
+  # --- Phase 3: Daily Logs & Photos ---
+  DailyLogsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-dailylogs-${Stage}
+      Handler: lambdas/dailylogs/index.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - S3CrudPolicy:
+            BucketName: !Ref PhotosBucket
+      Events:
+        CreateLog:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: "/jobs/{jobId}/logs", Method: POST }
+        ListLogs:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: "/jobs/{jobId}/logs", Method: GET }
+        AddPhoto:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: "/jobs/{jobId}/photos", Method: POST }
+        ListPhotos:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: "/jobs/{jobId}/photos", Method: GET }
+
 Outputs:
   ApiUrl:
     Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
