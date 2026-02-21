@@ -33,11 +33,12 @@ export default function SchedulePage() {
     try {
       const [c, j, a] = await Promise.all([
         getCrew().catch(() => ({ members: [] })),
-        getJobs().catch(() => ({ jobs: [] })),
+        getJobs().catch(() => []),
         getAssignments(date).catch(() => ({ assignments: [] })),
       ]);
       setCrew(c.members || c || []);
-      setJobs((j.jobs || j || []).filter(job => job.status === "active"));
+      const jobList = j.jobs || (Array.isArray(j) ? j : []);
+      setJobs(jobList.filter(job => job.status === "active" || job.status === "complete"));
       setAssignments(a.assignments || a || []);
     } catch (e) { console.error(e); }
     setLoading(false);
