@@ -18,9 +18,11 @@ Globals:
         CREW_TABLE: !Ref CrewTable
         ASSIGNMENTS_TABLE: !Ref AssignmentsTable
         COMPLIANCE_TABLE: !Ref ComplianceTable
+        ESTIMATES_TABLE: !Ref EstimatesTable
         CREW_TABLE: !Ref CrewTable
         ASSIGNMENTS_TABLE: !Ref AssignmentsTable
         COMPLIANCE_TABLE: !Ref ComplianceTable
+        ESTIMATES_TABLE: !Ref EstimatesTable
         REGION: !Ref AWS::Region
 
 Parameters:
@@ -253,6 +255,26 @@ Resources:
       KeySchema:
         - { AttributeName: PK, KeyType: HASH }
         - { AttributeName: SK, KeyType: RANGE }
+
+  EstimatesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub crewbooks-estimates-${Stage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: PK, AttributeType: S }
+        - { AttributeName: SK, AttributeType: S }
+        - { AttributeName: GSI1PK, AttributeType: S }
+        - { AttributeName: GSI1SK, AttributeType: S }
+      KeySchema:
+        - { AttributeName: PK, KeyType: HASH }
+        - { AttributeName: SK, KeyType: RANGE }
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - { AttributeName: GSI1PK, KeyType: HASH }
+            - { AttributeName: GSI1SK, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
 
   # ========== LAMBDA FUNCTIONS ==========
   AuthPostConfirmationFunction:
@@ -664,6 +686,54 @@ Resources:
         Delete:
           Type: Api
           Properties: { RestApiId: !Ref ApiGateway, Path: "/compliance/{docId}", Method: DELETE }
+
+  EstimatesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-estimates-${Stage}
+      Handler: lambdas/estimates/index.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EstimatesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+      Events:
+        Create:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: /estimates, Method: POST }
+        List:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: /estimates, Method: GET }
+        Get:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: "/estimates/{estimateId}", Method: GET }
+        Update:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: "/estimates/{estimateId}", Method: PUT }
+        Delete:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: "/estimates/{estimateId}", Method: DELETE }
+        Send:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: "/estimates/{estimateId}/send", Method: POST }
+        Convert:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: "/estimates/{estimateId}/convert", Method: POST }
+        PublicView:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/estimate-view/{token}"
+            Method: GET
+            Auth: { Authorizer: NONE }
+        PublicApprove:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/estimate-view/{token}/approve"
+            Method: POST
+            Auth: { Authorizer: NONE }
 
 Outputs:
   ApiUrl:
