@@ -35,10 +35,10 @@ export default function JobsPage() {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2 mt-4 overflow-x-auto pb-1 no-scrollbar">
+      <div className="flex flex-wrap gap-2 mt-4">
         {FILTERS.map(f => (
           <button key={f} onClick={() => setFilter(f)}
-            className="px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all"
+            className="px-3 py-1.5 rounded-full text-sm font-bold transition-all"
             style={{
               background: filter === f ? "var(--brand)" : "var(--input)",
               color: filter === f ? "#0F172A" : "var(--text2)",
