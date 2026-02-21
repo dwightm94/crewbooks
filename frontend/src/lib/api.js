@@ -82,3 +82,12 @@ export const getComplianceDoc = (id) => api(`/compliance/${id}`);
 export const createComplianceDoc = (data) => api("/compliance", { method: "POST", body: data });
 export const updateComplianceDoc = (id, data) => api(`/compliance/${id}`, { method: "PUT", body: data });
 export const deleteComplianceDoc = (id) => api(`/compliance/${id}`, { method: "DELETE" });
+
+// === PHASE 5: Estimates ===
+export const getEstimates = () => api("/estimates");
+export const getEstimate = (id) => api(`/estimates/${id}`);
+export const createEstimate = (data) => api("/estimates", { method: "POST", body: data });
+export const updateEstimate = (id, data) => api(`/estimates/${id}`, { method: "PUT", body: data });
+export const deleteEstimate = (id) => api(`/estimates/${id}`, { method: "DELETE" });
+export const sendEstimate = (id) => api(`/estimates/${id}/send`, { method: "POST" });
+export const convertEstimateToJob = (id) => api(`/estimates/${id}/convert`, { method: "POST" });
