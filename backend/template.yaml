@@ -17,8 +17,10 @@ Globals:
         FRONTEND_URL: !Ref FrontendURL
         CREW_TABLE: !Ref CrewTable
         ASSIGNMENTS_TABLE: !Ref AssignmentsTable
+        COMPLIANCE_TABLE: !Ref ComplianceTable
         CREW_TABLE: !Ref CrewTable
         ASSIGNMENTS_TABLE: !Ref AssignmentsTable
+        COMPLIANCE_TABLE: !Ref ComplianceTable
         REGION: !Ref AWS::Region
 
 Parameters:
@@ -239,6 +241,18 @@ Resources:
             - { AttributeName: GSI1PK, KeyType: HASH }
             - { AttributeName: GSI1SK, KeyType: RANGE }
           Projection: { ProjectionType: ALL }
+
+  ComplianceTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub crewbooks-compliance-${Stage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: PK, AttributeType: S }
+        - { AttributeName: SK, AttributeType: S }
+      KeySchema:
+        - { AttributeName: PK, KeyType: HASH }
+        - { AttributeName: SK, KeyType: RANGE }
 
   # ========== LAMBDA FUNCTIONS ==========
   AuthPostConfirmationFunction:
@@ -622,6 +636,34 @@ Resources:
         DeletePhoto:
           Type: Api
           Properties: { RestApiId: !Ref ApiGateway, Path: "/jobs/{jobId}/photos/{photoId}", Method: DELETE }
+
+  ComplianceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-compliance-${Stage}
+      Handler: lambdas/compliance/index.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ComplianceTable
+        - S3CrudPolicy:
+            BucketName: !Ref PhotosBucket
+      Events:
+        Create:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: /compliance, Method: POST }
+        List:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: /compliance, Method: GET }
+        Get:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: "/compliance/{docId}", Method: GET }
+        Update:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: "/compliance/{docId}", Method: PUT }
+        Delete:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: "/compliance/{docId}", Method: DELETE }
 
 Outputs:
   ApiUrl:

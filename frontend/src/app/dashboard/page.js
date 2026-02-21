@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { Plus, AlertTriangle, TrendingUp, Briefcase, DollarSign, Clock, ArrowRight } from "lucide-react";
+import { Plus, AlertTriangle, TrendingUp, Briefcase, DollarSign, Clock, ArrowRight, Settings } from "lucide-react";
 import { getDashboard } from "@/lib/api";
 import { money, moneyCompact, statusBadge, statusLabel, overdueSeverity, margin, marginColor, relDate } from "@/lib/utils";
 
@@ -19,7 +19,12 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const addBtn = <button onClick={() => router.push("/jobs/new")} className="btn btn-brand btn-sm"><Plus size={18} />New Job</button>;
+  const addBtn = (
+    <div className="flex items-center gap-2">
+      <button onClick={() => router.push("/settings")} className="p-2 rounded-xl" style={{ color: "var(--text2)" }}><Settings size={20} /></button>
+      <button onClick={() => router.push("/jobs/new")} className="btn btn-brand btn-sm"><Plus size={18} />New Job</button>
+    </div>
+  );
 
   return (
     <AppShell title="CrewBooks" action={addBtn}>
