@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Hammer, Users, Calendar, FileText, ChevronLeft } from "lucide-react";
+import { LayoutDashboard, Hammer, Users, Calendar, FileText, ChevronLeft, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -41,7 +41,10 @@ export function AppShell({ children, title, subtitle, back, action }) {
                 {subtitle && <p className="text-sm" style={{ color: "var(--text2)" }}>{subtitle}</p>}
               </div>
             </div>
-            {action}
+            <div className="flex items-center gap-1">
+              {action}
+              <button onClick={() => router.push("/settings")} className="p-2 rounded-xl" style={{ color: "var(--text2)" }}><Settings size={20} /></button>
+            </div>
           </div>
         </header>
       )}
