@@ -74,3 +74,4 @@ export const uploadJobPhoto = (jobId, fileName, contentType, category) =>
   api(`/jobs/${jobId}/photos`, { method: "POST", body: { fileName, contentType, category } });
 export const getJobLogs = (jobId) => api(`/jobs/${jobId}/logs`);
 export const createJobLog = (jobId, data) => api(`/jobs/${jobId}/logs`, { method: "POST", body: data });
+export const deleteJobPhoto = (jobId, photoId) => api(`/jobs/${jobId}/photos/${photoId}`, { method: "DELETE" });

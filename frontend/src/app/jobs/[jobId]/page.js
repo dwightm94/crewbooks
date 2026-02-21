@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { getJob, getExpenses, updateJob, createExpense, deleteExpense, createInvoice, sendInvoice, markInvoicePaid, getJobPhotos, uploadJobPhoto, getJobLogs, createJobLog } from "@/lib/api";
+import { getJob, getExpenses, updateJob, createExpense, deleteExpense, createInvoice, sendInvoice, markInvoicePaid, getJobPhotos, uploadJobPhoto, deleteJobPhoto, getJobLogs, createJobLog } from "@/lib/api";
 import { money, moneyExact, statusBadge, statusLabel, margin, marginColor, EXPENSE_CATEGORIES, relDate, INVOICE_STATUS } from "@/lib/utils";
 import { Edit3, Trash2, Plus, Receipt, FileText, Camera, CheckCircle2, Send, DollarSign, MapPin, Phone, Mail, X, Image, ClipboardList, Sun, Cloud, CloudRain, Snowflake } from "lucide-react";
 
@@ -220,12 +220,18 @@ function PhotosTab({ photos, jobId, onRefresh }) {
     setUploading(true);
     try {
       const res = await uploadJobPhoto(jobId, file.name, file.type, category);
-      // Upload file to S3 presigned URL
       await fetch(res.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
       onRefresh();
     } catch (err) { alert("Upload failed: " + err.message); }
     setUploading(false);
     e.target.value = "";
+  };
+
+  const doDeletePhoto = async (photoId) => {
+    if (confirm("Delete this photo?")) {
+      try { await deleteJobPhoto(jobId, photoId); onRefresh(); }
+      catch (err) { alert("Delete failed: " + err.message); }
+    }
   };
 
   const grouped = PHOTO_CATEGORIES.map(cat => ({
@@ -259,9 +265,14 @@ function PhotosTab({ photos, jobId, onRefresh }) {
           <h3 className="section-title">{group.icon} {group.label} ({group.photos.length})</h3>
           <div className="grid grid-cols-3 gap-2">
             {group.photos.map(p => (
-              <a key={p.photoId} href={p.url} target="_blank" className="aspect-square rounded-xl overflow-hidden" style={{ background: "var(--input)" }}>
-                <img src={p.url} alt="" className="w-full h-full object-cover" loading="lazy" />
-              </a>
+              <div key={p.photoId} className="relative aspect-square rounded-xl overflow-hidden" style={{ background: "var(--input)" }}>
+                <a href={p.url} target="_blank"><img src={p.url} alt="" className="w-full h-full object-cover" loading="lazy" /></a>
+                <button onClick={() => doDeletePhoto(p.photoId)}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(0,0,0,0.6)" }}>
+                  <X size={14} color="white" />
+                </button>
+              </div>
             ))}
           </div>
         </div>
