@@ -52,8 +52,14 @@ export default function SchedulePage() {
   useEffect(() => { if (tab === "tracker") loadTracker(); }, [tab]);
 
   const doAssign = async (memberId, jobId, startTime) => {
-    await createAssignment({ memberId, jobId, date, startTime });
-    setShowAssignModal(false); load();
+    try {
+      await createAssignment({ memberId, jobId, date, startTime });
+      setShowAssignModal(false);
+      load();
+    } catch (e) {
+      alert("Assignment failed: " + e.message);
+      throw e;
+    }
   };
 
   const doRemove = async (memberId) => {
@@ -209,7 +215,19 @@ function AssignModal({ crew, jobs, onAssign, onClose }) {
   const [memberId, setMemberId] = useState("");
   const [jobId, setJobId] = useState("");
   const [startTime, setStartTime] = useState("7:00 AM");
+  const [saving, setSaving] = useState(false);
   const times = ["6:00 AM", "6:30 AM", "7:00 AM", "7:30 AM", "8:00 AM", "8:30 AM", "9:00 AM", "10:00 AM"];
+
+  const handleAssign = async () => {
+    if (!memberId || !jobId) return;
+    setSaving(true);
+    try {
+      await onAssign(memberId, jobId, startTime);
+    } catch (e) {
+      alert("Failed to assign: " + e.message);
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--bg)" }}>
@@ -261,10 +279,10 @@ function AssignModal({ crew, jobs, onAssign, onClose }) {
             </div>
           </div>
 
-          <button onClick={() => memberId && jobId && onAssign(memberId, jobId, startTime)}
-            disabled={!memberId || !jobId}
+          <button onClick={handleAssign}
+            disabled={!memberId || !jobId || saving}
             className="btn btn-brand w-full text-lg">
-            Assign
+            {saving ? "Assigning..." : "Assign"}
           </button>
         </div>
       </div>
