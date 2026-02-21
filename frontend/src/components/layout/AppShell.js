@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Hammer, Users, Calendar, Shield, ChevronLeft } from "lucide-react";
+import { LayoutDashboard, Hammer, Users, Calendar, FileText, ChevronLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -10,7 +10,7 @@ const TABS = [
   { href: "/jobs", label: "Jobs", icon: Hammer },
   { href: "/crew", label: "Crew", icon: Users },
   { href: "/schedule", label: "Plan", icon: Calendar },
-  { href: "/compliance", label: "Docs", icon: Shield },
+  { href: "/estimates", label: "Bids", icon: FileText },
 ];
 
 export function AppShell({ children, title, subtitle, back, action }) {

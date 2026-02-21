@@ -136,6 +136,24 @@ function FilledDashboard({ data, router }) {
           </div>
         </section>
       )}
+
+      {/* Quick Links */}
+      <section>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => router.push("/compliance")} className="card-hover text-left">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🛡️</span>
+              <div><p className="font-bold text-sm" style={{ color: "var(--text)" }}>Compliance</p><p className="text-xs" style={{ color: "var(--text2)" }}>Licenses & Docs</p></div>
+            </div>
+          </button>
+          <button onClick={() => router.push("/settings")} className="card-hover text-left">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">⚙️</span>
+              <div><p className="font-bold text-sm" style={{ color: "var(--text)" }}>Settings</p><p className="text-xs" style={{ color: "var(--text2)" }}>Theme & Account</p></div>
+            </div>
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
