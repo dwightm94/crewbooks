@@ -48,6 +48,7 @@ export default function JobDetailPage() {
 
   const totalExpenses = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const m = margin(job.bidAmount, totalExpenses);
+  const mPct = m.percent || 0;
 
   const markComplete = async () => { await updateJob(jobId, { ...job, status: "complete" }); load(); };
   const markPaid = async () => { await updateJob(jobId, { ...job, status: "paid" }); load(); };
@@ -81,7 +82,7 @@ export default function JobDetailPage() {
           </div>
           <div className="py-2">
             <p className="text-xs font-semibold" style={{ color: "var(--muted)" }}>Margin</p>
-            <p className="text-lg font-extrabold" style={{ color: marginColor(m) }}>{m}%</p>
+            <p className="text-lg font-extrabold" style={{ color: marginColor(mPct) }}>{mPct}%</p>
           </div>
         </div>
         <div className="mt-2 h-2 rounded-full" style={{ background: "var(--input)" }}>
