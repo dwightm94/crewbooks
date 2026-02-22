@@ -4,13 +4,17 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { Plus, AlertTriangle, TrendingUp, Briefcase, DollarSign, Clock, ArrowRight } from "lucide-react";
 import { getDashboard } from "@/lib/api";
+import { usePlan } from "@/hooks/usePlan";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { money, moneyCompact, statusBadge, statusLabel, overdueSeverity, margin, marginColor, relDate } from "@/lib/utils";
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
+  const [showUpgrade, setShowUpgrade] = useState(null);
   const router = useRouter();
+  const { canDo } = usePlan();
 
   useEffect(() => {
     getDashboard()
@@ -19,14 +23,21 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const addBtn = <button onClick={() => router.push("/jobs/new")} className="btn btn-brand btn-sm"><Plus size={18} />New Job</button>;
+  const handleNewJob = () => {
+    const check = canDo("create_job");
+    if (!check.allowed) { setShowUpgrade(check.message); return; }
+    router.push("/jobs/new");
+  };
+
+  const addBtn = <button onClick={handleNewJob} className="btn btn-brand btn-sm"><Plus size={18} />New Job</button>;
 
   return (
     <AppShell title="CrewBooks" action={addBtn}>
+      {showUpgrade && <UpgradePrompt message={showUpgrade} onClose={() => setShowUpgrade(null)} />}
       {loading ? (
         <div className="space-y-4 mt-4">{[1, 2, 3].map(i => <div key={i} className="skeleton h-28" />)}</div>
       ) : err || !data ? (
-        <EmptyDashboard router={router} />
+        <EmptyDashboard onNewJob={handleNewJob} />
       ) : (
         <FilledDashboard data={data} router={router} />
       )}
@@ -34,13 +45,13 @@ export default function DashboardPage() {
   );
 }
 
-function EmptyDashboard({ router }) {
+function EmptyDashboard({ onNewJob }) {
   return (
     <div className="mt-16 text-center">
       <div className="empty-icon"><Briefcase size={40} style={{ color: "var(--muted)" }} /></div>
       <h2 className="text-2xl font-extrabold mb-2" style={{ color: "var(--text)" }}>No jobs yet</h2>
       <p className="mb-8 text-base" style={{ color: "var(--text2)" }}>Create your first job to start tracking money.</p>
-      <button onClick={() => router.push("/jobs/new")} className="btn btn-brand mx-auto"><Plus size={20} />Create First Job</button>
+      <button onClick={onNewJob} className="btn btn-brand mx-auto"><Plus size={20} />Create First Job</button>
     </div>
   );
 }
@@ -135,18 +146,6 @@ function FilledDashboard({ data, router }) {
       {/* Quick Links */}
       <section>
         <div className="grid grid-cols-2 gap-2">
-          <button onClick={() => router.push("/reports")} className="card-hover text-left">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">📊</span>
-              <div><p className="font-bold text-sm" style={{ color: "var(--text)" }}>Reports</p><p className="text-xs" style={{ color: "var(--text2)" }}>Analytics & Trends</p></div>
-            </div>
-          </button>
-          <button onClick={() => router.push("/clients")} className="card-hover text-left">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">👥</span>
-              <div><p className="font-bold text-sm" style={{ color: "var(--text)" }}>Clients</p><p className="text-xs" style={{ color: "var(--text2)" }}>CRM & Follow-ups</p></div>
-            </div>
-          </button>
           <button onClick={() => router.push("/compliance")} className="card-hover text-left">
             <div className="flex items-center gap-3">
               <span className="text-xl">🛡️</span>

@@ -3,6 +3,8 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { getJob, getExpenses, updateJob, createExpense, deleteExpense, createInvoice, sendInvoice, markInvoicePaid, getJobPhotos, uploadJobPhoto, deleteJobPhoto, getJobLogs, createJobLog } from "@/lib/api";
+import { usePlan } from "@/hooks/usePlan";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { money, moneyExact, statusBadge, statusLabel, margin, marginColor, EXPENSE_CATEGORIES, relDate, INVOICE_STATUS } from "@/lib/utils";
 import { Edit3, Trash2, Plus, Receipt, FileText, Camera, CheckCircle2, Send, DollarSign, MapPin, Phone, Mail, X, Image, ClipboardList, Sun, Cloud, CloudRain, Snowflake } from "lucide-react";
 
@@ -17,6 +19,8 @@ export default function JobDetailPage() {
   const [logs, setLogs] = useState([]);
   const [tab, setTab] = useState("overview");
   const [loading, setLoading] = useState(true);
+  const [showUpgrade, setShowUpgrade] = useState(null);
+  const { canDo } = usePlan();
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showLogForm, setShowLogForm] = useState(false);
   const router = useRouter();
@@ -54,6 +58,8 @@ export default function JobDetailPage() {
   const markPaid = async () => { await updateJob(jobId, { ...job, status: "paid" }); load(); };
   const changeStatus = async (newStatus) => { if (newStatus !== job.status) { await updateJob(jobId, { ...job, status: newStatus }); load(); } };
   const genInvoice = async () => {
+    const check = canDo("create_invoice");
+    if (!check.allowed) { setShowUpgrade(check.message); return; }
     try {
       const inv = await createInvoice(jobId, { amount: job.bidAmount, lineItems: [{ description: job.jobName, amount: job.bidAmount }] });
       setInvoices(prev => [...prev, inv]);
@@ -69,6 +75,7 @@ export default function JobDetailPage() {
           {job.status === "complete" && <button onClick={markPaid} className="btn btn-brand btn-sm"><DollarSign size={16} />Paid</button>}
         </div>
       }>
+      {showUpgrade && <UpgradePrompt message={showUpgrade} onClose={() => setShowUpgrade(null)} />}
 
       {/* Financial Summary Bar */}
       <div className="card mt-4">

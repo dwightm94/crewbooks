@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { getReports } from "@/lib/api";
+import { usePlan } from "@/hooks/usePlan";
+import { UpgradeBanner } from "@/components/UpgradePrompt";
 import { money } from "@/lib/utils";
 import { TrendingUp, TrendingDown, DollarSign, Briefcase, Users, PieChart } from "lucide-react";
 
@@ -10,6 +12,7 @@ export default function ReportsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { isFree } = usePlan();
 
   useEffect(() => { getReports().then(setData).catch(console.error).finally(() => setLoading(false)); }, []);
 
@@ -75,7 +78,12 @@ export default function ReportsPage() {
       </section>
 
       {/* Job Profitability Ranking */}
-      {jobProfitability.length > 0 && (
+      {isFree && (
+        <section className="mt-6">
+          <UpgradeBanner message="Upgrade to Pro for full reports — profitability rankings, expense breakdowns & client analytics" />
+        </section>
+      )}
+      {!isFree && jobProfitability.length > 0 && (
         <section className="mt-6">
           <h3 className="section-title">Job Profitability</h3>
           <div className="space-y-2">
@@ -101,7 +109,7 @@ export default function ReportsPage() {
       )}
 
       {/* Expense Categories */}
-      {Object.keys(expensesByCategory).length > 0 && (
+      {!isFree && Object.keys(expensesByCategory).length > 0 && (
         <section className="mt-6">
           <h3 className="section-title">Expenses by Category</h3>
           <div className="card">
@@ -126,7 +134,7 @@ export default function ReportsPage() {
       )}
 
       {/* Top Clients */}
-      {clients.length > 0 && (
+      {!isFree && clients.length > 0 && (
         <section className="mt-6 mb-4">
           <h3 className="section-title">Top Clients</h3>
           <div className="space-y-2">

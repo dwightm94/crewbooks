@@ -911,6 +911,47 @@ Resources:
             Method: POST
             Auth: { Authorizer: NONE }
 
+  SubscriptionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-subscription-${Stage}
+      Handler: lambdas/subscription/index.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InvoicesTable
+      Events:
+        Status:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: /subscription/status, Method: GET }
+        Check:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: /subscription/check, Method: POST }
+        Checkout:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: /subscription/checkout, Method: POST }
+        Portal:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: /subscription/portal, Method: POST }
+        Plans:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /subscription/plans
+            Method: GET
+            Auth: { Authorizer: NONE }
+        Webhook:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /subscription/webhook
+            Method: POST
+            Auth: { Authorizer: NONE }
+
 Outputs:
   ApiUrl:
     Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}

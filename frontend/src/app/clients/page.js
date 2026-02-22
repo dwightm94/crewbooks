@@ -3,14 +3,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { getReports } from "@/lib/api";
+import { usePlan } from "@/hooks/usePlan";
 import { money } from "@/lib/utils";
-import { Users, Phone, Mail, Briefcase, Clock, Copy, CheckCircle2, ExternalLink } from "lucide-react";
+import { Users, Phone, Mail, Briefcase, Clock, Copy, CheckCircle2, ExternalLink, Zap } from "lucide-react";
 
 export default function ClientsPage() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
   const router = useRouter();
+  const { isPro } = usePlan();
 
   useEffect(() => {
     getReports().then(r => setClients(r.clients || []))
@@ -87,11 +89,19 @@ export default function ClientsPage() {
                     </div>
                     {/* Action buttons */}
                     <div className="flex items-center gap-2 mt-3 ml-11">
-                      <button onClick={() => copyPayLink(c)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                        style={{ background: isCopied ? "rgba(34,197,94,0.1)" : "rgba(99,91,255,0.1)", color: isCopied ? "var(--green)" : "#635BFF" }}>
-                        {isCopied ? <><CheckCircle2 size={12} />Copied!</> : <><Copy size={12} />Pay Link</>}
-                      </button>
+                      {isPro ? (
+                        <button onClick={() => copyPayLink(c)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                          style={{ background: isCopied ? "rgba(34,197,94,0.1)" : "rgba(99,91,255,0.1)", color: isCopied ? "var(--green)" : "#635BFF" }}>
+                          {isCopied ? <><CheckCircle2 size={12} />Copied!</> : <><Copy size={12} />Pay Link</>}
+                        </button>
+                      ) : (
+                        <button onClick={() => router.push("/upgrade")}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold"
+                          style={{ background: "rgba(245,158,11,0.1)", color: "#F59E0B" }}>
+                          <Zap size={12} />Pay Link (Pro)
+                        </button>
+                      )}
                       {c.latestJobId && (
                         <button onClick={() => router.push(`/jobs/${c.latestJobId}`)}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold"
