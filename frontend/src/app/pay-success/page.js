@@ -1,8 +1,9 @@
 "use client";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 
-export default function PaySuccessPage() {
+function PaySuccessContent() {
   const searchParams = useSearchParams();
   const invoiceId = searchParams.get("invoice");
 
@@ -20,4 +21,8 @@ export default function PaySuccessPage() {
       </div>
     </div>
   );
+}
+
+export default function PaySuccessPage() {
+  return <Suspense fallback={<div className="min-h-screen flex items-center justify-center" style={{ background: "#F8FAFC" }}><p>Loading...</p></div>}><PaySuccessContent /></Suspense>;
 }
