@@ -91,3 +91,6 @@ export const updateEstimate = (id, data) => api(`/estimates/${id}`, { method: "P
 export const deleteEstimate = (id) => api(`/estimates/${id}`, { method: "DELETE" });
 export const sendEstimate = (id) => api(`/estimates/${id}/send`, { method: "POST" });
 export const convertEstimateToJob = (id) => api(`/estimates/${id}/convert`, { method: "POST" });
+
+// === PHASE 6: Reports & CRM ===
+export const getReports = () => api("/reports");
