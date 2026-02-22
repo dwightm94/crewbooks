@@ -109,18 +109,18 @@ export default function NewEstimatePage() {
               <span className="text-sm" style={{ color: "var(--text2)" }}>Markup</span>
               <div className="flex items-center gap-2">
                 <input type="number" inputMode="decimal" value={form.markupPercent} onChange={up("markupPercent")}
-                  className="field w-20 text-sm text-center" min="0" step="any" />
+                  className="field w-24 text-sm text-center" min="0" step="any" />
                 <span className="text-sm font-bold" style={{ color: "var(--text2)" }}>%</span>
-                <span className="text-sm font-bold w-20 text-right" style={{ color: "var(--text)" }}>{money(markup)}</span>
+                <span className="text-sm font-bold w-24 text-right" style={{ color: "var(--text)" }}>{money(markup)}</span>
               </div>
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-sm" style={{ color: "var(--text2)" }}>Tax</span>
               <div className="flex items-center gap-2">
                 <input type="number" inputMode="decimal" value={form.taxPercent} onChange={up("taxPercent")}
-                  className="field w-20 text-sm text-center" min="0" step="any" />
+                  className="field w-24 text-sm text-center" min="0" step="any" />
                 <span className="text-sm font-bold" style={{ color: "var(--text2)" }}>%</span>
-                <span className="text-sm font-bold w-20 text-right" style={{ color: "var(--text)" }}>{money(tax)}</span>
+                <span className="text-sm font-bold w-24 text-right" style={{ color: "var(--text)" }}>{money(tax)}</span>
               </div>
             </div>
             <div className="border-t pt-3 flex items-center justify-between" style={{ borderColor: "var(--border)" }}>
