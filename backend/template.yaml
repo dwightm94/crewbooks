@@ -779,6 +779,61 @@ Resources:
           Type: Api
           Properties: { RestApiId: !Ref ApiGateway, Path: /reports, Method: GET }
 
+  ReportsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-reports-${Stage}
+      Handler: lambdas/reports/index.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExpensesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InvoicesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CrewTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AssignmentsTable
+      Events:
+        Get:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: /reports, Method: GET }
+  PaymentsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-payments-${Stage}
+      Handler: lambdas/payments/index.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InvoicesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+      Events:
+        GetInvoice:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/pay/{invoiceId}"
+            Method: GET
+            Auth: { Authorizer: NONE }
+        CreateCheckout:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: "/pay/{invoiceId}"
+            Method: POST
+            Auth: { Authorizer: NONE }
+        Webhook:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /stripe-webhook
+            Method: POST
+            Auth: { Authorizer: NONE }
+
 Outputs:
   ApiUrl:
     Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
