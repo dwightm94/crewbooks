@@ -92,14 +92,25 @@ exports.handler = async (event) => {
       if (!j.clientName) return;
       if (!clientMap[j.clientName]) {
         clientMap[j.clientName] = { name: j.clientName, email: j.clientEmail || "", phone: j.clientPhone || "",
-          jobCount: 0, totalValue: 0, lastJob: "", lastJobDate: "" };
+          jobCount: 0, totalValue: 0, lastJob: "", lastJobDate: "", jobIds: [], latestJobId: "" };
       }
       clientMap[j.clientName].jobCount++;
       clientMap[j.clientName].totalValue += j.bidAmount || 0;
+      clientMap[j.clientName].jobIds.push(j.jobId);
       const dt = j.updatedAt || j.createdAt || "";
       if (dt > clientMap[j.clientName].lastJobDate) {
         clientMap[j.clientName].lastJobDate = dt;
         clientMap[j.clientName].lastJob = j.jobName;
+        clientMap[j.clientName].latestJobId = j.jobId;
+      }
+    });
+    // Add latest invoice per client
+    invoices.forEach(inv => {
+      const client = Object.values(clientMap).find(c => c.jobIds.includes(inv.jobId));
+      if (client && (!client.latestInvoiceId || (inv.createdAt || "") > (client.latestInvoiceDate || ""))) {
+        client.latestInvoiceId = inv.invoiceId;
+        client.latestInvoiceDate = inv.createdAt || "";
+        client.latestInvoiceStatus = inv.status;
       }
     });
     const clients = Object.values(clientMap).sort((a, b) => b.totalValue - a.totalValue);
