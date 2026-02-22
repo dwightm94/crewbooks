@@ -67,7 +67,7 @@ function FilledDashboard({ data, router }) {
         <StatCard label="This Month" value={moneyCompact(paidThisMonth)} icon={TrendingUp} color="var(--green)" />
         <StatCard label="Active Jobs" value={counts.active || 0} icon={Briefcase} color="var(--blue)" />
         <StatCard label="Total Earned" value={moneyCompact(totalEarned)} icon={DollarSign} color="var(--purple)" />
-        <StatCard label="Avg Margin" value={`${profitability?.marginPercent || 0}%`} icon={TrendingUp} color={marginColor(profitability?.marginPercent || 0)} />
+        <StatCard label="Avg Margin" value={`${profitability?.avgMargin || profitability?.marginPercent || 0}%`} icon={TrendingUp} color={marginColor(Number(profitability?.avgMargin || profitability?.marginPercent || 0))} />
       </div>
 
       {/* Overdue Invoices */}
