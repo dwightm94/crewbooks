@@ -14,6 +14,21 @@ export default function SettingsPage() {
   const router = useRouter();
   const [company, setCompany] = useState("");
   const [trade, setTrade] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  // Load saved company info
+  useState(() => {
+    if (typeof window !== "undefined") {
+      setCompany(localStorage.getItem("crewbooks_company") || "");
+      setTrade(localStorage.getItem("crewbooks_trade") || "");
+    }
+  });
+
+  const saveCompany = () => {
+    localStorage.setItem("crewbooks_company", company);
+    localStorage.setItem("crewbooks_trade", trade);
+    setSaved(true); setTimeout(() => setSaved(false), 2000);
+  };
 
   const handleLogout = () => { logout(); router.replace("/auth/login"); };
 
@@ -66,7 +81,7 @@ export default function SettingsPage() {
               {TRADES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-          <button className="btn btn-brand w-full">Save Company Info</button>
+          <button onClick={saveCompany} className="btn btn-brand w-full">{saved ? "✓ Saved!" : "Save Company Info"}</button>
         </div>
       </section>
 
@@ -98,8 +113,8 @@ export default function SettingsPage() {
 
       {/* Links */}
       <section className="mt-6 space-y-2">
-        <SettingsLink icon={Shield} label="Privacy Policy" />
-        <SettingsLink icon={ExternalLink} label="Help & Support" />
+        <SettingsLink icon={Shield} label="Privacy Policy" href="https://crewbooks.app/privacy" />
+        <SettingsLink icon={ExternalLink} label="Help & Support" href="mailto:support@crewbooks.app" />
       </section>
 
       {/* Logout */}
@@ -123,12 +138,12 @@ function ToggleRow({ icon: Icon, label, desc }) {
   );
 }
 
-function SettingsLink({ icon: Icon, label }) {
+function SettingsLink({ icon: Icon, label, href }) {
   return (
-    <button className="card-hover w-full text-left flex items-center justify-between">
+    <a href={href || "#"} target="_blank" rel="noopener" className="card-hover w-full text-left flex items-center justify-between" style={{ display: "flex", textDecoration: "none" }}>
       <div className="flex items-center gap-3"><Icon size={18} style={{ color: "var(--text2)" }} /><span className="font-medium" style={{ color: "var(--text)" }}>{label}</span></div>
       <ChevronRight size={18} style={{ color: "var(--muted)" }} />
-    </button>
+    </a>
   );
 }
 
