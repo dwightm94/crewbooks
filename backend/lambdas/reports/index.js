@@ -15,7 +15,8 @@ exports.handler = async (event) => {
   try {
     const rawJobs = await db.query(JOBS, `USER#${userId}`, "JOB#");
     const jobs = rawJobs.filter(j => j.jobName && j.status);
-    const expenses = await db.query(EXP, `USER#${userId}`, "EXP#").catch(() => []);
+    const expenses_promises = jobs.map(j => db.query(EXP, `JOB#${j.jobId}`, "EXPENSE#").catch(() => []));
+    const expenses = (await Promise.all(expenses_promises)).flat();
     // Invoices are stored under JOB#jobId, not USER#userId
     const invoicePromises = jobs.map(j => db.query(INV, `JOB#${j.jobId}`, "INVOICE#").catch(() => []));
     const invoiceResults = await Promise.all(invoicePromises);

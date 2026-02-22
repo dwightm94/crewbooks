@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
+import { usePlan } from "@/hooks/usePlan";
 import { createConnectAccount, getConnectStatus, createOnboardLink, getConnectDashboard } from "@/lib/api";
-import { Sun, Moon, User, Building2, Wrench, CreditCard, LogOut, ExternalLink, Bell, Shield, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Sun, Moon, User, Building2, Wrench, CreditCard, LogOut, ExternalLink, Bell, Shield, ChevronRight, CheckCircle2, AlertTriangle, Zap, Crown } from "lucide-react";
 
 const TRADES = ["Electrician","Plumber","HVAC","Carpenter","Painter","Roofer","Concrete","Framing","Drywall","Flooring","Landscaping","Masonry","General Contractor","Other"];
 
@@ -104,18 +105,7 @@ export default function SettingsPage() {
       {/* Plan */}
       <section className="mt-6">
         <h3 className="section-title">Subscription</h3>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-bold text-lg" style={{ color: "var(--text)" }}>Free Plan</p>
-              <p className="text-sm" style={{ color: "var(--text2)" }}>3 active jobs • 3 invoices/month</p>
-            </div>
-            <CreditCard size={28} style={{ color: "var(--muted)" }} />
-          </div>
-          <div className="divider" />
-          <button className="btn btn-brand w-full">Upgrade to Pro — $39/mo</button>
-          <p className="text-xs text-center mt-2" style={{ color: "var(--muted)" }}>Unlimited jobs, invoicing, reminders & reports</p>
-        </div>
+        <SubscriptionSection />
       </section>
 
       {/* Links */}
@@ -242,6 +232,77 @@ function StripeConnectSection({ email }) {
         {connecting ? "Setting up..." : "Connect with Stripe →"}
       </button>
       <p className="text-[10px] text-center mt-2" style={{ color: "var(--muted)" }}>Powered by Stripe • Bank-level security</p>
+    </div>
+  );
+}
+
+// === Subscription Section ===
+function SubscriptionSection() {
+  const { plan, isPro, loading } = usePlan();
+  const router = useRouter();
+  const [managing, setManaging] = useState(false);
+
+  const handleManage = async () => {
+    setManaging(true);
+    try {
+      const { cognitoGetUser } = await import("@/lib/auth");
+      const user = await cognitoGetUser();
+      const BASE = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${BASE}/subscription/portal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
+      });
+      const json = await res.json();
+      if (json.data?.url) window.location.href = json.data.url;
+      else alert(json.error || "Could not open billing portal");
+    } catch (e) { alert("Error: " + e.message); }
+    setManaging(false);
+  };
+
+  if (loading) return <div className="card animate-pulse h-24" />;
+
+  if (isPro) {
+    return (
+      <div className="card" style={{ borderColor: "#F59E0B", borderWidth: "2px" }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #F59E0B, #EF4444)" }}>
+              <Zap size={20} color="white" />
+            </div>
+            <div>
+              <p className="font-bold text-lg" style={{ color: "var(--text)" }}>Pro Plan</p>
+              <p className="text-sm" style={{ color: "#22C55E" }}>Active • $39/month</p>
+            </div>
+          </div>
+          <CheckCircle2 size={24} style={{ color: "#22C55E" }} />
+        </div>
+        <div className="divider" />
+        <p className="text-xs mb-3" style={{ color: "var(--text2)" }}>Unlimited jobs • Unlimited invoices • Online payments • Full reports</p>
+        <button onClick={handleManage} disabled={managing} className="btn w-full text-sm">
+          {managing ? "Loading..." : "Manage Subscription"}
+        </button>
+      </div>
+    );
+  }
+
+  // Free plan
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-bold text-lg" style={{ color: "var(--text)" }}>Free Plan</p>
+          <p className="text-sm" style={{ color: "var(--text2)" }}>
+            {plan?.usage?.activeJobs || 0}/3 active jobs • {plan?.usage?.monthlyInvoices || 0}/3 invoices this month
+          </p>
+        </div>
+        <CreditCard size={28} style={{ color: "var(--muted)" }} />
+      </div>
+      <div className="divider" />
+      <button onClick={() => router.push("/upgrade")} className="w-full py-3 rounded-xl text-white font-bold"
+        style={{ background: "linear-gradient(135deg, #F59E0B, #EF4444)" }}>
+        <span className="flex items-center justify-center gap-2"><Zap size={18} />Upgrade to Pro — $39/mo</span>
+      </button>
+      <p className="text-xs text-center mt-2" style={{ color: "var(--muted)" }}>Unlimited jobs, invoicing, payments & reports</p>
     </div>
   );
 }

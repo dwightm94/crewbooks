@@ -27,7 +27,7 @@ exports.handler = async (event) => {
         PK: `JOB#${jobId}`, SK: `EXPENSE#${expenseId}`,
         expenseId, jobId, userId,
         category: data.category || "other",
-        description: data.description.trim(),
+        description: (data.description || "").trim(),
         amount: parseFloat(data.amount),
         date: data.date || now.split("T")[0],
         receiptUrl: data.receiptUrl || "",

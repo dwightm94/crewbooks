@@ -306,6 +306,10 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
         - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
             TableName: !Ref ExpensesTable
       Events:
         CreateJob:
@@ -351,6 +355,10 @@ Resources:
             TableName: !Ref ExpensesTable
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       Events:
         CreateExpense:
           Type: Api
@@ -383,6 +391,10 @@ Resources:
             TableName: !Ref InvoicesTable
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
         - Statement:
             - Effect: Allow
               Action:
@@ -428,6 +440,10 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
         - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
             TableName: !Ref InvoicesTable
         - DynamoDBCrudPolicy:
             TableName: !Ref ExpensesTable
@@ -470,6 +486,10 @@ Resources:
             TableName: !Ref InvoicesTable
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
         - Statement:
             - Effect: Allow
               Action:
@@ -535,6 +555,10 @@ Resources:
             TableName: !Ref CrewTable
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
         - Statement:
             - Effect: Allow
               Action: [sns:Publish]
@@ -603,6 +627,10 @@ Resources:
             TableName: !Ref CrewTable
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
         - Statement:
             - Effect: Allow
               Action: [sns:Publish]
@@ -640,6 +668,10 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
         - S3CrudPolicy:
             BucketName: !Ref PhotosBucket
       Events:
@@ -698,6 +730,10 @@ Resources:
             TableName: !Ref EstimatesTable
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       Events:
         Create:
           Type: Api
@@ -745,27 +781,9 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
         - DynamoDBCrudPolicy:
-            TableName: !Ref ExpensesTable
+            TableName: !Ref UsersTable
         - DynamoDBCrudPolicy:
-            TableName: !Ref InvoicesTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref CrewTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref AssignmentsTable
-      Events:
-        Get:
-          Type: Api
-          Properties: { RestApiId: !Ref ApiGateway, Path: /reports, Method: GET }
-
-  ReportsFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub crewbooks-reports-${Stage}
-      Handler: lambdas/reports/index.handler
-      CodeUri: .
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref JobsTable
+            TableName: !Ref UsersTable
         - DynamoDBCrudPolicy:
             TableName: !Ref ExpensesTable
         - DynamoDBCrudPolicy:
@@ -788,6 +806,36 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExpensesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InvoicesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CrewTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AssignmentsTable
+      Events:
+        Get:
+          Type: Api
+          Properties: { RestApiId: !Ref ApiGateway, Path: /reports, Method: GET }
+
+  ReportsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub crewbooks-reports-${Stage}
+      Handler: lambdas/reports/index.handler
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
         - DynamoDBCrudPolicy:
             TableName: !Ref ExpensesTable
         - DynamoDBCrudPolicy:
@@ -811,6 +859,10 @@ Resources:
             TableName: !Ref InvoicesTable
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       Events:
         GetInvoice:
           Type: Api
@@ -826,6 +878,31 @@ Resources:
             Path: "/pay/{invoiceId}"
             Method: POST
             Auth: { Authorizer: NONE }
+        ConnectCreate:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /payments/connect
+            Method: POST
+        ConnectStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /payments/connect/status
+            Method: GET
+        ConnectOnboard:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /payments/connect/onboard
+            Method: POST
+        ConnectDashboard:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /payments/connect/dashboard
+            Method: GET
+
         Webhook:
           Type: Api
           Properties:

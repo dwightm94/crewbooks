@@ -100,3 +100,10 @@ export const createConnectAccount = (email) => api("/payments/connect", { method
 export const getConnectStatus = () => api("/payments/connect/status");
 export const createOnboardLink = () => api("/payments/connect/onboard", { method: "POST" });
 export const getConnectDashboard = () => api("/payments/connect/dashboard");
+
+// === PHASE 7: Subscription ===
+export const getSubscriptionStatus = () => api("/subscription/status");
+export const checkLimit = (action) => api("/subscription/check", { method: "POST", body: { action } });
+export const createSubscriptionCheckout = (plan) => api("/subscription/checkout", { method: "POST", body: { plan } });
+export const createSubscriptionPortal = () => api("/subscription/portal", { method: "POST" });
+export const getPlans = () => api("/subscription/plans");
