@@ -52,6 +52,7 @@ export default function JobDetailPage() {
 
   const markComplete = async () => { await updateJob(jobId, { ...job, status: "complete" }); load(); };
   const markPaid = async () => { await updateJob(jobId, { ...job, status: "paid" }); load(); };
+  const changeStatus = async (newStatus) => { if (newStatus !== job.status) { await updateJob(jobId, { ...job, status: newStatus }); load(); } };
   const genInvoice = async () => {
     try {
       const inv = await createInvoice(jobId, { amount: job.bidAmount, lineItems: [{ description: job.jobName, amount: job.bidAmount }] });
@@ -92,8 +93,16 @@ export default function JobDetailPage() {
       </div>
 
       {/* Status */}
-      <div className="flex items-center gap-2 mt-4">
-        <span className={statusBadge(job.status)}>{statusLabel(job.status)}</span>
+      <div className="flex items-center gap-3 mt-4">
+        <select value={job.status} onChange={e => changeStatus(e.target.value)}
+          className="px-3 py-1.5 rounded-lg text-sm font-bold border-2 cursor-pointer"
+          style={{ background: "var(--card)", color: "var(--text)", borderColor: "var(--brand)" }}>
+          <option value="active">🔵 Active</option>
+          <option value="complete">✅ Complete</option>
+          <option value="paid">💰 Paid</option>
+        </select>
+        {job.status === "active" && <button onClick={markComplete} className="btn btn-brand btn-sm"><CheckCircle2 size={14} />Mark Complete</button>}
+        {job.status === "complete" && <button onClick={markPaid} className="btn btn-brand btn-sm"><DollarSign size={14} />Mark Paid</button>}
       </div>
 
       {/* Tabs */}
