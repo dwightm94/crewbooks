@@ -94,3 +94,9 @@ export const convertEstimateToJob = (id) => api(`/estimates/${id}/convert`, { me
 
 // === PHASE 6: Reports & CRM ===
 export const getReports = () => api("/reports");
+
+// === PHASE 6: Stripe Connect ===
+export const createConnectAccount = (email) => api("/payments/connect", { method: "POST", body: JSON.stringify({ email }) });
+export const getConnectStatus = () => api("/payments/connect/status");
+export const createOnboardLink = () => api("/payments/connect/onboard", { method: "POST" });
+export const getConnectDashboard = () => api("/payments/connect/dashboard");
