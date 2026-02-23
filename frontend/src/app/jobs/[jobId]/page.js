@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { getJob, getExpenses, updateJob, createExpense, deleteExpense, createInvoice, sendInvoice, markInvoicePaid } from "@/lib/api";
+import { getJob, getExpenses, updateJob, deleteJob, createExpense, deleteExpense, createInvoice, sendInvoice, markInvoicePaid } from "@/lib/api";
 import { money, moneyExact, statusBadge, statusLabel, margin, marginColor, EXPENSE_CATEGORIES, relDate, INVOICE_STATUS } from "@/lib/utils";
 import { Edit3, Trash2, Plus, Receipt, FileText, Camera, CheckCircle2, Send, DollarSign, MapPin, Phone, Mail, X } from "lucide-react";
 
@@ -39,6 +39,11 @@ export default function JobDetailPage() {
   const markComplete = async () => { await updateJob(jobId, { ...job, status: "complete" }); load(); };
   const markPaid = async () => { await updateJob(jobId, { ...job, status: "paid" }); load(); };
   const changeStatus = async (newStatus) => { await updateJob(jobId, { ...job, status: newStatus }); load(); };
+  const doDeleteJob = async () => {
+    if (confirm("Are you sure you want to delete this job? This will also delete all expenses and invoices for this job. This cannot be undone.")) {
+      try { await deleteJob(jobId); router.replace("/jobs"); } catch(e) { alert(e.message); }
+    }
+  };
   const FREE_INVOICE_LIMIT = 3;
   const genInvoice = async () => {
     if (invoices.length >= FREE_INVOICE_LIMIT) { alert("Free plan allows 3 invoices/month. Upgrade to Pro for unlimited."); return; }
@@ -61,13 +66,17 @@ export default function JobDetailPage() {
   return (
     <AppShell title={job.jobName} subtitle={job.clientName} back="/jobs"
       action={
-        <select value={job.status} onChange={e => changeStatus(e.target.value)}
-          className="field text-sm font-bold py-1 px-2" style={{ minWidth: 110, color: "var(--text)" }}>
-          <option value="bid">Bid</option>
-          <option value="active">Active</option>
-          <option value="complete">Complete</option>
-          <option value="paid">Paid</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <button onClick={() => router.push(`/jobs/${jobId}/edit`)} className="p-2 rounded-lg" style={{ color: "var(--brand)" }}><Edit3 size={20} /></button>
+          <button onClick={doDeleteJob} className="p-2 rounded-lg" style={{ color: "var(--red)" }}><Trash2 size={20} /></button>
+          <select value={job.status} onChange={e => changeStatus(e.target.value)}
+            className="field text-sm font-bold py-1 px-2" style={{ minWidth: 110, color: "var(--text)" }}>
+            <option value="bid">Bid</option>
+            <option value="active">Active</option>
+            <option value="complete">Complete</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
       }>
 
       {/* Financial Summary Bar */}
