@@ -25,13 +25,14 @@ export default function SchedulePage() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [editAssignment, setEditAssignment] = useState(null);
   const [busyDays, setBusyDays] = useState({});
+  const [calMonth, setCalMonth] = useState(new Date().getMonth());
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
 
   // Track which days have assignments
   useEffect(() => {
     const fetchBusy = async () => {
-      const d = new Date(date + "T12:00:00");
-      const year = d.getFullYear();
-      const month = d.getMonth();
+      const year = calYear;
+      const month = calMonth;
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const newBusy = {};
       const promises = [];
@@ -48,7 +49,7 @@ export default function SchedulePage() {
       setBusyDays(prev => ({ ...prev, ...newBusy }));
     };
     fetchBusy();
-  }, [date ? date.substring(0, 7) : ""]);
+  }, [calMonth, calYear]);
   const [notifying, setNotifying] = useState(false);
   const [notifyResult, setNotifyResult] = useState(null);
 
@@ -132,7 +133,7 @@ export default function SchedulePage() {
             const sel = new Date(d + "T12:00:00");
             const diff = Math.round((sel - today) / 86400000);
             setDateOffset(diff);
-          }} busyDays={busyDays} />
+          }} busyDays={busyDays} calMonth={calMonth} calYear={calYear} setCalMonth={setCalMonth} setCalYear={setCalYear} />
           <p className="text-center text-sm font-bold mt-2" style={{ color: "var(--text)" }}>{formatDate(date)}</p>
           <div className="flex items-center justify-center gap-4 mt-2">
             <div className="flex items-center gap-1.5">
@@ -257,24 +258,18 @@ export default function SchedulePage() {
   );
 }
 
-function MiniCalendar({ date, onSelect, busyDays }) {
-  const d = new Date(date + "T12:00:00");
-  const [viewYear, setViewYear] = useState(d.getFullYear());
-  const [viewMonth, setViewMonth] = useState(d.getMonth());
-  const today = new Date(); today.setHours(0,0,0,0);
-  const todayStr = today.toISOString().split("T")[0];
-
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
-  const monthName = new Date(viewYear, viewMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" });
-
-  const prevMonth = () => { if (viewMonth === 0) { setViewYear(viewYear - 1); setViewMonth(11); } else setViewMonth(viewMonth - 1); };
-  const nextMonth = () => { if (viewMonth === 11) { setViewYear(viewYear + 1); setViewMonth(0); } else setViewMonth(viewMonth + 1); };
-
-  const cells = [];
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let i = 1; i <= daysInMonth; i++) cells.push(i);
-
+function MiniCalendar({ date, onSelect, busyDays, calMonth, calYear, setCalMonth, setCalYear }) {
+  var today = new Date(); today.setHours(0,0,0,0);
+  var todayStr = today.toISOString().split("T")[0];
+  var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  var firstDay = new Date(calYear, calMonth, 1).getDay();
+  var monthName = new Date(calYear, calMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  var prevMonth = function() { if (calMonth === 0) { setCalYear(calYear - 1); setCalMonth(11); } else { setCalMonth(calMonth - 1); } };
+  var nextMonth = function() { if (calMonth === 11) { setCalYear(calYear + 1); setCalMonth(0); } else { setCalMonth(calMonth + 1); } };
+  var cells = [];
+  var i;
+  for (i = 0; i < firstDay; i++) { cells.push(null); }
+  for (i = 1; i <= daysInMonth; i++) { cells.push(i); }
   return (
     <div className="card mt-4 p-3">
       <div className="flex items-center justify-between mb-3">
@@ -283,18 +278,18 @@ function MiniCalendar({ date, onSelect, busyDays }) {
         <button type="button" onClick={nextMonth} className="p-2 rounded-lg" style={{ color: "var(--text2)" }}><ChevronRight size={20} /></button>
       </div>
       <div className="grid grid-cols-7 text-center text-[10px] font-bold mb-1" style={{ color: "var(--muted)" }}>
-        {["Su","Mo","Tu","We","Th","Fr","Sa"].map(day => <div key={day}>{day}</div>)}
+        {["Su","Mo","Tu","We","Th","Fr","Sa"].map(function(d) { return <div key={d}>{d}</div>; })}
       </div>
       <div className="grid grid-cols-7 gap-1">
-        {cells.map((day, i) => {
-          if (!day) return <div key={"e"+i} />;
-          const ds = viewYear + "-" + String(viewMonth + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
-          const isSelected = ds === date;
-          const isToday = ds === todayStr;
-          const busy = busyDays[ds];
-          const pastDay = new Date(ds + "T12:00:00") < today && !isToday;
+        {cells.map(function(day, idx) {
+          if (!day) return <div key={"e"+idx} />;
+          var ds = calYear + "-" + String(calMonth + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+          var isSelected = ds === date;
+          var isToday = ds === todayStr;
+          var busy = busyDays[ds];
+          var pastDay = new Date(ds + "T12:00:00") < today && !isToday;
           return (
-            <button type="button" key={ds} onClick={() => onSelect(ds)}
+            <button type="button" key={ds} onClick={function() { onSelect(ds); }}
               className="relative flex flex-col items-center justify-center h-9 rounded-lg text-xs font-bold transition-all"
               style={{
                 background: isSelected ? "var(--brand)" : busy ? "rgba(245,158,11,0.15)" : "transparent",
