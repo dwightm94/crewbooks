@@ -52,9 +52,9 @@ export default function SchedulePage() {
   useEffect(() => { load(); }, [dateOffset]);
   useEffect(() => { if (tab === "tracker") loadTracker(); }, [tab]);
 
-  const doAssign = async (memberId, jobId, startTime) => {
+  const doAssign = async (memberIds, jobId, startTime) => {
     try {
-      await createAssignment({ memberId, jobId, date, startTime });
+      for (const mid of memberIds) { await createAssignment({ memberId: mid, jobId, date, startTime }); }
       setShowAssignModal(false);
       load();
     } catch (e) {
@@ -219,30 +219,30 @@ export default function SchedulePage() {
         <AssignModal crew={unassigned} jobs={jobs} onAssign={doAssign} onClose={() => setShowAssignModal(false)} />
       )}
       {editAssignment && (
-        <EditAssignModal assignment={editAssignment} crew={crew} jobs={jobs} onSave={doEdit} onClose={() => setEditAssignment(null)} />
+        <EditAssignModal assignment={editAssignment} jobs={jobs} onSave={doEdit} onClose={() => setEditAssignment(null)} />
       )}
     </AppShell>
   );
 }
 
 function AssignModal({ crew, jobs, onAssign, onClose }) {
-  const [memberId, setMemberId] = useState(crew.length === 1 ? crew[0].memberId : "");
+  const [selectedMembers, setSelectedMembers] = useState([]);
   const [jobId, setJobId] = useState(jobs.length === 1 ? jobs[0].jobId : "");
   const [startTime, setStartTime] = useState("7:00 AM");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
   const times = ["6:00 AM", "6:30 AM", "7:00 AM", "7:30 AM", "8:00 AM", "8:30 AM", "9:00 AM", "10:00 AM"];
 
+  const toggleMember = (id) => {
+    setSelectedMembers(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);
+  };
+
   const handleAssign = async () => {
     setErr(null);
-    if (!memberId || !jobId) { setErr("Please select a crew member and job"); return; }
+    if (selectedMembers.length === 0 || !jobId) { setErr("Select crew member(s) and a job"); return; }
     setSaving(true);
-    try {
-      await onAssign(memberId, jobId, startTime);
-    } catch (e) {
-      setErr("Failed: " + e.message);
-      setSaving(false);
-    }
+    try { await onAssign(selectedMembers, jobId, startTime); }
+    catch (e) { setErr("Failed: " + e.message); setSaving(false); }
   };
 
   return (
@@ -252,22 +252,28 @@ function AssignModal({ crew, jobs, onAssign, onClose }) {
           <h2 className="text-xl font-extrabold" style={{ color: "var(--text)" }}>Assign Crew</h2>
           <button onClick={onClose} className="text-sm font-bold" style={{ color: "var(--brand)" }}>Cancel</button>
         </div>
-
         <div className="space-y-5">
           <div>
-            <label className="field-label">Crew Member</label>
+            <label className="field-label">Crew Members (tap to select)</label>
             <div className="space-y-2">
-              {crew.map(m => (
-                <button key={m.memberId} onClick={() => setMemberId(m.memberId)}
-                  className="card w-full text-left transition-all"
-                  style={{ borderColor: memberId === m.memberId ? "var(--brand)" : "var(--border)", borderWidth: "2px" }}>
-                  <p className="font-bold" style={{ color: memberId === m.memberId ? "var(--brand)" : "var(--text)" }}>{m.name}</p>
-                  <p className="text-xs" style={{ color: "var(--text2)" }}>{m.role} {m.hourlyRate ? `• $${m.hourlyRate}/hr` : ""}</p>
-                </button>
-              ))}
+              {crew.map(m => {
+                const sel = selectedMembers.includes(m.memberId);
+                return (
+                  <button key={m.memberId} onClick={() => toggleMember(m.memberId)}
+                    className="card w-full text-left transition-all"
+                    style={{ borderColor: sel ? "var(--brand)" : "var(--border)", borderWidth: "2px" }}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-bold" style={{ color: sel ? "var(--brand)" : "var(--text)" }}>{m.name}</p>
+                        <p className="text-xs" style={{ color: "var(--text2)" }}>{m.role}{m.hourlyRate ? " - $" + m.hourlyRate + "/hr" : ""}</p>
+                      </div>
+                      {sel && <CheckCircle2 size={20} style={{ color: "var(--brand)" }} />}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
-
           <div>
             <label className="field-label">Job Site</label>
             <div className="space-y-2">
@@ -276,12 +282,11 @@ function AssignModal({ crew, jobs, onAssign, onClose }) {
                   className="card w-full text-left transition-all"
                   style={{ borderColor: jobId === j.jobId ? "var(--brand)" : "var(--border)", borderWidth: "2px" }}>
                   <p className="font-bold" style={{ color: jobId === j.jobId ? "var(--brand)" : "var(--text)" }}>{j.jobName}</p>
-                  {j.address && <p className="text-xs" style={{ color: "var(--text2)" }}><MapPin size={12} className="inline" /> {j.address}</p>}
+                  {j.address && <p className="text-xs" style={{ color: "var(--text2)" }}>{j.address}</p>}
                 </button>
               ))}
             </div>
           </div>
-
           <div>
             <label className="field-label">Start Time</label>
             <div className="grid grid-cols-4 gap-2">
@@ -294,12 +299,9 @@ function AssignModal({ crew, jobs, onAssign, onClose }) {
               ))}
             </div>
           </div>
-
           {err && <div className="rounded-xl p-3 text-sm font-bold text-center" style={{ background: "var(--red-bg, #fee)", color: "var(--red, red)" }}>{err}</div>}
-          <button type="button" onClick={handleAssign}
-            disabled={saving}
-            className="btn btn-brand w-full text-lg">
-            {saving ? "Assigning..." : `Assign${memberId && jobId ? "" : " (select both)"}`}
+          <button type="button" onClick={handleAssign} disabled={saving} className="btn btn-brand w-full text-lg">
+            {saving ? "Assigning..." : selectedMembers.length > 0 ? "Assign " + selectedMembers.length + " member" + (selectedMembers.length > 1 ? "s" : "") : "Select crew first"}
           </button>
         </div>
       </div>
@@ -307,16 +309,16 @@ function AssignModal({ crew, jobs, onAssign, onClose }) {
   );
 }
 
-function EditAssignModal({ assignment, crew, jobs, onSave, onClose }) {
-  const [memberId, setMemberId] = useState(assignment.memberId);
+function EditAssignModal({ assignment, jobs, onSave, onClose }) {
   const [jobId, setJobId] = useState(assignment.jobId);
   const [startTime, setStartTime] = useState(assignment.startTime || "7:00 AM");
+  const [assignDate, setAssignDate] = useState("");
   const [saving, setSaving] = useState(false);
   const times = ["6:00 AM", "6:30 AM", "7:00 AM", "7:30 AM", "8:00 AM", "8:30 AM", "9:00 AM", "10:00 AM"];
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(assignment.memberId, memberId, jobId, startTime);
+    await onSave(assignment.memberId, jobId, startTime, assignDate || null);
     setSaving(false);
   };
 
@@ -328,18 +330,13 @@ function EditAssignModal({ assignment, crew, jobs, onSave, onClose }) {
           <button onClick={onClose} className="text-sm font-bold" style={{ color: "var(--brand)" }}>Cancel</button>
         </div>
         <div className="space-y-5">
+          <div className="card" style={{ borderColor: "var(--brand)", borderWidth: "2px" }}>
+            <p className="font-bold text-lg" style={{ color: "var(--brand)" }}>{assignment.memberName}</p>
+            <p className="text-xs" style={{ color: "var(--text2)" }}>Editing assignment</p>
+          </div>
           <div>
-            <label className="field-label">Crew Member</label>
-            <div className="space-y-2">
-              {crew.map(m => (
-                <button key={m.memberId} onClick={() => setMemberId(m.memberId)}
-                  className="card w-full text-left transition-all"
-                  style={{ borderColor: memberId === m.memberId ? "var(--brand)" : "var(--border)", borderWidth: "2px" }}>
-                  <p className="font-bold" style={{ color: memberId === m.memberId ? "var(--brand)" : "var(--text)" }}>{m.name}</p>
-                  <p className="text-xs" style={{ color: "var(--text2)" }}>{m.role}</p>
-                </button>
-              ))}
-            </div>
+            <label className="field-label">Move to Date (optional)</label>
+            <input type="date" value={assignDate} onChange={e => setAssignDate(e.target.value)} className="field" />
           </div>
           <div>
             <label className="field-label">Job Site</label>
