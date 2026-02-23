@@ -79,7 +79,7 @@ export default function CrewPage() {
                     {copied === m.token ? "Copied!" : "Link"}
                   </button>
                   <button onClick={() => doDelete(m.memberId, m.name)} className="p-2 rounded-lg" style={{ color: "var(--red)" }}>
-                    <Trash2 size={16} />
+                    <Trash2 size={20} />
                   </button>
                 </div>
               </div>

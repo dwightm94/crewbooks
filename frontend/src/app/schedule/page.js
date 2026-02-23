@@ -171,8 +171,8 @@ export default function SchedulePage() {
                     <div className="flex flex-col items-end gap-1">
                       {a.clockIn && <span className="badge badge-green text-[10px]">Clocked In</span>}
                       {a.clockOut && <span className="badge badge-purple text-[10px]">{a.hoursWorked}h</span>}
-                      <button onClick={() => setEditAssignment(a)} style={{ color: "var(--brand)" }}><Edit3 size={14} /></button>
-                      <button onClick={() => doRemove(a.memberId)} style={{ color: "var(--red)" }}><Trash2 size={14} /></button>
+                      <button onClick={() => setEditAssignment(a)} className="p-2 rounded-xl" style={{ color: "var(--brand)" }}><Edit3 size={20} /></button>
+                      <button onClick={() => { if (confirm("Remove " + a.memberName + " from this day?")) doRemove(a.memberId); }} className="p-2 rounded-xl" style={{ color: "var(--red)" }}><Trash2 size={20} /></button>
                     </div>
                   </div>
                 </div>
