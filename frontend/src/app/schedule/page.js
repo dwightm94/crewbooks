@@ -25,6 +25,30 @@ export default function SchedulePage() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [editAssignment, setEditAssignment] = useState(null);
   const [busyDays, setBusyDays] = useState({});
+
+  // Track which days have assignments
+  useEffect(() => {
+    const fetchBusy = async () => {
+      const d = new Date(date + "T12:00:00");
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const newBusy = {};
+      const promises = [];
+      for (let i = 1; i <= daysInMonth; i++) {
+        const ds = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(i).padStart(2, "0");
+        promises.push(
+          getAssignments(ds).then(res => {
+            const list = res.assignments || res || [];
+            if (list.length > 0) newBusy[ds] = list.length;
+          }).catch(() => {})
+        );
+      }
+      await Promise.all(promises);
+      setBusyDays(prev => ({ ...prev, ...newBusy }));
+    };
+    fetchBusy();
+  }, [date ? date.substring(0, 7) : ""]);
   const [notifying, setNotifying] = useState(false);
   const [notifyResult, setNotifyResult] = useState(null);
 
@@ -108,8 +132,18 @@ export default function SchedulePage() {
             const sel = new Date(d + "T12:00:00");
             const diff = Math.round((sel - today) / 86400000);
             setDateOffset(diff);
-          }} busyDays={{}} />
+          }} busyDays={busyDays} />
           <p className="text-center text-sm font-bold mt-2" style={{ color: "var(--text)" }}>{formatDate(date)}</p>
+          <div className="flex items-center justify-center gap-4 mt-2">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full" style={{ background: "var(--brand)" }} />
+              <span className="text-[11px] font-semibold" style={{ color: "var(--text2)" }}>Crew scheduled</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full" style={{ background: "var(--muted)" }} />
+              <span className="text-[11px] font-semibold" style={{ color: "var(--text2)" }}>No assignments</span>
+            </div>
+          </div>
 
           {/* Actions */}
           <div className="flex gap-2 mt-4">
@@ -244,30 +278,32 @@ function MiniCalendar({ date, onSelect, busyDays }) {
   return (
     <div className="card mt-4 p-3">
       <div className="flex items-center justify-between mb-3">
-        <button onClick={prevMonth} className="p-1 rounded-lg" style={{ color: "var(--text2)" }}><ChevronLeft size={20} /></button>
+        <button type="button" onClick={prevMonth} className="p-2 rounded-lg" style={{ color: "var(--text2)" }}><ChevronLeft size={20} /></button>
         <p className="font-bold" style={{ color: "var(--text)" }}>{monthName}</p>
-        <button onClick={nextMonth} className="p-1 rounded-lg" style={{ color: "var(--text2)" }}><ChevronRight size={20} /></button>
+        <button type="button" onClick={nextMonth} className="p-2 rounded-lg" style={{ color: "var(--text2)" }}><ChevronRight size={20} /></button>
       </div>
       <div className="grid grid-cols-7 text-center text-[10px] font-bold mb-1" style={{ color: "var(--muted)" }}>
-        {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => <div key={d}>{d}</div>)}
+        {["Su","Mo","Tu","We","Th","Fr","Sa"].map(day => <div key={day}>{day}</div>)}
       </div>
-      <div className="grid grid-cols-7 gap-0.5">
+      <div className="grid grid-cols-7 gap-1">
         {cells.map((day, i) => {
           if (!day) return <div key={"e"+i} />;
           const ds = viewYear + "-" + String(viewMonth + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
           const isSelected = ds === date;
           const isToday = ds === todayStr;
-          const hasDots = busyDays[ds];
+          const busy = busyDays[ds];
+          const pastDay = new Date(ds + "T12:00:00") < today && !isToday;
           return (
-            <button key={ds} onClick={() => onSelect(ds)}
-              className="relative flex flex-col items-center justify-center py-1.5 rounded-lg text-xs font-bold transition-all"
+            <button type="button" key={ds} onClick={() => onSelect(ds)}
+              className="relative flex flex-col items-center justify-center h-9 rounded-lg text-xs font-bold transition-all"
               style={{
-                background: isSelected ? "var(--brand)" : isToday ? "rgba(245,158,11,0.1)" : "transparent",
-                color: isSelected ? "white" : isToday ? "var(--brand)" : "var(--text)",
+                background: isSelected ? "var(--brand)" : busy ? "rgba(245,158,11,0.15)" : "transparent",
+                color: isSelected ? "white" : busy ? "var(--brand)" : pastDay ? "var(--muted)" : "var(--text)",
+                border: isToday && !isSelected ? "2px solid var(--brand)" : "2px solid transparent",
               }}>
               {day}
-              {hasDots && !isSelected && <div className="absolute bottom-0.5 w-1.5 h-1.5 rounded-full" style={{ background: "var(--brand)" }} />}
-              {hasDots && isSelected && <div className="absolute bottom-0.5 w-1.5 h-1.5 rounded-full bg-white" />}
+              {busy && !isSelected && <div className="absolute bottom-0.5 w-1.5 h-1.5 rounded-full" style={{ background: "var(--brand)" }} />}
+              {busy && isSelected && <div className="absolute bottom-0.5 w-1.5 h-1.5 rounded-full bg-white" />}
             </button>
           );
         })}
