@@ -1,34 +1,58 @@
 "use client";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Hammer, Users, Calendar, FileText, ChevronLeft, Settings } from "lucide-react";
+import { LayoutDashboard, Hammer, DollarSign, Settings, ChevronLeft, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 
 const TABS = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/jobs", label: "Jobs", icon: Hammer },
-  { href: "/crew", label: "Crew", icon: Users },
-  { href: "/schedule", label: "Plan", icon: Calendar },
-  { href: "/estimates", label: "Bids", icon: FileText },
+  { href: "/money", label: "Money", icon: DollarSign },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
+
+function NotifBellInline() {
+  const { useState, useEffect } = require("react");
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const stored = localStorage.getItem("crewbooks_tokens");
+        if (!stored) return;
+        const tokens = JSON.parse(stored);
+        const token = tokens?.idToken || tokens?.IdToken || tokens?.token;
+        if (!token) return;
+        const BASE = process.env.NEXT_PUBLIC_API_URL || "";
+        const res = await fetch(BASE + "/notifications", { headers: { Authorization: "Bearer " + token } });
+        const json = await res.json();
+        setCount(json.data?.unreadCount || 0);
+      } catch {}
+    };
+    check();
+    const interval = setInterval(check, 60000);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <button onClick={() => window.location.href = "/notifications"} className="relative p-2 rounded-xl" style={{ color: "var(--text2)" }}>
+      <Bell size={22} />
+      {count > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold text-white px-1" style={{ background: "#EF4444" }}>{count > 9 ? "9+" : count}</span>}
+    </button>
+  );
+}
 
 export function AppShell({ children, title, subtitle, back, action }) {
   const { user, loading, init } = useAuth();
   const { init: themeInit } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
-
   useEffect(() => { init(); themeInit(); }, []);
-
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
       <div className="w-10 h-10 border-4 rounded-full animate-spin" style={{ borderColor: "var(--brand)", borderTopColor: "transparent" }} />
     </div>
   );
-
-  if (!user) { if (typeof window !== "undefined") router.replace("/auth/login"); return null; }
-
+  if (!user) { if (typeof window !== "undefined") window.location.href = "/auth/login"; return null; }
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       {title && (
@@ -43,6 +67,7 @@ export function AppShell({ children, title, subtitle, back, action }) {
             </div>
             <div className="flex items-center gap-1">
               {action}
+              <NotifBellInline />
               <button onClick={() => router.push("/settings")} className="p-2 rounded-xl" style={{ color: "var(--text2)" }}><Settings size={20} /></button>
             </div>
           </div>
