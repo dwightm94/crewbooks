@@ -82,7 +82,9 @@ export default function SchedulePage() {
     try {
       for (const mid of memberIds) { await createAssignment({ memberId: mid, jobId, date, startTime }); }
       setShowAssignModal(false);
-      load();
+      await load();
+      // Update busy day count
+      setBusyDays(prev => ({ ...prev, [date]: (prev[date] || 0) + memberIds.length }));
     } catch (e) {
       alert("Assignment failed: " + e.message);
       throw e;
@@ -99,7 +101,16 @@ export default function SchedulePage() {
   };
 
   const doRemove = async (memberId) => {
-    if (confirm("Remove this assignment?")) { await deleteAssignment(date, memberId); load(); }
+    if (confirm("Remove this assignment?")) {
+      await deleteAssignment(date, memberId);
+      await load();
+      // Update busy day count for current date
+      try {
+        const res = await getAssignments(date);
+        const list = res.assignments || res || [];
+        setBusyDays(prev => ({ ...prev, [date]: list.length }));
+      } catch(e) {}
+    }
   };
 
   const doNotify = async () => {
