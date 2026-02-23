@@ -78,6 +78,9 @@ export default function CrewPage() {
                     {copied === m.token ? <Check size={14} /> : <Copy size={14} />}
                     {copied === m.token ? "Copied!" : "Link"}
                   </button>
+                  <button onClick={() => router.push("/crew/" + m.memberId + "/edit")} className="p-2 rounded-lg" style={{ color: "var(--brand)" }}>
+                    <Edit3 size={20} />
+                  </button>
                   <button onClick={() => doDelete(m.memberId, m.name)} className="p-2 rounded-lg" style={{ color: "var(--red)" }}>
                     <Trash2 size={20} />
                   </button>
