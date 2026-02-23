@@ -24,7 +24,14 @@ export default function JobsPage() {
   });
 
   const counts = FILTERS.reduce((a, f) => { a[f] = f === "all" ? jobs.length : jobs.filter(j => j.status === f).length; return a; }, {});
-  const addBtn = <button onClick={() => router.push("/jobs/new")} className="btn btn-brand btn-sm"><Plus size={18} />Add</button>;
+  const FREE_JOB_LIMIT = 3;
+  const activeJobs = jobs.filter(j => j.status === "active" || j.status === "bid").length;
+  const atLimit = activeJobs >= FREE_JOB_LIMIT;
+  const handleAdd = () => {
+    if (atLimit) { alert("Free plan allows 3 active jobs. Upgrade to Pro for unlimited."); router.push("/upgrade"); return; }
+    router.push("/jobs/new");
+  };
+  const addBtn = <button onClick={handleAdd} className="btn btn-brand btn-sm"><Plus size={18} />Add</button>;
 
   return (
     <AppShell title="Jobs" subtitle={`${jobs.length} total`} action={addBtn}>

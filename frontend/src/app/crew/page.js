@@ -28,7 +28,13 @@ export default function CrewPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const addBtn = <button onClick={() => router.push("/crew/new")} className="btn btn-brand btn-sm"><Plus size={18} />Add</button>;
+  const FREE_CREW_LIMIT = 3;
+  const atLimit = members.length >= FREE_CREW_LIMIT;
+  const handleAdd = () => {
+    if (atLimit) { alert("Free plan allows 3 crew members. Upgrade to Pro for unlimited."); router.push("/upgrade"); return; }
+    router.push("/crew/new");
+  };
+  const addBtn = <button onClick={handleAdd} className="btn btn-brand btn-sm"><Plus size={18} />Add</button>;
 
   return (
     <AppShell title="My Crew" subtitle={`${members.length} members`} action={addBtn}>
@@ -39,7 +45,7 @@ export default function CrewPage() {
           <div className="empty-icon"><Users size={40} style={{ color: "var(--muted)" }} /></div>
           <h2 className="text-2xl font-extrabold mb-2" style={{ color: "var(--text)" }}>No crew yet</h2>
           <p className="mb-8" style={{ color: "var(--text2)" }}>Add your first crew member to start scheduling.</p>
-          <button onClick={() => router.push("/crew/new")} className="btn btn-brand mx-auto"><Plus size={20} />Add Crew Member</button>
+          <button onClick={handleAdd} className="btn btn-brand mx-auto"><Plus size={20} />Add Crew Member</button>
         </div>
       ) : (
         <div className="space-y-3 mt-4">

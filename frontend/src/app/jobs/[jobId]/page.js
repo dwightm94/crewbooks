@@ -39,7 +39,9 @@ export default function JobDetailPage() {
   const markComplete = async () => { await updateJob(jobId, { ...job, status: "complete" }); load(); };
   const markPaid = async () => { await updateJob(jobId, { ...job, status: "paid" }); load(); };
   const changeStatus = async (newStatus) => { await updateJob(jobId, { ...job, status: newStatus }); load(); };
+  const FREE_INVOICE_LIMIT = 3;
   const genInvoice = async () => {
+    if (invoices.length >= FREE_INVOICE_LIMIT) { alert("Free plan allows 3 invoices/month. Upgrade to Pro for unlimited."); return; }
     try {
       const inv = await createInvoice(jobId, { amount: job.bidAmount, lineItems: [{ description: job.jobName, amount: job.bidAmount }] });
       setInvoices(prev => [...prev, inv]);
