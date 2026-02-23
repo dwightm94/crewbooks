@@ -5,18 +5,26 @@ import { useTheme } from "@/hooks/useTheme";
 import { Hammer, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState(""); const [pw, setPw] = useState(""); const [showPw, setShowPw] = useState(false);
-  const { login, loading, error, clearError, user } = useAuth();
-  const { init } = useTheme();
-  useEffect(() => { init(); }, []);
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const { login, user, init } = useAuth();
+  const { init: themeInit } = useTheme();
+
+  useEffect(() => { themeInit(); init(); }, []);
   useEffect(() => { if (user) window.location.href = "/dashboard"; }, [user]);
 
   const doLogin = async () => {
-    clearError();
+    if (!email || !pw || busy) return;
+    setBusy(true);
+    setErr("");
     try {
       const ok = await login(email, pw);
       if (ok) window.location.href = "/dashboard";
-    } catch (e) { console.error(e); }
+      else setBusy(false);
+    } catch (e) { setErr(e.message || "Login failed"); setBusy(false); }
   };
 
   const handleKey = (e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); doLogin(); } };
@@ -31,7 +39,7 @@ export default function LoginPage() {
         <p className="mt-2 text-lg" style={{ color: "var(--text2)" }}>Track every dollar. Know who owes you.</p>
       </div>
       <div className="w-full max-w-sm space-y-4" onKeyDown={handleKey}>
-        {error && <div className="rounded-2xl p-4 text-sm text-center font-semibold" style={{ background: "var(--red-bg)", color: "var(--red)" }}>{error}</div>}
+        {err && <div className="rounded-2xl p-4 text-sm text-center font-semibold" style={{ background: "var(--red-bg)", color: "var(--red)" }}>{err}</div>}
         <div>
           <label className="field-label">Email</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" className="field" autoComplete="email" />
@@ -46,8 +54,8 @@ export default function LoginPage() {
           </div>
         </div>
         <button type="button" onClick={() => window.location.href = "/auth/forgot-password"} className="text-sm font-semibold" style={{ color: "var(--brand)" }}>Forgot password?</button>
-        <button type="button" disabled={loading} onClick={doLogin} className="btn btn-brand w-full text-lg">
-          {loading ? <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : "Sign In"}
+        <button type="button" disabled={busy} onClick={doLogin} className="btn btn-brand w-full text-lg">
+          {busy ? <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : "Sign In"}
         </button>
         <p className="text-center text-sm" style={{ color: "var(--muted)" }}>
           No account? <button type="button" onClick={() => window.location.href = "/auth/signup"} className="font-bold" style={{ color: "var(--brand)" }}>Sign Up Free</button>
