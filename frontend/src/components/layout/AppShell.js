@@ -1,10 +1,12 @@
 "use client";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Hammer, DollarSign, Settings, ChevronLeft } from "lucide-react";
+import { LayoutDashboard, Hammer, DollarSign, Settings, ChevronLeft, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
-import { NotifBell } from "@/components/NotifBell";
+import dynamic from "next/dynamic";
+
+const NotifBell = dynamic(() => import("@/components/NotifBell").then(m => m.NotifBell), { ssr: false, loading: () => <Bell size={22} style={{ color: "var(--muted)" }} /> });
 
 const TABS = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
