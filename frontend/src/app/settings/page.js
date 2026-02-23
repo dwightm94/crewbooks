@@ -275,60 +275,6 @@ function SubscriptionSection() {
 
 // === QuickBooks Section ===
 function QuickBooksSection() {
-  const [status, setStatus] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [connecting, setConnecting] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-
-  useEffect(() => {
-    getQBStatus().then(setStatus).catch(() => setStatus({ connected: false })).finally(() => setLoading(false));
-  }, []);
-
-  const doConnect = async () => {
-    setConnecting(true);
-    try {
-      const data = await connectQuickBooks();
-      if (data.authUrl) window.location.href = data.authUrl;
-      else alert(data.error || "Could not connect to QuickBooks");
-    } catch (e) { alert(e.message); }
-    setConnecting(false);
-  };
-
-  const doSync = async () => {
-    setSyncing(true);
-    try { await syncQuickBooks("all"); alert("Sync complete!"); }
-    catch (e) { alert(e.message); }
-    setSyncing(false);
-  };
-
-  const doDisconnect = async () => {
-    if (!confirm("Disconnect QuickBooks?")) return;
-    try { await disconnectQuickBooks(); setStatus({ connected: false }); }
-    catch (e) { alert(e.message); }
-  };
-
-  if (loading) return <div className="card"><p style={{ color: "var(--muted)" }}>Loading...</p></div>;
-
-  if (status?.connected) {
-    return (
-      <div className="card space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#2CA01C" }}>
-            <span className="text-white font-bold text-sm">QB</span>
-          </div>
-          <div>
-            <p className="font-bold" style={{ color: "var(--text)" }}>QuickBooks Online</p>
-            <p className="text-xs" style={{ color: "#22C55E" }}>Connected</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={doSync} disabled={syncing} className="btn btn-brand btn-sm flex-1">{syncing ? "Syncing..." : "Sync Now"}</button>
-          <button onClick={doDisconnect} className="btn btn-outline btn-sm">Disconnect</button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="card">
       <div className="flex items-center gap-3 mb-3">
@@ -340,9 +286,9 @@ function QuickBooksSection() {
           <p className="text-xs" style={{ color: "var(--muted)" }}>Sync invoices & expenses</p>
         </div>
       </div>
-      <button onClick={doConnect} disabled={connecting} className="btn btn-brand w-full">
-        {connecting ? "Connecting..." : "Connect QuickBooks →"}
-      </button>
+      <div className="w-full py-3 rounded-xl text-center font-bold text-sm" style={{ background: "var(--input)", color: "var(--muted)" }}>
+        Coming Soon
+      </div>
     </div>
   );
 }
