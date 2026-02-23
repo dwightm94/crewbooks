@@ -1,16 +1,16 @@
 "use client";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Hammer, Users, Calendar, FileText, ChevronLeft, Settings } from "lucide-react";
+import { LayoutDashboard, Hammer, DollarSign, Settings, ChevronLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
+import { NotifBell } from "@/components/NotifBell";
 
 const TABS = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/jobs", label: "Jobs", icon: Hammer },
-  { href: "/crew", label: "Crew", icon: Users },
-  { href: "/schedule", label: "Plan", icon: Calendar },
-  { href: "/estimates", label: "Bids", icon: FileText },
+  { href: "/money", label: "Money", icon: DollarSign },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function AppShell({ children, title, subtitle, back, action }) {
@@ -31,6 +31,7 @@ export function AppShell({ children, title, subtitle, back, action }) {
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+      {/* Header */}
       {title && (
         <header className="sticky top-0 z-40 px-4 py-3" style={{ background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
           <div className="flex items-center justify-between max-w-lg mx-auto">
@@ -43,22 +44,26 @@ export function AppShell({ children, title, subtitle, back, action }) {
             </div>
             <div className="flex items-center gap-1">
               {action}
-              <button onClick={() => router.push("/settings")} className="p-2 rounded-xl" style={{ color: "var(--text2)" }}><Settings size={20} /></button>
+              <NotifBell />
             </div>
           </div>
         </header>
       )}
+
+      {/* Content */}
       <main className="pb-24 max-w-lg mx-auto px-4">{children}</main>
+
+      {/* Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 safe-b" style={{ background: "var(--card)", borderTop: "1px solid var(--border)" }}>
         <div className="flex justify-around max-w-lg mx-auto">
           {TABS.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
             return (
               <button key={href} onClick={() => router.push(href)}
-                className="flex-1 flex flex-col items-center py-2 transition-colors"
+                className="flex-1 flex flex-col items-center py-2.5 transition-colors"
                 style={{ color: active ? "var(--brand)" : "var(--muted)" }}>
-                <Icon size={20} strokeWidth={active ? 2.5 : 1.5} />
-                <span className="text-[10px] mt-0.5 font-bold">{label}</span>
+                <Icon size={22} strokeWidth={active ? 2.5 : 1.5} />
+                <span className="text-[11px] mt-0.5 font-bold">{label}</span>
               </button>
             );
           })}

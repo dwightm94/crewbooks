@@ -430,6 +430,7 @@ function InvoicesTab({ invoices, job, jobId, onGenerate, onRefresh }) {
                 <div className="flex gap-2">
                   {inv.status === "draft" && <button onClick={() => doSend(inv.invoiceId)} className="btn btn-brand btn-sm"><Send size={14} />Send</button>}
                   {inv.status === "sent" && <button onClick={() => doPay(inv.invoiceId)} className="btn btn-brand btn-sm"><DollarSign size={14} />Mark Paid</button>}
+                  <button onClick={() => { const BASE = process.env.NEXT_PUBLIC_API_URL || ""; window.open(`${BASE}/invoice-pdf/${inv.invoiceId}`, "_blank"); }} className="btn btn-sm" style={{ background: "var(--input)", color: "var(--text2)" }}><FileText size={14} />PDF</button>
                 </div>
               </div>
             </div>
