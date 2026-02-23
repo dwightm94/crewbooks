@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
 const DEFAULT = { plan: "free", planName: "Free", usage: {}, features: {}, limits: {} };
 
@@ -7,24 +7,25 @@ export function usePlan() {
   const [plan, setPlan] = useState(DEFAULT);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    try {
-      const tokens = typeof window !== "undefined" ? localStorage.getItem("crewbooks_tokens") : null;
-      if (!tokens) { setPlan(DEFAULT); setLoading(false); return; }
-      const { cognitoGetUser } = await import("@/lib/auth");
-      const user = await cognitoGetUser();
-      if (!user?.token) { setPlan(DEFAULT); setLoading(false); return; }
-      const BASE = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(BASE + "/subscription/status", {
-        headers: { Authorization: "Bearer " + user.token },
-      });
-      const json = await res.json();
-      setPlan(json.data || DEFAULT);
-    } catch { setPlan(DEFAULT); }
-    setLoading(false);
+  useEffect(() => {
+    const fetchPlan = async () => {
+      try {
+        const stored = localStorage.getItem("crewbooks_tokens");
+        if (!stored) { setLoading(false); return; }
+        const tokens = JSON.parse(stored);
+        const token = tokens?.idToken || tokens?.IdToken || tokens?.token;
+        if (!token) { setLoading(false); return; }
+        const BASE = process.env.NEXT_PUBLIC_API_URL || "";
+        const res = await fetch(BASE + "/subscription/status", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        const json = await res.json();
+        if (json.data) setPlan(json.data);
+      } catch {}
+      setLoading(false);
+    };
+    fetchPlan();
   }, []);
-
-  useEffect(() => { refresh(); }, [refresh]);
 
   const isPro = plan?.plan === "pro" || plan?.plan === "team";
   const isFree = plan?.plan === "free" || !plan?.plan;
@@ -54,6 +55,8 @@ export function usePlan() {
     }
     return { allowed: true };
   };
+
+  const refresh = () => window.location.reload();
 
   return { plan, loading, isPro, isFree, canDo, refresh };
 }
