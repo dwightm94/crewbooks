@@ -25,26 +25,6 @@ export default function SchedulePage() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [editAssignment, setEditAssignment] = useState(null);
   const [busyDays, setBusyDays] = useState({});
-
-  // Fetch assignments for entire month to show dots on calendar
-  useEffect(() => {
-    const fetchMonth = async () => {
-      const d = new Date(date + "T12:00:00");
-      const year = d.getFullYear();
-      const month = d.getMonth();
-      const days = {};
-      for (let i = 1; i <= new Date(year, month + 1, 0).getDate(); i++) {
-        const ds = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(i).padStart(2, "0");
-        try {
-          const res = await getAssignments(ds);
-          const list = res.assignments || res || [];
-          if (list.length > 0) days[ds] = list.length;
-        } catch {}
-      }
-      setBusyDays(days);
-    };
-    fetchMonth();
-  }, [date.substring(0, 7)]);
   const [notifying, setNotifying] = useState(false);
   const [notifyResult, setNotifyResult] = useState(null);
 
@@ -128,7 +108,7 @@ export default function SchedulePage() {
             const sel = new Date(d + "T12:00:00");
             const diff = Math.round((sel - today) / 86400000);
             setDateOffset(diff);
-          }} busyDays={busyDays} />
+          }} busyDays={{}} />
           <p className="text-center text-sm font-bold mt-2" style={{ color: "var(--text)" }}>{formatDate(date)}</p>
 
           {/* Actions */}
