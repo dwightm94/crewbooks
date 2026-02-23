@@ -1,15 +1,16 @@
 "use client";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Hammer, DollarSign, Settings, ChevronLeft, Bell } from "lucide-react";
+import { LayoutDashboard, Hammer, DollarSign, Settings, ChevronLeft, Bell, Users, Calendar } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 
 const TABS = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/jobs", label: "Jobs", icon: Hammer },
+  { href: "/crew", label: "Crew", icon: Users },
+  { href: "/schedule", label: "Plan", icon: Calendar },
   { href: "/money", label: "Money", icon: DollarSign },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 function NotifBellInline() {
