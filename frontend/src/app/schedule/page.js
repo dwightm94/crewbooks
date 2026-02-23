@@ -28,28 +28,7 @@ export default function SchedulePage() {
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calYear, setCalYear] = useState(new Date().getFullYear());
 
-  // Track which days have assignments
-  useEffect(() => {
-    const fetchBusy = async () => {
-      const year = calYear;
-      const month = calMonth;
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const newBusy = {};
-      const promises = [];
-      for (let i = 1; i <= daysInMonth; i++) {
-        const ds = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(i).padStart(2, "0");
-        promises.push(
-          getAssignments(ds).then(res => {
-            const list = res.assignments || res || [];
-            if (list.length > 0) newBusy[ds] = list.length;
-          }).catch(() => {})
-        );
-      }
-      await Promise.all(promises);
-      setBusyDays(prev => ({ ...prev, ...newBusy }));
-    };
-    fetchBusy();
-  }, [calMonth, calYear]);
+
   const [notifying, setNotifying] = useState(false);
   const [notifyResult, setNotifyResult] = useState(null);
 
