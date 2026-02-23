@@ -54,7 +54,7 @@ export default function SchedulePage() {
     try { const t = await getTracker(); setTracker(t.crew || t || []); } catch { }
   };
 
-  useEffect(() => { load(); }, [dateOffset]);
+  useEffect(() => { load(); }, [selectedDate]);
   useEffect(() => { if (tab === "tracker") loadTracker(); }, [tab]);
 
   const doAssign = async (memberIds, jobId, startTime) => {
