@@ -10,8 +10,13 @@ export function NotifBell() {
   useEffect(() => {
     const check = async () => {
       try {
+        if (typeof window !== "undefined") {
+          const tokens = localStorage.getItem("crewbooks_tokens");
+          if (!tokens) return;
+        }
         const { cognitoGetUser } = await import("@/lib/auth");
         const user = await cognitoGetUser();
+        if (!user?.token) return;
         const BASE = process.env.NEXT_PUBLIC_API_URL || "";
         const res = await fetch(`${BASE}/notifications`, {
           headers: { Authorization: `Bearer ${user.token}` },
@@ -21,7 +26,7 @@ export function NotifBell() {
       } catch { setCount(0); }
     };
     check();
-    const interval = setInterval(check, 60000); // Check every 60s
+    const interval = setInterval(check, 60000);
     return () => clearInterval(interval);
   }, []);
 
