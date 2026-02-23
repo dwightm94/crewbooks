@@ -13,7 +13,6 @@ const TABS = [
 ];
 
 function NotifBellInline() {
-  import { useState } from "react";
   const [count, setCount] = useState(0);
   useEffect(() => {
     const check = async () => {
