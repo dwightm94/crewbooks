@@ -63,10 +63,10 @@ export default function SchedulePage() {
     }
   };
 
-  const doEdit = async (oldMemberId, newMemberId, jobId, startTime) => {
+  const doEdit = async (memberId, jobId, startTime, newDate) => {
     try {
-      await deleteAssignment(date, oldMemberId);
-      await createAssignment({ memberId: newMemberId, jobId, date, startTime });
+      await deleteAssignment(date, memberId);
+      await createAssignment({ memberId, jobId, date: newDate || date, startTime });
       load();
       setEditAssignment(null);
     } catch (e) { alert("Error: " + e.message); }
