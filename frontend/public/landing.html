@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrewBooks — Track every dollar. Know who owes you.</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#FFFBF5;color:#1A1A1A}
+nav{position:fixed;top:0;width:100%;z-index:100;background:rgba(255,251,245,.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,.06)}
+.nav-c{max-width:1100px;margin:0 auto;padding:14px 24px;display:flex;justify-content:space-between;align-items:center}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px}
+.logo-text{font-weight:800;font-size:22px;letter-spacing:-.5px}
+.nav-btns{display:flex;gap:12px}
+.btn-outline{padding:8px 16px;background:transparent;border:1px solid #ddd;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;color:#333;text-decoration:none}
+.btn-brand{padding:8px 16px;background:linear-gradient(135deg,#F59E0B,#EF4444);border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;color:#fff;text-decoration:none}
+.hero{padding:130px 24px 60px;text-align:center}
+.hero-inner{max-width:700px;margin:0 auto}
+.badge{display:inline-block;padding:6px 14px;border-radius:20px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);font-size:13px;font-weight:600;color:#B45309;margin-bottom:20px}
+h1{font-size:clamp(36px,7vw,56px);font-weight:900;line-height:1.1;letter-spacing:-1.5px;margin-bottom:20px}
+h1 span{background:linear-gradient(135deg,#F59E0B,#EF4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:18px;color:#666;line-height:1.6;max-width:500px;margin:0 auto 32px}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-big{padding:14px 32px;background:linear-gradient(135deg,#F59E0B,#EF4444);border:none;border-radius:14px;font-weight:800;font-size:16px;cursor:pointer;color:#fff;box-shadow:0 4px 20px rgba(245,158,11,.3);text-decoration:none}
+.btn-sec{padding:14px 24px;background:#fff;border:2px solid #E5E7EB;border-radius:14px;font-weight:700;font-size:16px;cursor:pointer;color:#333;text-decoration:none}
+.sub{margin-top:16px;font-size:13px;color:#999}
+.trades{padding:20px 24px 40px;text-align:center;display:flex;justify-content:center;gap:40px;flex-wrap:wrap;opacity:.5}
+.trades span{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#999}
+.features{padding:60px 24px;max-width:1100px;margin:0 auto}
+.features h2,.steps h2,.pricing h2{font-size:36px;font-weight:900;letter-spacing:-.5px;text-align:center}
+.features>p,.pricing>p{color:#666;font-size:16px;margin-top:8px;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:48px}
+.card{background:#fff;border-radius:16px;padding:24px;border:1px solid rgba(0,0,0,.06);transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.1)}
+.card span{font-size:32px}
+.card h3{font-weight:800;font-size:17px;margin:12px 0 6px}
+.card p{color:#666;font-size:14px;line-height:1.5}
+.steps{padding:60px 24px;background:#fff}
+.steps-inner{max-width:800px;margin:0 auto;text-align:center}
+.steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;margin-top:48px}
+.step-num{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#F59E0B,#EF4444);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:20px;margin:0 auto 12px}
+.step h3{font-weight:800;font-size:16px;margin-bottom:4px}
+.step p{color:#666;font-size:14px}
+.pricing{padding:60px 24px;max-width:900px;margin:0 auto}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:48px}
+.plan{background:#fff;border-radius:20px;padding:28px;position:relative;transition:transform .2s,box-shadow .2s}
+.plan:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.1)}
+.plan-pop{border:2px solid #F59E0B}
+.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);padding:4px 14px;border-radius:20px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;font-size:12px;font-weight:800}
+.plan h3{font-weight:800;font-size:18px}
+.plan .price{font-size:42px;font-weight:900;margin:8px 0 4px}
+.plan .price span{font-size:16px;font-weight:500;color:#999}
+.plan .plan-sub{color:#999;font-size:13px;margin-bottom:20px}
+.plan-btn{width:100%;padding:12px;border:none;border-radius:12px;font-weight:700;font-size:14px;cursor:pointer}
+.plan ul{margin-top:20px;list-style:none;padding:0}
+.plan li{padding:6px 0;font-size:14px;color:#555;display:flex;align-items:center;gap:8px}
+.check{color:#22C55E;font-weight:700}
+.cta-section{padding:60px 24px;text-align:center}
+.cta-box{max-width:600px;margin:0 auto;background:linear-gradient(135deg,#1A1A1A,#333);border-radius:24px;padding:48px 32px}
+.cta-box h2{font-size:32px;font-weight:900;color:#fff;margin-bottom:12px}
+.cta-box p{color:rgba(255,255,255,.6);font-size:16px;margin-bottom:24px}
+footer{padding:32px 24px;border-top:1px solid rgba(0,0,0,.06);text-align:center}
+.foot-logo{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px}
+.foot-logo div{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#F59E0B,#EF4444);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px}
+footer p{color:#999;font-size:13px}
+.foot-links{margin-top:8px;display:flex;justify-content:center;gap:16px}
+.foot-links a{color:#999;font-size:13px;text-decoration:none}
+.dim{opacity:.7}
+</style>
+</head>
+<body>
+<nav><div class="nav-c"><div class="logo"><div class="logo-icon">C</div><span class="logo-text">CrewBooks</span></div><div class="nav-btns"><a href="/auth/login" class="btn-outline">Log In</a><a href="/auth/signup" class="btn-brand">Start Free</a></div></div></nav>
+
+<section class="hero"><div class="hero-inner">
+<div class="badge">Built for construction subcontractors</div>
+<h1>Track every dollar. <span>Know who owes you.</span></h1>
+<p>Jobs, invoicing, crew scheduling, expenses, and payments — all in one app built for trades.</p>
+<div class="hero-btns">
+<a href="/auth/signup" class="btn-big">Start Free — No Credit Card</a>
+<a href="#features" class="btn-sec">See Features</a>
+</div>
+<p class="sub">Free plan includes 3 active jobs. Upgrade anytime.</p>
+</div></section>
+
+<div class="trades"><span>HVAC</span><span>Plumbing</span><span>Electrical</span><span>Roofing</span><span>Concrete</span><span>Framing</span></div>
+
+<section class="features" id="features">
+<h2>Everything you need to run your crew</h2>
+<p>No spreadsheets. No guessing. No chasing money.</p>
+<div class="grid">
+<div class="card"><span>💼</span><h3>Job Tracking</h3><p>Create jobs, track status from bid to paid. See margin on every project in real time.</p></div>
+<div class="card"><span>📄</span><h3>Invoicing</h3><p>Generate professional invoices in one tap. Send to clients, track payments, get paid faster.</p></div>
+<div class="card"><span>👷</span><h3>Crew Management</h3><p>Add crew members, assign to jobs, schedule daily. Everyone knows where to be.</p></div>
+<div class="card"><span>📸</span><h3>Photo Documentation</h3><p>Snap job photos, organize by category. Before/after, progress, issues — all documented.</p></div>
+<div class="card"><span>📊</span><h3>Reports & Analytics</h3><p>Revenue charts, profitability rankings, expense breakdowns. Know your numbers.</p></div>
+<div class="card"><span>💳</span><h3>Online Payments</h3><p>Clients pay invoices by credit card. Funds go straight to your bank. 2.5% fee.</p></div>
+<div class="card"><span>📋</span><h3>Estimates & Bidding</h3><p>Create estimates, send to clients for approval. Convert accepted bids to jobs instantly.</p></div>
+<div class="card"><span>🛡️</span><h3>Compliance Tracking</h3><p>Track licenses, insurance, certifications. Get alerts before anything expires.</p></div>
+<div class="card"><span>📅</span><h3>Daily Logs</h3><p>Log work performed, weather, crew hours. Complete job documentation for disputes.</p></div>
+</div>
+</section>
+
+<section class="steps"><div class="steps-inner">
+<h2>Get started in 60 seconds</h2>
+<div class="steps-grid">
+<div class="step"><div class="step-num">1</div><h3>Sign up free</h3><p>Create your account. No credit card needed.</p></div>
+<div class="step"><div class="step-num">2</div><h3>Add your first job</h3><p>Enter client, amount, address. Takes 30 seconds.</p></div>
+<div class="step"><div class="step-num">3</div><h3>Send an invoice</h3><p>One tap to generate. Send via text or email.</p></div>
+<div class="step"><div class="step-num">4</div><h3>Get paid</h3><p>Clients pay online. Money hits your bank.</p></div>
+</div>
+</div></section>
+
+<section class="pricing" id="pricing">
+<h2>Simple, honest pricing</h2>
+<p>Start free. Upgrade when you are ready.</p>
+<div class="pricing-grid">
+<div class="plan" style="border:1px solid rgba(0,0,0,.08)">
+<h3>Free</h3><p class="price">$0</p><p class="plan-sub">Great for getting started</p>
+<a href="/auth/signup" class="plan-btn" style="background:#F3F4F6;color:#333;display:block;text-align:center;text-decoration:none">Get Started</a>
+<ul><li><span class="check">✓</span>3 active jobs</li><li><span class="check">✓</span>3 invoices/month</li><li><span class="check">✓</span>Crew scheduling</li><li><span class="check">✓</span>Photo documentation</li><li><span class="check">✓</span>Daily logs</li><li><span class="check">✓</span>Estimates & bidding</li><li><span class="check">✓</span>Compliance tracking</li></ul>
+</div>
+<div class="plan plan-pop">
+<div class="plan-badge">MOST POPULAR</div>
+<h3>Pro</h3><p class="price">$39<span>/mo</span></p><p class="plan-sub">For serious contractors</p>
+<a href="/auth/signup" class="plan-btn" style="background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;display:block;text-align:center;text-decoration:none">Start Free Trial</a>
+<ul><li style="color:#F59E0B;font-weight:700">Everything in Free, plus:</li><li><span class="check">✓</span>Unlimited jobs</li><li><span class="check">✓</span>Unlimited invoicing</li><li><span class="check">✓</span>Online payments (2.5% fee)</li><li><span class="check">✓</span>Full reports & analytics</li><li><span class="check">✓</span>Payment reminders</li><li><span class="check">✓</span>Priority support</li></ul>
+</div>
+<div class="plan dim" style="border:1px solid rgba(0,0,0,.08)">
+<h3>Team</h3><p class="price">$79<span>/mo</span></p><p class="plan-sub">For growing companies</p>
+<div class="plan-btn" style="background:#F3F4F6;color:#999;text-align:center">Coming Soon</div>
+<ul><li style="color:#6366F1;font-weight:700">Everything in Pro, plus:</li><li><span class="check">✓</span>Up to 10 users</li><li><span class="check">✓</span>25GB photo storage</li><li><span class="check">✓</span>QuickBooks sync</li><li><span class="check">✓</span>Dedicated support</li></ul>
+</div>
+</div>
+</section>
+
+<section class="cta-section"><div class="cta-box">
+<h2>Stop losing money on every job</h2>
+<p>Join contractors who track every dollar and always know who owes them.</p>
+<a href="/auth/signup" class="btn-big">Get Started Free</a>
+</div></section>
+
+<footer>
+<div class="foot-logo"><div>C</div><span style="font-weight:800;font-size:16px">CrewBooks</span></div>
+<p>&copy; 2026 CrewBooks. Built for the trades.</p>
+<div class="foot-links"><a href="mailto:support@crewbooks.app">Support</a><a href="/auth/login">Login</a></div>
+</footer>
+</body>
+</html>
