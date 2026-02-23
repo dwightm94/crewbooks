@@ -16,7 +16,7 @@ function formatDate(str) {
 
 export default function SchedulePage() {
   const [tab, setTab] = useState("schedule");
-  const [dateOffset, setDateOffset] = useState(1); // default tomorrow
+  const [selectedDate, setSelectedDate] = useState(getDateStr(0));
   const [crew, setCrew] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [assignments, setAssignments] = useState([]);
@@ -32,7 +32,7 @@ export default function SchedulePage() {
   const [notifying, setNotifying] = useState(false);
   const [notifyResult, setNotifyResult] = useState(null);
 
-  const date = getDateStr(dateOffset);
+  const date = selectedDate;
 
   const load = async () => {
     setLoading(true);
@@ -108,10 +108,7 @@ export default function SchedulePage() {
         <>
           {/* Calendar */}
           <MiniCalendar date={date} onSelect={(d) => {
-            const today = new Date(); today.setHours(0,0,0,0);
-            const sel = new Date(d + "T12:00:00");
-            const diff = Math.round((sel - today) / 86400000);
-            setDateOffset(diff);
+            setSelectedDate(d);
           }} busyDays={busyDays} calMonth={calMonth} calYear={calYear} setCalMonth={setCalMonth} setCalYear={setCalYear} />
           <p className="text-center text-sm font-bold mt-2" style={{ color: "var(--text)" }}>{formatDate(date)}</p>
           <div className="flex items-center justify-center gap-4 mt-2">
