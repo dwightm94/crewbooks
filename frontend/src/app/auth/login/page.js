@@ -13,8 +13,8 @@ export default function LoginPage() {
   const { login, user, init } = useAuth();
   const { init: themeInit } = useTheme();
 
-  useEffect(() => { themeInit(); init(); }, []);
-  useEffect(() => { if (user) window.location.href = "/dashboard"; }, [user]);
+  useEffect(() => { themeInit(); }, []);
+  // removed auto-redirect - always show login
 
   const doLogin = async () => {
     if (!email || !pw || busy) return;
