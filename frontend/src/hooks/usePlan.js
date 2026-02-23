@@ -3,30 +3,21 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 
 const PlanContext = createContext(null);
 
-const DEFAULT_PLAN = { plan: "free", planName: "Free", usage: {}, features: {}, limits: {} };
-
 export function PlanProvider({ children }) {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      // Check if user has tokens before trying to fetch
-      if (typeof window !== "undefined") {
-        const tokens = localStorage.getItem("crewbooks_tokens");
-        if (!tokens) { setPlan(DEFAULT_PLAN); setLoading(false); return; }
-      }
       const { cognitoGetUser } = await import("@/lib/auth");
       const user = await cognitoGetUser();
-      if (!user?.token) { setPlan(DEFAULT_PLAN); setLoading(false); return; }
       const BASE = process.env.NEXT_PUBLIC_API_URL || "";
       const res = await fetch(`${BASE}/subscription/status`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       const json = await res.json();
       if (json.data) setPlan(json.data);
-      else setPlan(DEFAULT_PLAN);
-    } catch { setPlan(DEFAULT_PLAN); }
+    } catch { setPlan({ plan: "free", planName: "Free", usage: {}, features: {}, limits: {} }); }
     setLoading(false);
   }, []);
 

@@ -107,15 +107,3 @@ export const checkLimit = (action) => api("/subscription/check", { method: "POST
 export const createSubscriptionCheckout = (plan) => api("/subscription/checkout", { method: "POST", body: { plan } });
 export const createSubscriptionPortal = () => api("/subscription/portal", { method: "POST" });
 export const getPlans = () => api("/subscription/plans");
-
-// === PHASE 8: Notifications ===
-export const getNotifications = () => api("/notifications");
-export const markNotificationsRead = (data) => api("/notifications/read", { method: "PUT", body: data });
-export const getNotifPreferences = () => api("/notifications/preferences");
-export const updateNotifPreferences = (data) => api("/notifications/preferences", { method: "PUT", body: data });
-
-// === PHASE 8: QuickBooks ===
-export const getQBStatus = () => api("/quickbooks/status");
-export const connectQuickBooks = () => api("/quickbooks/connect");
-export const syncQuickBooks = (type) => api("/quickbooks/sync", { method: "POST", body: { type } });
-export const disconnectQuickBooks = () => api("/quickbooks/disconnect", { method: "POST" });

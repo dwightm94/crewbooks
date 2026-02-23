@@ -9,7 +9,6 @@
     "@aws-sdk/client-sns": "^3.500.0",
     "@aws-sdk/lib-dynamodb": "^3.500.0",
     "@aws-sdk/s3-request-presigner": "^3.500.0",
-    "stripe": "^20.3.1",
-    "uuid": "^13.0.0"
+    "stripe": "^20.3.1"
   }
 }
