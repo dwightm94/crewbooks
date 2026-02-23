@@ -23,6 +23,7 @@ export default function SchedulePage() {
   const [tracker, setTracker] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [editAssignment, setEditAssignment] = useState(null);
   const [notifying, setNotifying] = useState(false);
   const [notifyResult, setNotifyResult] = useState(null);
 
@@ -60,6 +61,15 @@ export default function SchedulePage() {
       alert("Assignment failed: " + e.message);
       throw e;
     }
+  };
+
+  const doEdit = async (oldMemberId, newMemberId, jobId, startTime) => {
+    try {
+      await deleteAssignment(date, oldMemberId);
+      await createAssignment({ memberId: newMemberId, jobId, date, startTime });
+      load();
+      setEditAssignment(null);
+    } catch (e) { alert("Error: " + e.message); }
   };
 
   const doRemove = async (memberId) => {
@@ -161,6 +171,7 @@ export default function SchedulePage() {
                     <div className="flex flex-col items-end gap-1">
                       {a.clockIn && <span className="badge badge-green text-[10px]">Clocked In</span>}
                       {a.clockOut && <span className="badge badge-purple text-[10px]">{a.hoursWorked}h</span>}
+                      <button onClick={() => setEditAssignment(a)} style={{ color: "var(--brand)" }}><Edit3 size={14} /></button>
                       <button onClick={() => doRemove(a.memberId)} style={{ color: "var(--red)" }}><Trash2 size={14} /></button>
                     </div>
                   </div>
@@ -206,6 +217,9 @@ export default function SchedulePage() {
       {/* Assign Modal */}
       {showAssignModal && (
         <AssignModal crew={unassigned} jobs={jobs} onAssign={doAssign} onClose={() => setShowAssignModal(false)} />
+      )}
+      {editAssignment && (
+        <EditAssignModal assignment={editAssignment} crew={crew} jobs={jobs} onSave={doEdit} onClose={() => setEditAssignment(null)} />
       )}
     </AppShell>
   );
@@ -286,6 +300,73 @@ function AssignModal({ crew, jobs, onAssign, onClose }) {
             disabled={saving}
             className="btn btn-brand w-full text-lg">
             {saving ? "Assigning..." : `Assign${memberId && jobId ? "" : " (select both)"}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditAssignModal({ assignment, crew, jobs, onSave, onClose }) {
+  const [memberId, setMemberId] = useState(assignment.memberId);
+  const [jobId, setJobId] = useState(assignment.jobId);
+  const [startTime, setStartTime] = useState(assignment.startTime || "7:00 AM");
+  const [saving, setSaving] = useState(false);
+  const times = ["6:00 AM", "6:30 AM", "7:00 AM", "7:30 AM", "8:00 AM", "8:30 AM", "9:00 AM", "10:00 AM"];
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(assignment.memberId, memberId, jobId, startTime);
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "var(--bg)" }}>
+      <div className="w-full max-w-lg mx-auto p-6 pb-24">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-extrabold" style={{ color: "var(--text)" }}>Edit Assignment</h2>
+          <button onClick={onClose} className="text-sm font-bold" style={{ color: "var(--brand)" }}>Cancel</button>
+        </div>
+        <div className="space-y-5">
+          <div>
+            <label className="field-label">Crew Member</label>
+            <div className="space-y-2">
+              {crew.map(m => (
+                <button key={m.memberId} onClick={() => setMemberId(m.memberId)}
+                  className="card w-full text-left transition-all"
+                  style={{ borderColor: memberId === m.memberId ? "var(--brand)" : "var(--border)", borderWidth: "2px" }}>
+                  <p className="font-bold" style={{ color: memberId === m.memberId ? "var(--brand)" : "var(--text)" }}>{m.name}</p>
+                  <p className="text-xs" style={{ color: "var(--text2)" }}>{m.role}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="field-label">Job Site</label>
+            <div className="space-y-2">
+              {jobs.map(j => (
+                <button key={j.jobId} onClick={() => setJobId(j.jobId)}
+                  className="card w-full text-left transition-all"
+                  style={{ borderColor: jobId === j.jobId ? "var(--brand)" : "var(--border)", borderWidth: "2px" }}>
+                  <p className="font-bold" style={{ color: jobId === j.jobId ? "var(--brand)" : "var(--text)" }}>{j.jobName}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="field-label">Start Time</label>
+            <div className="grid grid-cols-4 gap-2">
+              {times.map(t => (
+                <button key={t} onClick={() => setStartTime(t)}
+                  className="card text-center py-2 text-sm font-bold transition-all"
+                  style={{ borderColor: startTime === t ? "var(--brand)" : "var(--border)", borderWidth: "2px", color: startTime === t ? "var(--brand)" : "var(--text2)" }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button type="button" onClick={handleSave} disabled={saving} className="btn btn-brand w-full text-lg">
+            {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>
