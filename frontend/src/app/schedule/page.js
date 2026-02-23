@@ -283,7 +283,7 @@ function MiniCalendar({ date, onSelect, busyDays, calMonth, calYear, setCalMonth
           var ds = calYear + "-" + String(calMonth + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
           var isSelected = ds === date;
           var isToday = ds === todayStr;
-          var busy = busyDays[ds];
+          var busy = busyDays[ds] > 0;
           var pastDay = new Date(ds + "T12:00:00") < today && !isToday;
           return (
             <button type="button" key={ds} onClick={function() { onSelect(ds); }}
