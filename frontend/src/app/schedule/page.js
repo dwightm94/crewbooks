@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { getCrew, getJobs, getAssignments, createAssignment, deleteAssignment, notifyCrew, getTracker } from "@/lib/api";
 import { money } from "@/lib/utils";
-import { Calendar, MapPin, Clock, Send, UserPlus, Trash2, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Users, Briefcase } from "lucide-react";
+import { Calendar, MapPin, Clock, Send, UserPlus, Trash2, Edit3, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Users, Briefcase } from "lucide-react";
 
 function getDateStr(offset = 0) {
   const d = new Date(); d.setDate(d.getDate() + offset);
