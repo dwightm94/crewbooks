@@ -32,9 +32,9 @@ export default function SettingsPage() {
 
   return (
     <AppShell title="Settings">
-      {/* Profile card */}
+      {/* Profile & Company */}
       <div className="card mt-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mb-4">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white" style={{ background: "var(--brand)" }}>
             {user?.name?.[0]?.toUpperCase() || "U"}
           </div>
@@ -43,25 +43,21 @@ export default function SettingsPage() {
             <p className="text-sm" style={{ color: "var(--text2)" }}>{user?.email}</p>
           </div>
         </div>
+        <div className="space-y-3">
+          <div>
+            <label className="field-label"><Building2 size={14} className="inline mr-1" />Company Name</label>
+            <input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="Your Company LLC" className="field" />
+          </div>
+          <div>
+            <label className="field-label"><Wrench size={14} className="inline mr-1" />Trade</label>
+            <select value={trade} onChange={e => setTrade(e.target.value)} className="field">
+              <option value="">Select your trade</option>
+              {TRADES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <button onClick={saveCompany} className="btn btn-brand w-full">{saved ? "\u2713 Saved!" : "Save Company Info"}</button>
+        </div>
       </div>
-
-      {/* Subscription */}
-      <section className="mt-6">
-        <h3 className="section-title">Subscription</h3>
-        <SubscriptionSection />
-      </section>
-
-      {/* Payments */}
-      <section className="mt-6">
-        <h3 className="section-title">Payments</h3>
-        <StripeConnectSection email={user?.email} />
-      </section>
-
-      {/* Integrations */}
-      <section className="mt-6">
-        <h3 className="section-title">Integrations</h3>
-        <QuickBooksSection />
-      </section>
 
       {/* Theme */}
       <section className="mt-6">
@@ -82,23 +78,22 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Company */}
+      {/* Payments */}
       <section className="mt-6">
-        <h3 className="section-title">Company</h3>
-        <div className="space-y-3">
-          <div>
-            <label className="field-label"><Building2 size={14} className="inline mr-1" />Company Name</label>
-            <input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="Your Company LLC" className="field" />
-          </div>
-          <div>
-            <label className="field-label"><Wrench size={14} className="inline mr-1" />Trade</label>
-            <select value={trade} onChange={e => setTrade(e.target.value)} className="field">
-              <option value="">Select your trade</option>
-              {TRADES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-          <button onClick={saveCompany} className="btn btn-brand w-full">{saved ? "✓ Saved!" : "Save Company Info"}</button>
-        </div>
+        <h3 className="section-title">Payments</h3>
+        <StripeConnectSection email={user?.email} />
+      </section>
+
+      {/* Subscription */}
+      <section className="mt-6">
+        <h3 className="section-title">Subscription</h3>
+        <SubscriptionSection />
+      </section>
+
+      {/* Integrations */}
+      <section className="mt-6">
+        <h3 className="section-title">Integrations</h3>
+        <QuickBooksSection />
       </section>
 
       {/* Notifications */}
