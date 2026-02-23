@@ -55,6 +55,27 @@ export default function SchedulePage() {
   };
 
   useEffect(() => { load(); }, [selectedDate]);
+
+  // Fetch busy days for the visible calendar month
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchMonth() {
+      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+      for (let i = 1; i <= daysInMonth; i++) {
+        if (cancelled) break;
+        const ds = calYear + "-" + String(calMonth + 1).padStart(2, "0") + "-" + String(i).padStart(2, "0");
+        if (busyDays[ds] !== undefined) continue; // already know this day
+        try {
+          const res = await getAssignments(ds);
+          const list = res.assignments || res || [];
+          setBusyDays(prev => ({ ...prev, [ds]: list.length }));
+        } catch (e) {}
+        await new Promise(r => setTimeout(r, 150)); // 150ms delay between calls
+      }
+    }
+    fetchMonth();
+    return () => { cancelled = true; };
+  }, [calMonth, calYear]);
   useEffect(() => { if (tab === "tracker") loadTracker(); }, [tab]);
 
   const doAssign = async (memberIds, jobId, startTime) => {
