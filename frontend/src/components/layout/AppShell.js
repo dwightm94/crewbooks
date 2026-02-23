@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, Hammer, DollarSign, Settings, ChevronLeft, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,7 +13,7 @@ const TABS = [
 ];
 
 function NotifBellInline() {
-  const { useState, useEffect } = require("react");
+  import { useState } from "react";
   const [count, setCount] = useState(0);
   useEffect(() => {
     const check = async () => {
