@@ -38,6 +38,7 @@ export default function JobDetailPage() {
 
   const markComplete = async () => { await updateJob(jobId, { ...job, status: "complete" }); load(); };
   const markPaid = async () => { await updateJob(jobId, { ...job, status: "paid" }); load(); };
+  const changeStatus = async (newStatus) => { await updateJob(jobId, { ...job, status: newStatus }); load(); };
   const genInvoice = async () => {
     try {
       const inv = await createInvoice(jobId, { amount: job.bidAmount, lineItems: [{ description: job.jobName, amount: job.bidAmount }] });
@@ -49,10 +50,13 @@ export default function JobDetailPage() {
   return (
     <AppShell title={job.jobName} subtitle={job.clientName} back="/jobs"
       action={
-        <div className="flex gap-2">
-          {job.status === "active" && <button onClick={markComplete} className="btn btn-brand btn-sm"><CheckCircle2 size={16} />Complete</button>}
-          {job.status === "complete" && <button onClick={markPaid} className="btn btn-brand btn-sm"><DollarSign size={16} />Paid</button>}
-        </div>
+        <select value={job.status} onChange={e => changeStatus(e.target.value)}
+          className="field text-sm font-bold py-1 px-2" style={{ minWidth: 110, color: "var(--text)" }}>
+          <option value="bid">Bid</option>
+          <option value="active">Active</option>
+          <option value="complete">Complete</option>
+          <option value="paid">Paid</option>
+        </select>
       }>
 
       {/* Financial Summary Bar */}
