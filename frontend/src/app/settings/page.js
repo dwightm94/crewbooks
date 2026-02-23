@@ -6,33 +6,29 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { usePlan } from "@/hooks/usePlan";
 import { createConnectAccount, getConnectStatus, createOnboardLink, getConnectDashboard, getQBStatus, connectQuickBooks, syncQuickBooks, disconnectQuickBooks } from "@/lib/api";
-import { Sun, Moon, User, Building2, Wrench, CreditCard, LogOut, ExternalLink, Bell, Shield, ChevronRight, CheckCircle2, AlertTriangle, Zap, Crown } from "lucide-react";
+import { Sun, Moon, User, Building2, Wrench, CreditCard, ExternalLink, Bell, Shield, ChevronRight, CheckCircle2, AlertTriangle, Zap, Crown } from "lucide-react";
 
 const TRADES = ["Electrician","Plumber","HVAC","Carpenter","Painter","Roofer","Concrete","Framing","Drywall","Flooring","Landscaping","Masonry","General Contractor","Other"];
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { dark, toggle } = useTheme();
-  const router = useRouter();
   const [company, setCompany] = useState("");
   const [trade, setTrade] = useState("");
   const [saved, setSaved] = useState(false);
 
-  // Load saved company info
-  useState(() => {
+  useEffect(() => {
     if (typeof window !== "undefined") {
       setCompany(localStorage.getItem("crewbooks_company") || "");
       setTrade(localStorage.getItem("crewbooks_trade") || "");
     }
-  });
+  }, []);
 
   const saveCompany = () => {
     localStorage.setItem("crewbooks_company", company);
     localStorage.setItem("crewbooks_trade", trade);
     setSaved(true); setTimeout(() => setSaved(false), 2000);
   };
-
-  const handleLogout = () => { logout(); router.replace("/auth/login"); };
 
   return (
     <AppShell title="Settings">
@@ -48,6 +44,24 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Subscription */}
+      <section className="mt-6">
+        <h3 className="section-title">Subscription</h3>
+        <SubscriptionSection />
+      </section>
+
+      {/* Payments */}
+      <section className="mt-6">
+        <h3 className="section-title">Payments</h3>
+        <StripeConnectSection email={user?.email} />
+      </section>
+
+      {/* Integrations */}
+      <section className="mt-6">
+        <h3 className="section-title">Integrations</h3>
+        <QuickBooksSection />
+      </section>
 
       {/* Theme */}
       <section className="mt-6">
@@ -87,41 +101,21 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Stripe Connect */}
-      <section className="mt-6">
-        <h3 className="section-title">💳 Payments</h3>
-        <StripeConnectSection email={user?.email} />
-      </section>
-
       {/* Notifications */}
       <section className="mt-6">
         <h3 className="section-title">Notifications</h3>
         <div className="card space-y-4">
           <ToggleRow icon={Bell} label="Payment Reminders" desc="Auto-remind clients about overdue invoices" />
-          <ToggleRow icon={Mail} label="Email Notifications" desc="Get notified when invoices are viewed" />
+          <ToggleRow icon={MailIcon} label="Email Notifications" desc="Get notified when invoices are viewed" />
         </div>
       </section>
 
-      {/* Plan */}
-      <section className="mt-6">
-        <h3 className="section-title">Subscription</h3>
-        <SubscriptionSection />
-      </section>
-
-      {/* Links */}
-      <section className="mt-6 space-y-2">
+      {/* Privacy & Help */}
+      <section className="mt-6 space-y-2 mb-8">
+        <h3 className="section-title">Support</h3>
         <SettingsLink icon={Shield} label="Privacy Policy" href="https://crewbooks.app/privacy" />
         <SettingsLink icon={ExternalLink} label="Help & Support" href="mailto:support@crewbooks.app" />
       </section>
-
-      {/* Logout */}
-      {/* QuickBooks */}
-      <section className="mt-6">
-        <h3 className="section-title">Integrations</h3>
-        <QuickBooksSection />
-      </section>
-
-      <button onClick={handleLogout} className="btn btn-danger w-full mt-6 mb-8"><LogOut size={18} />Sign Out</button>
     </AppShell>
   );
 }
@@ -150,7 +144,7 @@ function SettingsLink({ icon: Icon, label, href }) {
   );
 }
 
-function Mail({ size, style }) {
+function MailIcon({ size, style }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>;
 }
 
@@ -159,9 +153,9 @@ function StripeConnectSection({ email }) {
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     getConnectStatus().then(setStatus).catch(() => setStatus({ connected: false })).finally(() => setLoading(false));
-  });
+  }, []);
 
   const handleSetup = async () => {
     setConnecting(true);
@@ -191,7 +185,7 @@ function StripeConnectSection({ email }) {
           </div>
           <div className="flex-1">
             <p className="font-bold" style={{ color: "var(--text)" }}>Payments Active</p>
-            <p className="text-xs" style={{ color: "var(--text2)" }}>Clients can pay invoices online • 2.5% platform fee</p>
+            <p className="text-xs" style={{ color: "var(--text2)" }}>Clients can pay invoices online</p>
           </div>
         </div>
         <div className="divider" />
@@ -230,14 +224,13 @@ function StripeConnectSection({ email }) {
         </div>
         <div className="flex-1">
           <p className="font-bold" style={{ color: "var(--text)" }}>Accept Online Payments</p>
-          <p className="text-xs" style={{ color: "var(--text2)" }}>Let clients pay invoices with credit card • 2.5% fee</p>
+          <p className="text-xs" style={{ color: "var(--text2)" }}>Let clients pay invoices with credit card</p>
         </div>
       </div>
       <div className="divider" />
       <button onClick={handleSetup} disabled={connecting} className="btn w-full text-sm font-bold" style={{ background: "#635BFF", color: "white" }}>
         {connecting ? "Setting up..." : "Connect with Stripe →"}
       </button>
-      <p className="text-[10px] text-center mt-2" style={{ color: "var(--muted)" }}>Powered by Stripe • Bank-level security</p>
     </div>
   );
 }
@@ -246,24 +239,6 @@ function StripeConnectSection({ email }) {
 function SubscriptionSection() {
   const { plan, isPro, loading } = usePlan();
   const router = useRouter();
-  const [managing, setManaging] = useState(false);
-
-  const handleManage = async () => {
-    setManaging(true);
-    try {
-      const { cognitoGetUser } = await import("@/lib/auth");
-      const user = await cognitoGetUser();
-      const BASE = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(`${BASE}/subscription/portal`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
-      });
-      const json = await res.json();
-      if (json.data?.url) window.location.href = json.data.url;
-      else alert(json.error || "Could not open billing portal");
-    } catch (e) { alert("Error: " + e.message); }
-    setManaging(false);
-  };
 
   if (loading) return <div className="card animate-pulse h-24" />;
 
@@ -277,38 +252,28 @@ function SubscriptionSection() {
             </div>
             <div>
               <p className="font-bold text-lg" style={{ color: "var(--text)" }}>Pro Plan</p>
-              <p className="text-sm" style={{ color: "#22C55E" }}>Active • $39/month</p>
+              <p className="text-sm" style={{ color: "#22C55E" }}>Active</p>
             </div>
           </div>
           <CheckCircle2 size={24} style={{ color: "#22C55E" }} />
         </div>
-        <div className="divider" />
-        <p className="text-xs mb-3" style={{ color: "var(--text2)" }}>Unlimited jobs • Unlimited invoices • Online payments • Full reports</p>
-        <button onClick={handleManage} disabled={managing} className="btn w-full text-sm">
-          {managing ? "Loading..." : "Manage Subscription"}
-        </button>
       </div>
     );
   }
 
-  // Free plan
   return (
     <div className="card">
       <div className="flex items-center justify-between">
         <div>
           <p className="font-bold text-lg" style={{ color: "var(--text)" }}>Free Plan</p>
-          <p className="text-sm" style={{ color: "var(--text2)" }}>
-            {plan?.usage?.activeJobs || 0}/3 active jobs • {plan?.usage?.monthlyInvoices || 0}/3 invoices this month
-          </p>
+          <p className="text-sm" style={{ color: "var(--text2)" }}>3 active jobs • 3 invoices/month</p>
         </div>
-        <CreditCard size={28} style={{ color: "var(--muted)" }} />
       </div>
       <div className="divider" />
       <button onClick={() => router.push("/upgrade")} className="w-full py-3 rounded-xl text-white font-bold"
         style={{ background: "linear-gradient(135deg, #F59E0B, #EF4444)" }}>
         <span className="flex items-center justify-center gap-2"><Zap size={18} />Upgrade to Pro — $39/mo</span>
       </button>
-      <p className="text-xs text-center mt-2" style={{ color: "var(--muted)" }}>Unlimited jobs, invoicing, payments & reports</p>
     </div>
   );
 }
@@ -359,7 +324,6 @@ function QuickBooksSection() {
           <div>
             <p className="font-bold" style={{ color: "var(--text)" }}>QuickBooks Online</p>
             <p className="text-xs" style={{ color: "#22C55E" }}>Connected</p>
-            {status.lastSync && <p className="text-xs" style={{ color: "var(--muted)" }}>Last sync: {new Date(status.lastSync).toLocaleDateString()}</p>}
           </div>
         </div>
         <div className="flex gap-2">

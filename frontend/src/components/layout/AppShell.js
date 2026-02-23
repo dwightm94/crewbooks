@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Hammer, DollarSign, Settings, ChevronLeft, Bell, Users, Calendar } from "lucide-react";
+import { LayoutDashboard, Hammer, Users, Calendar, DollarSign, ChevronLeft, Bell, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -42,11 +42,14 @@ function NotifBellInline() {
 }
 
 export function AppShell({ children, title, subtitle, back, action }) {
-  const { user, loading, init } = useAuth();
+  const { user, loading, init, logout } = useAuth();
   const { init: themeInit } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
   useEffect(() => { init(); themeInit(); }, []);
+
+  const handleLogout = () => { logout(); window.location.href = "/auth/login"; };
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
       <div className="w-10 h-10 border-4 rounded-full animate-spin" style={{ borderColor: "var(--brand)", borderTopColor: "transparent" }} />
@@ -68,7 +71,7 @@ export function AppShell({ children, title, subtitle, back, action }) {
             <div className="flex items-center gap-1">
               {action}
               <NotifBellInline />
-              <button onClick={() => router.push("/settings")} className="p-2 rounded-xl" style={{ color: "var(--text2)" }}><Settings size={20} /></button>
+              <button onClick={handleLogout} className="p-2 rounded-xl" style={{ color: "var(--text2)" }} title="Sign Out"><LogOut size={20} /></button>
             </div>
           </div>
         </header>
