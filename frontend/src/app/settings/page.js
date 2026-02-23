@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { usePlan } from "@/hooks/usePlan";
-import { createConnectAccount, getConnectStatus, createOnboardLink, getConnectDashboard } from "@/lib/api";
+import { createConnectAccount, getConnectStatus, createOnboardLink, getConnectDashboard, getQBStatus, connectQuickBooks, syncQuickBooks, disconnectQuickBooks } from "@/lib/api";
 import { Sun, Moon, User, Building2, Wrench, CreditCard, LogOut, ExternalLink, Bell, Shield, ChevronRight, CheckCircle2, AlertTriangle, Zap, Crown } from "lucide-react";
 
 const TRADES = ["Electrician","Plumber","HVAC","Carpenter","Painter","Roofer","Concrete","Framing","Drywall","Flooring","Landscaping","Masonry","General Contractor","Other"];
@@ -115,6 +115,12 @@ export default function SettingsPage() {
       </section>
 
       {/* Logout */}
+      {/* QuickBooks */}
+      <section className="mt-6">
+        <h3 className="section-title">Integrations</h3>
+        <QuickBooksSection />
+      </section>
+
       <button onClick={handleLogout} className="btn btn-danger w-full mt-6 mb-8"><LogOut size={18} />Sign Out</button>
     </AppShell>
   );
@@ -303,6 +309,81 @@ function SubscriptionSection() {
         <span className="flex items-center justify-center gap-2"><Zap size={18} />Upgrade to Pro — $39/mo</span>
       </button>
       <p className="text-xs text-center mt-2" style={{ color: "var(--muted)" }}>Unlimited jobs, invoicing, payments & reports</p>
+    </div>
+  );
+}
+
+// === QuickBooks Section ===
+function QuickBooksSection() {
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    getQBStatus().then(setStatus).catch(() => setStatus({ connected: false })).finally(() => setLoading(false));
+  }, []);
+
+  const doConnect = async () => {
+    setConnecting(true);
+    try {
+      const data = await connectQuickBooks();
+      if (data.authUrl) window.location.href = data.authUrl;
+      else alert(data.error || "Could not connect to QuickBooks");
+    } catch (e) { alert(e.message); }
+    setConnecting(false);
+  };
+
+  const doSync = async () => {
+    setSyncing(true);
+    try { await syncQuickBooks("all"); alert("Sync complete!"); }
+    catch (e) { alert(e.message); }
+    setSyncing(false);
+  };
+
+  const doDisconnect = async () => {
+    if (!confirm("Disconnect QuickBooks?")) return;
+    try { await disconnectQuickBooks(); setStatus({ connected: false }); }
+    catch (e) { alert(e.message); }
+  };
+
+  if (loading) return <div className="card"><p style={{ color: "var(--muted)" }}>Loading...</p></div>;
+
+  if (status?.connected) {
+    return (
+      <div className="card space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#2CA01C" }}>
+            <span className="text-white font-bold text-sm">QB</span>
+          </div>
+          <div>
+            <p className="font-bold" style={{ color: "var(--text)" }}>QuickBooks Online</p>
+            <p className="text-xs" style={{ color: "#22C55E" }}>Connected</p>
+            {status.lastSync && <p className="text-xs" style={{ color: "var(--muted)" }}>Last sync: {new Date(status.lastSync).toLocaleDateString()}</p>}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={doSync} disabled={syncing} className="btn btn-brand btn-sm flex-1">{syncing ? "Syncing..." : "Sync Now"}</button>
+          <button onClick={doDisconnect} className="btn btn-outline btn-sm">Disconnect</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#2CA01C" }}>
+          <span className="text-white font-bold text-sm">QB</span>
+        </div>
+        <div>
+          <p className="font-bold" style={{ color: "var(--text)" }}>QuickBooks Online</p>
+          <p className="text-xs" style={{ color: "var(--muted)" }}>Sync invoices & expenses</p>
+        </div>
+      </div>
+      <button onClick={doConnect} disabled={connecting} className="btn btn-brand w-full">
+        {connecting ? "Connecting..." : "Connect QuickBooks →"}
+      </button>
     </div>
   );
 }
