@@ -48,16 +48,8 @@ export default function JobDetailPage() {
   const genInvoice = async () => {
     if (invoices.length >= FREE_INVOICE_LIMIT) { alert("Free plan allows 3 invoices/month. Upgrade to Pro for unlimited."); return; }
     try {
-      // Build line items: service + all expenses
-      const lineItems = [{ description: job.jobName, amount: job.bidAmount || 0 }];
-      if (expenses.length > 0) {
-        expenses.forEach(e => {
-          lineItems.push({ description: (e.category || "Expense") + (e.description ? " — " + e.description : ""), amount: e.amount || 0 });
-        });
-      }
-      const totalAmount = lineItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
       const notes = prompt("Add notes or description for the invoice (optional):", "") || "";
-      const inv = await createInvoice(jobId, { amount: totalAmount, lineItems, notes });
+      const inv = await createInvoice(jobId, { amount: job.bidAmount, lineItems: [{ description: job.jobName, amount: job.bidAmount }], notes });
       setInvoices(prev => [...prev, inv]);
       setTab("invoices");
     } catch(e) { alert(e.message); }
