@@ -24,6 +24,27 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [editAssignment, setEditAssignment] = useState(null);
+  const [busyDays, setBusyDays] = useState({});
+
+  // Fetch assignments for entire month to show dots on calendar
+  useEffect(() => {
+    const fetchMonth = async () => {
+      const d = new Date(date + "T12:00:00");
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const days = {};
+      for (let i = 1; i <= new Date(year, month + 1, 0).getDate(); i++) {
+        const ds = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(i).padStart(2, "0");
+        try {
+          const res = await getAssignments(ds);
+          const list = res.assignments || res || [];
+          if (list.length > 0) days[ds] = list.length;
+        } catch {}
+      }
+      setBusyDays(days);
+    };
+    fetchMonth();
+  }, [date.substring(0, 7)]);
   const [notifying, setNotifying] = useState(false);
   const [notifyResult, setNotifyResult] = useState(null);
 
@@ -101,17 +122,14 @@ export default function SchedulePage() {
 
       {tab === "schedule" ? (
         <>
-          {/* Date picker */}
-          <div className="flex items-center justify-between mt-4">
-            <button onClick={() => setDateOffset(dateOffset - 1)} className="p-2 rounded-xl" style={{ color: "var(--text2)" }}><ChevronLeft size={24} /></button>
-            <div className="text-center">
-              <p className="text-lg font-extrabold" style={{ color: "var(--text)" }}>{formatDate(date)}</p>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>
-                {dateOffset === 0 ? "Today" : dateOffset === 1 ? "Tomorrow" : dateOffset === -1 ? "Yesterday" : ""}
-              </p>
-            </div>
-            <button onClick={() => setDateOffset(dateOffset + 1)} className="p-2 rounded-xl" style={{ color: "var(--text2)" }}><ChevronRight size={24} /></button>
-          </div>
+          {/* Calendar */}
+          <MiniCalendar date={date} onSelect={(d) => {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const sel = new Date(d + "T12:00:00");
+            const diff = Math.round((sel - today) / 86400000);
+            setDateOffset(diff);
+          }} busyDays={busyDays} />
+          <p className="text-center text-sm font-bold mt-2" style={{ color: "var(--text)" }}>{formatDate(date)}</p>
 
           {/* Actions */}
           <div className="flex gap-2 mt-4">
@@ -222,6 +240,59 @@ export default function SchedulePage() {
         <EditAssignModal assignment={editAssignment} jobs={jobs} onSave={doEdit} onClose={() => setEditAssignment(null)} />
       )}
     </AppShell>
+  );
+}
+
+function MiniCalendar({ date, onSelect, busyDays }) {
+  const d = new Date(date + "T12:00:00");
+  const [viewYear, setViewYear] = useState(d.getFullYear());
+  const [viewMonth, setViewMonth] = useState(d.getMonth());
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayStr = today.toISOString().split("T")[0];
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const monthName = new Date(viewYear, viewMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  const prevMonth = () => { if (viewMonth === 0) { setViewYear(viewYear - 1); setViewMonth(11); } else setViewMonth(viewMonth - 1); };
+  const nextMonth = () => { if (viewMonth === 11) { setViewYear(viewYear + 1); setViewMonth(0); } else setViewMonth(viewMonth + 1); };
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let i = 1; i <= daysInMonth; i++) cells.push(i);
+
+  return (
+    <div className="card mt-4 p-3">
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={prevMonth} className="p-1 rounded-lg" style={{ color: "var(--text2)" }}><ChevronLeft size={20} /></button>
+        <p className="font-bold" style={{ color: "var(--text)" }}>{monthName}</p>
+        <button onClick={nextMonth} className="p-1 rounded-lg" style={{ color: "var(--text2)" }}><ChevronRight size={20} /></button>
+      </div>
+      <div className="grid grid-cols-7 text-center text-[10px] font-bold mb-1" style={{ color: "var(--muted)" }}>
+        {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => <div key={d}>{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-0.5">
+        {cells.map((day, i) => {
+          if (!day) return <div key={"e"+i} />;
+          const ds = viewYear + "-" + String(viewMonth + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+          const isSelected = ds === date;
+          const isToday = ds === todayStr;
+          const hasDots = busyDays[ds];
+          return (
+            <button key={ds} onClick={() => onSelect(ds)}
+              className="relative flex flex-col items-center justify-center py-1.5 rounded-lg text-xs font-bold transition-all"
+              style={{
+                background: isSelected ? "var(--brand)" : isToday ? "rgba(245,158,11,0.1)" : "transparent",
+                color: isSelected ? "white" : isToday ? "var(--brand)" : "var(--text)",
+              }}>
+              {day}
+              {hasDots && !isSelected && <div className="absolute bottom-0.5 w-1.5 h-1.5 rounded-full" style={{ background: "var(--brand)" }} />}
+              {hasDots && isSelected && <div className="absolute bottom-0.5 w-1.5 h-1.5 rounded-full bg-white" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
