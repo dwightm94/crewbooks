@@ -11,9 +11,9 @@ export default function LoginPage() {
   const { init } = useTheme();
   const router = useRouter();
   useEffect(() => { init(); }, []);
-  useEffect(() => { if (user) router.replace("/dashboard"); }, [user]);
+  useEffect(() => { if (user) window.location.href = "/dashboard"; }, [user]);
 
-  const submit = async (e) => { e.preventDefault(); clearError(); if (await login(email, pw)) router.replace("/dashboard"); };
+  const submit = async (e) => { e.preventDefault(); clearError(); if (await login(email, pw)) window.location.href = "/dashboard"; };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: "var(--bg)" }}>
