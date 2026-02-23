@@ -16,7 +16,7 @@ export default function LandingPage() {
 
   return (
     <div style={{ fontFamily: "'Outfit', sans-serif", background: "#FFFBF5", color: "#1A1A1A" }}>
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
@@ -28,7 +28,7 @@ export default function LandingPage() {
         @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
         .hover-lift { transition: transform 0.2s, box-shadow 0.2s; }
         .hover-lift:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.12); }
-      `}</style>
+      ` }} />
 
       {/* Nav */}
       <nav style={{ position: "fixed", top: 0, width: "100%", zIndex: 100, background: "rgba(255,251,245,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
