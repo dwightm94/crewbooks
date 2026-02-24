@@ -2,17 +2,16 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { getJob, getExpenses, updateJob, deleteJob, createExpense, deleteExpense, getInvoices, createInvoice, sendInvoice, markInvoicePaid, deleteInvoice } from "@/lib/api";
-import { money, moneyExact, statusBadge, statusLabel, margin, marginColor, EXPENSE_CATEGORIES, relDate, INVOICE_STATUS } from "@/lib/utils";
-import { Edit3, Trash2, Plus, Receipt, FileText, Camera, CheckCircle2, Send, DollarSign, MapPin, Phone, Mail, X } from "lucide-react";
+import { getJob, getExpenses, updateJob, deleteJob, createExpense, deleteExpense } from "@/lib/api";
+import { money, moneyExact, statusBadge, statusLabel, margin, marginColor, EXPENSE_CATEGORIES, relDate } from "@/lib/utils";
+import { Edit3, Trash2, Plus, Receipt, Camera, CheckCircle2, DollarSign, MapPin, Phone, Mail, X } from "lucide-react";
 
-const TABS = ["overview", "expenses", "invoices"];
+const TABS = ["overview", "expenses"];
 
 export default function JobDetailPage() {
   const { jobId } = useParams();
   const [job, setJob] = useState(null);
   const [expenses, setExpenses] = useState([]);
-  const [invoices, setInvoices] = useState([]);
   const [tab, setTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -20,16 +19,13 @@ export default function JobDetailPage() {
 
   const load = async () => {
     try {
-      const [j, e, inv] = await Promise.all([
+      const [j, e] = await Promise.all([
         getJob(jobId),
-        getExpenses(jobId).catch(() => ({ expenses: [] })),
-        getInvoices(jobId).catch(() => ({ invoices: [] }))
+        getExpenses(jobId).catch(() => ({ expenses: [] }))
       ]);
       const jobData = j.job || j;
       setJob(jobData);
       setExpenses(e.expenses || e || []);
-      const invList = inv.invoices || inv || [];
-      setInvoices(Array.isArray(invList) ? invList : []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -48,16 +44,6 @@ export default function JobDetailPage() {
     if (confirm("Are you sure you want to delete this job? This will also delete all expenses and invoices for this job. This cannot be undone.")) {
       try { await deleteJob(jobId); router.replace("/jobs"); } catch(e) { alert(e.message); }
     }
-  };
-  const FREE_INVOICE_LIMIT = 3;
-  const genInvoice = async () => {
-    if (invoices.length >= FREE_INVOICE_LIMIT) { alert("Free plan allows 3 invoices/month. Upgrade to Pro for unlimited."); return; }
-    try {
-      const notes = prompt("Add notes or description for the invoice (optional):", "") || "";
-      const inv = await createInvoice(jobId, { amount: job.bidAmount, lineItems: [{ description: job.jobName, amount: job.bidAmount }], notes });
-      setInvoices(prev => [...prev, inv]);
-      setTab("invoices");
-    } catch(e) { alert(e.message); }
   };
 
   return (
@@ -124,7 +110,6 @@ export default function JobDetailPage() {
       <div className="mt-4">
         {tab === "overview" && <OverviewTab job={job} />}
         {tab === "expenses" && <ExpensesTab expenses={expenses} jobId={jobId} onAdd={() => setShowExpenseForm(true)} onRefresh={load} />}
-        {tab === "invoices" && <InvoicesTab invoices={invoices} job={job} jobId={jobId} onGenerate={genInvoice} onRefresh={load} />}
       </div>
 
       {/* Expense Form Modal */}
@@ -235,57 +220,6 @@ function ExpensesTab({ expenses, jobId, onAdd, onRefresh }) {
             );
           })}
         </div>
-      )}
-    </div>
-  );
-}
-
-function InvoicesTab({ invoices, job, jobId, onGenerate, onRefresh }) {
-  const doSend = async (invoiceId) => {
-    try { await sendInvoice(jobId, invoiceId); alert("Invoice sent!"); onRefresh(); } catch(e) { alert("Send failed: " + e.message); }
-  };
-  const doPay = async (invoiceId) => { try { await markInvoicePaid(jobId, invoiceId); onRefresh(); } catch(e) { alert(e.message); } };
-  const doDeleteInv = async (invoiceId) => {
-    if (confirm("Delete this invoice? This cannot be undone.")) {
-      try { await deleteInvoice(jobId, invoiceId); onRefresh(); } catch(e) { alert(e.message); }
-    }
-  };
-  return (
-    <div className="space-y-4">
-      {job.status === "complete" && invoices.length === 0 && (
-        <button onClick={onGenerate} className="btn btn-brand w-full"><FileText size={18} />Generate Invoice</button>
-      )}
-      {invoices.length === 0 ? (
-        <div className="text-center py-8">
-          <FileText size={40} style={{ color: "var(--muted)", margin: "0 auto" }} />
-          <p className="mt-2 font-medium" style={{ color: "var(--text2)" }}>No invoices yet</p>
-          <p className="text-sm" style={{ color: "var(--muted)" }}>Mark the job as complete to generate one</p>
-        </div>
-      ) : (
-        invoices.map(inv => {
-          const st = INVOICE_STATUS[inv.status] || INVOICE_STATUS.draft;
-          return (
-            <div key={inv.invoiceId} className="card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-lg" style={{ color: "var(--text)" }}>{money(inv.amount)}</p>
-                  <span className={st.badge + " mt-1"}>{st.label}</span>
-                  {inv.dueDate && <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Due: {inv.dueDate}</p>}
-                  {inv.sentAt && <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>Sent: {new Date(inv.sentAt).toLocaleDateString()}</p>}
-                  {inv.viewedAt && <p className="text-xs mt-0.5" style={{ color: "var(--green)" }}>Viewed: {new Date(inv.viewedAt).toLocaleDateString()}</p>}
-                  {inv.paidAt && <p className="text-xs mt-0.5" style={{ color: "var(--green)" }}>Paid: {new Date(inv.paidAt).toLocaleDateString()}</p>}
-                </div>
-                <div className="flex flex-col gap-1">
-                  <button onClick={() => window.open(process.env.NEXT_PUBLIC_API_URL + "/invoice-pdf/" + inv.invoiceId)} className="btn btn-outline btn-sm"><FileText size={14} />PDF</button>
-                  {inv.status === "draft" && <button onClick={() => doSend(inv.invoiceId)} className="btn btn-brand btn-sm"><Send size={14} />Send</button>}
-                  {inv.status === "sent" && <button onClick={() => doSend(inv.invoiceId)} className="btn btn-outline btn-sm"><Send size={14} />Resend</button>}
-                  {(inv.status === "sent" || inv.status === "viewed") && <button onClick={() => doPay(inv.invoiceId)} className="btn btn-brand btn-sm"><DollarSign size={14} />Mark Paid</button>}
-                  <button onClick={() => doDeleteInv(inv.invoiceId)} className="btn btn-outline btn-sm" style={{ color: "var(--red)", borderColor: "var(--red)" }}><Trash2 size={14} />Delete</button>
-                </div>
-              </div>
-            </div>
-          );
-        })
       )}
     </div>
   );
