@@ -28,7 +28,8 @@ export default function CrewPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const FREE_CREW_LIMIT = 3;
+  const { isPro } = usePlan();
+  const FREE_CREW_LIMIT = isPro ? Infinity : 3;
   const atLimit = members.length >= FREE_CREW_LIMIT;
   const handleAdd = () => {
     if (atLimit) { alert("Free plan allows 3 crew members. Upgrade to Pro for unlimited."); router.push("/upgrade"); return; }

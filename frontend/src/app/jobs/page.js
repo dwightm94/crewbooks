@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { Plus, Search, Briefcase } from "lucide-react";
 import { getJobs } from "@/lib/api";
+import { usePlan } from "@/hooks/usePlan";
 import { money, statusBadge, statusLabel, margin, marginColor, relDate } from "@/lib/utils";
 
 const FILTERS = ["all", "bidding", "active", "complete", "paid"];
@@ -24,7 +25,8 @@ export default function JobsPage() {
   });
 
   const counts = FILTERS.reduce((a, f) => { a[f] = f === "all" ? jobs.length : jobs.filter(j => j.status === f).length; return a; }, {});
-  const FREE_JOB_LIMIT = 3;
+  const { isPro } = usePlan();
+  const FREE_JOB_LIMIT = isPro ? Infinity : 3;
   const activeJobs = jobs.filter(j => j.status === "active" || j.status === "bid").length;
   const atLimit = activeJobs >= FREE_JOB_LIMIT;
   const handleAdd = () => {
