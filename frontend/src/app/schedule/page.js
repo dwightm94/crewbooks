@@ -87,9 +87,8 @@ export default function SchedulePage() {
     try {
       for (const mid of memberIds) { await createAssignment({ memberId: mid, jobId, date, startTime }); }
       setShowAssignModal(false);
-      await load();
-      // Update busy day count
       setBusyDays(prev => ({ ...prev, [date]: (prev[date] || 0) + memberIds.length }));
+      load();
     } catch (e) {
       alert("Assignment failed: " + e.message);
       throw e;
@@ -100,22 +99,21 @@ export default function SchedulePage() {
     try {
       await deleteAssignment(date, memberId);
       await createAssignment({ memberId, jobId, date: newDate || date, startTime });
+      const target = newDate || date;
+      setBusyDays(prev => ({
+        ...prev,
+        [date]: Math.max(0, (prev[date] || 0) - 1),
+        [target]: (prev[target] || 0) + (target !== date ? 1 : 0),
+      }));
       load();
       setEditAssignment(null);
     } catch (e) { alert("Error: " + e.message); }
   };
 
   const doRemove = async (memberId) => {
-    if (confirm("Remove this assignment?")) {
-      await deleteAssignment(date, memberId);
-      await load();
-      // Update busy day count for current date
-      try {
-        const res = await getAssignments(date);
-        const list = res.assignments || res || [];
-        setBusyDays(prev => ({ ...prev, [date]: list.length }));
-      } catch(e) {}
-    }
+    await deleteAssignment(date, memberId);
+    setBusyDays(prev => ({ ...prev, [date]: Math.max(0, (prev[date] || 0) - 1) }));
+    load();
   };
 
   const doNotify = async () => {
