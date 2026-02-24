@@ -37,6 +37,7 @@ export const createExpense = (jobId, data) => api(`/jobs/${jobId}/expenses`, { m
 export const deleteExpense = (jobId, expenseId) => api(`/jobs/${jobId}/expenses/${expenseId}`, { method: "DELETE" });
 
 // Invoices
+export const getInvoices = (jobId) => api(`/jobs/${jobId}/invoices`);
 export const createInvoice = (jobId, data) => api(`/jobs/${jobId}/invoices`, { method: "POST", body: data });
 export const sendInvoice = (jobId, invoiceId) => api(`/jobs/${jobId}/invoices/${invoiceId}/send`, { method: "POST" });
 export const markInvoicePaid = (jobId, invoiceId) => api(`/jobs/${jobId}/invoices/${invoiceId}/pay`, { method: "PUT" });

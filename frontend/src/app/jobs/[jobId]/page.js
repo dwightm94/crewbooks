@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { getJob, getExpenses, updateJob, deleteJob, createExpense, deleteExpense, createInvoice, sendInvoice, markInvoicePaid } from "@/lib/api";
+import { getJob, getExpenses, updateJob, deleteJob, createExpense, deleteExpense, getInvoices, createInvoice, sendInvoice, markInvoicePaid } from "@/lib/api";
 import { money, moneyExact, statusBadge, statusLabel, margin, marginColor, EXPENSE_CATEGORIES, relDate, INVOICE_STATUS } from "@/lib/utils";
 import { Edit3, Trash2, Plus, Receipt, FileText, Camera, CheckCircle2, Send, DollarSign, MapPin, Phone, Mail, X } from "lucide-react";
 
@@ -20,11 +20,16 @@ export default function JobDetailPage() {
 
   const load = async () => {
     try {
-      const [j, e] = await Promise.all([getJob(jobId), getExpenses(jobId).catch(() => ({ expenses: [] }))]);
+      const [j, e, inv] = await Promise.all([
+        getJob(jobId),
+        getExpenses(jobId).catch(() => ({ expenses: [] })),
+        getInvoices(jobId).catch(() => ({ invoices: [] }))
+      ]);
       const jobData = j.job || j;
       setJob(jobData);
       setExpenses(e.expenses || e || []);
-      setInvoices(jobData.invoices || []);
+      const invList = inv.invoices || inv || [];
+      setInvoices(Array.isArray(invList) ? invList : []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -236,7 +241,9 @@ function ExpensesTab({ expenses, jobId, onAdd, onRefresh }) {
 }
 
 function InvoicesTab({ invoices, job, jobId, onGenerate, onRefresh }) {
-  const doSend = async (invoiceId) => { try { await sendInvoice(jobId, invoiceId); onRefresh(); } catch(e) { alert(e.message); } };
+  const doSend = async (invoiceId) => {
+    try { await sendInvoice(jobId, invoiceId); alert("Invoice sent!"); onRefresh(); } catch(e) { alert("Send failed: " + e.message); }
+  };
   const doPay = async (invoiceId) => { try { await markInvoicePaid(jobId, invoiceId); onRefresh(); } catch(e) { alert(e.message); } };
   return (
     <div className="space-y-4">
@@ -259,11 +266,15 @@ function InvoicesTab({ invoices, job, jobId, onGenerate, onRefresh }) {
                   <p className="font-bold text-lg" style={{ color: "var(--text)" }}>{money(inv.amount)}</p>
                   <span className={st.badge + " mt-1"}>{st.label}</span>
                   {inv.dueDate && <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Due: {inv.dueDate}</p>}
+                  {inv.sentAt && <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>Sent: {new Date(inv.sentAt).toLocaleDateString()}</p>}
+                  {inv.viewedAt && <p className="text-xs mt-0.5" style={{ color: "var(--green)" }}>Viewed: {new Date(inv.viewedAt).toLocaleDateString()}</p>}
+                  {inv.paidAt && <p className="text-xs mt-0.5" style={{ color: "var(--green)" }}>Paid: {new Date(inv.paidAt).toLocaleDateString()}</p>}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-1">
                   <button onClick={() => window.open(process.env.NEXT_PUBLIC_API_URL + "/invoice-pdf/" + inv.invoiceId)} className="btn btn-outline btn-sm"><FileText size={14} />PDF</button>
                   {inv.status === "draft" && <button onClick={() => doSend(inv.invoiceId)} className="btn btn-brand btn-sm"><Send size={14} />Send</button>}
-                  {inv.status === "sent" && <button onClick={() => doPay(inv.invoiceId)} className="btn btn-brand btn-sm"><DollarSign size={14} />Mark Paid</button>}
+                  {inv.status === "sent" && <button onClick={() => doSend(inv.invoiceId)} className="btn btn-outline btn-sm"><Send size={14} />Resend</button>}
+                  {(inv.status === "sent" || inv.status === "viewed") && <button onClick={() => doPay(inv.invoiceId)} className="btn btn-brand btn-sm"><DollarSign size={14} />Mark Paid</button>}
                 </div>
               </div>
             </div>
