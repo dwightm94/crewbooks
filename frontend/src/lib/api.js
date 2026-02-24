@@ -41,6 +41,7 @@ export const getInvoices = (jobId) => api(`/jobs/${jobId}/invoices`);
 export const createInvoice = (jobId, data) => api(`/jobs/${jobId}/invoices`, { method: "POST", body: data });
 export const sendInvoice = (jobId, invoiceId) => api(`/jobs/${jobId}/invoices/${invoiceId}/send`, { method: "POST" });
 export const markInvoicePaid = (jobId, invoiceId) => api(`/jobs/${jobId}/invoices/${invoiceId}/pay`, { method: "PUT" });
+export const deleteInvoice = (jobId, invoiceId) => api(`/jobs/${jobId}/invoices/${invoiceId}`, { method: "DELETE" });
 
 // Photos
 export const getUploadUrl = (jobId, fileName, contentType) =>

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { getJob, getExpenses, updateJob, deleteJob, createExpense, deleteExpense, getInvoices, createInvoice, sendInvoice, markInvoicePaid } from "@/lib/api";
+import { getJob, getExpenses, updateJob, deleteJob, createExpense, deleteExpense, getInvoices, createInvoice, sendInvoice, markInvoicePaid, deleteInvoice } from "@/lib/api";
 import { money, moneyExact, statusBadge, statusLabel, margin, marginColor, EXPENSE_CATEGORIES, relDate, INVOICE_STATUS } from "@/lib/utils";
 import { Edit3, Trash2, Plus, Receipt, FileText, Camera, CheckCircle2, Send, DollarSign, MapPin, Phone, Mail, X } from "lucide-react";
 
@@ -245,6 +245,11 @@ function InvoicesTab({ invoices, job, jobId, onGenerate, onRefresh }) {
     try { await sendInvoice(jobId, invoiceId); alert("Invoice sent!"); onRefresh(); } catch(e) { alert("Send failed: " + e.message); }
   };
   const doPay = async (invoiceId) => { try { await markInvoicePaid(jobId, invoiceId); onRefresh(); } catch(e) { alert(e.message); } };
+  const doDeleteInv = async (invoiceId) => {
+    if (confirm("Delete this invoice? This cannot be undone.")) {
+      try { await deleteInvoice(jobId, invoiceId); onRefresh(); } catch(e) { alert(e.message); }
+    }
+  };
   return (
     <div className="space-y-4">
       {job.status === "complete" && invoices.length === 0 && (
@@ -275,6 +280,7 @@ function InvoicesTab({ invoices, job, jobId, onGenerate, onRefresh }) {
                   {inv.status === "draft" && <button onClick={() => doSend(inv.invoiceId)} className="btn btn-brand btn-sm"><Send size={14} />Send</button>}
                   {inv.status === "sent" && <button onClick={() => doSend(inv.invoiceId)} className="btn btn-outline btn-sm"><Send size={14} />Resend</button>}
                   {(inv.status === "sent" || inv.status === "viewed") && <button onClick={() => doPay(inv.invoiceId)} className="btn btn-brand btn-sm"><DollarSign size={14} />Mark Paid</button>}
+                  <button onClick={() => doDeleteInv(inv.invoiceId)} className="btn btn-outline btn-sm" style={{ color: "var(--red)", borderColor: "var(--red)" }}><Trash2 size={14} />Delete</button>
                 </div>
               </div>
             </div>
