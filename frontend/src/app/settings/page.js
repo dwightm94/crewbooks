@@ -109,7 +109,7 @@ export default function SettingsPage() {
       <section className="mt-6 space-y-2 mb-8">
         <h3 className="section-title">Support</h3>
         <SettingsLink icon={Shield} label="Privacy Policy" href="/privacy.html" />
-        <SettingsLink icon={ExternalLink} label="Help & Support" href="mailto:support@crewbooks.app" />
+        <SettingsLink icon={ExternalLink} label="Help & Support" href="mailto:crewbookss@gmail.com" />
       </section>
     </AppShell>
   );
