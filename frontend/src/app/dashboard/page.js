@@ -44,7 +44,6 @@ export default function DashboardPage() {
     </AppShell>
   );
 }
-}
 
 function EmptyDashboard({ onNewJob }) {
   return (
@@ -55,7 +54,6 @@ function EmptyDashboard({ onNewJob }) {
       <button onClick={onNewJob} className="btn btn-brand mx-auto"><Plus size={20} />Create First Job</button>
     </div>
   );
-}
 }
 
 function FilledDashboard({ data, router }) {
@@ -189,5 +187,4 @@ function StatCard({ label, value, icon: Icon, color }) {
       </div>
     </div>
   );
-}
 }
