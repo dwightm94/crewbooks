@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { getReports } from "@/lib/api";
 import { usePlan } from "@/hooks/usePlan";
+import { ProGate } from "@/components/ProGate";
 import { UpgradeBanner } from "@/components/UpgradePrompt";
 import { money } from "@/lib/utils";
 import { TrendingUp, TrendingDown, DollarSign, Briefcase, Users, PieChart } from "lucide-react";
@@ -12,7 +13,7 @@ export default function ReportsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { isFree } = usePlan();
+  const { isFree, features } = usePlan();
 
   useEffect(() => { getReports().then(setData).catch(console.error).finally(() => setLoading(false)); }, []);
 
@@ -21,6 +22,8 @@ export default function ReportsPage() {
 
   const { summary, monthlyTrends, jobProfitability, statusCounts, expensesByCategory, clients } = data;
   const maxRev = Math.max(...monthlyTrends.map(m => Math.max(m.revenue, m.expenses)), 1);
+
+  if (!features.reports) return (<AppShell title="Reports"><ProGate feature="Reports & Analytics" title="Business Reports" description="See revenue trends, job profitability, expense breakdowns, and crew performance. Upgrade to Pro to unlock." /></AppShell>);
 
   return (
     <AppShell title="Reports" subtitle="Business Analytics">

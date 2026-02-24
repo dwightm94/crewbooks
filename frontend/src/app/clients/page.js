@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { getReports } from "@/lib/api";
 import { usePlan } from "@/hooks/usePlan";
+import { ProGate } from "@/components/ProGate";
 import { money } from "@/lib/utils";
 import { Users, Phone, Mail, Briefcase, Clock, Copy, CheckCircle2, ExternalLink, Zap } from "lucide-react";
 
@@ -12,7 +13,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
   const router = useRouter();
-  const { isPro } = usePlan();
+  const { isPro, features } = usePlan();
 
   useEffect(() => {
     getReports().then(r => setClients(r.clients || []))
@@ -32,6 +33,8 @@ export default function ClientsPage() {
     setCopiedId(client.name);
     setTimeout(() => setCopiedId(null), 2000);
   };
+
+  if (!features.clientCRM) return (<AppShell title="Clients"><ProGate feature="Client CRM" title="Manage Your Clients" description="Keep track of all your clients, contact info, and job history in one place. Upgrade to Pro to unlock." /></AppShell>);
 
   return (
     <AppShell title="Clients" subtitle={`${clients.length} clients`}>

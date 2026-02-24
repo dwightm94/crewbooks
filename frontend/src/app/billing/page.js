@@ -1,4 +1,6 @@
 "use client";
+import { usePlan } from "@/hooks/usePlan";
+import { ProGate } from "@/components/ProGate";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
@@ -13,6 +15,7 @@ export default function BillingPage() {
   const [invoices, setInvoices] = useState([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const { features } = usePlan();
   const [showGenerate, setShowGenerate] = useState(false);
   const router = useRouter();
 
@@ -61,6 +64,8 @@ export default function BillingPage() {
       loadAll();
     } catch(e) { alert(e.message); }
   };
+
+  if (!features.invoicePDF) return (<AppShell title="Billing"><ProGate feature="Invoicing" title="Send Professional Invoices" description="Create PDF invoices, email them to clients, track payment status, and send reminders. Upgrade to Pro to unlock." /></AppShell>);
 
   return (
     <AppShell title="Billing" subtitle="Invoices & Payments">

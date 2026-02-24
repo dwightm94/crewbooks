@@ -1,4 +1,6 @@
 "use client";
+import { usePlan } from "@/hooks/usePlan";
+import { ProGate } from "@/components/ProGate";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
@@ -25,6 +27,7 @@ export default function CompliancePage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const router = useRouter();
+  const { features } = usePlan();
 
   const load = () => { getComplianceDocs().then(r => setDocs(r.docs || r || [])).catch(() => {}).finally(() => setLoading(false)); };
   useEffect(() => { load(); }, []);
@@ -44,6 +47,8 @@ export default function CompliancePage() {
   const expiringCount = docs.filter(d => d.status === "expiring" || d.status === "expiring-soon").length;
 
   const addBtn = <button onClick={() => router.push("/compliance/new")} className="btn btn-brand btn-sm"><Plus size={18} />Add</button>;
+
+  if (!features.compliance) return (<AppShell title="Compliance" back="/dashboard"><ProGate feature="Compliance Tracking" title="Track Compliance" description="Monitor licenses, certifications, and insurance expiry dates for your crew. Upgrade to Pro to unlock." /></AppShell>);
 
   return (
     <AppShell title="Compliance" subtitle={`${docs.length} documents`} action={addBtn}>
