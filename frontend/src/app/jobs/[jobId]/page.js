@@ -91,7 +91,7 @@ export default function JobDetailPage() {
       <div className="flex items-center gap-2 mt-4">
         <span className={statusBadge(job.status)}>{statusLabel(job.status)}</span>
         {job.status === "complete" && (
-          <button onClick={genInvoice} className="btn btn-outline btn-sm ml-auto"><FileText size={16} />Generate Invoice</button>
+          <button onClick={() => router.push("/billing")} className="btn btn-outline btn-sm ml-auto"><Receipt size={16} />Go to Billing</button>
         )}
       </div>
 
