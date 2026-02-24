@@ -170,12 +170,6 @@ function FilledDashboard({ data, router }) {
               <div><p className="font-bold text-sm" style={{ color: "var(--text)" }}>Settings</p><p className="text-xs" style={{ color: "var(--text2)" }}>Profile & Preferences</p></div>
             </div>
           </button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
 function StatCard({ label, value, icon: Icon, color }) {
   return (
     <div className="card flex items-center gap-3">
