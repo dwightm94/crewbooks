@@ -58,7 +58,7 @@ export default function BillingPage() {
   };
   const doGenerate = async (job) => {
     try {
-      const notes = prompt("Add notes for the invoice (optional):", "") || "";
+      const notes = "";
       await createInvoice(job.jobId, { amount: job.bidAmount, lineItems: [{ description: job.jobName, amount: job.bidAmount }], notes });
       setShowGenerate(false);
       loadAll();
