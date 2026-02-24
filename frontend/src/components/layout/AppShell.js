@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { LayoutDashboard, Hammer, Users, Calendar, Receipt, Settings, ChevronLeft, Bell, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
@@ -82,12 +83,12 @@ export function AppShell({ children, title, subtitle, back, action }) {
           {TABS.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
             return (
-              <button key={href} onClick={() => router.push(href)}
+              <Link key={href} href={href} prefetch={true}
                 className="flex-1 flex flex-col items-center py-2 transition-colors"
                 style={{ color: active ? "var(--brand)" : "var(--muted)" }}>
                 <Icon size={20} strokeWidth={active ? 2.5 : 1.5} />
                 <span className="text-[10px] mt-0.5 font-bold">{label}</span>
-              </button>
+              </Link>
             );
           })}
         </div>
