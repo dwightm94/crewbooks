@@ -1,4 +1,5 @@
 "use client";
+import { usePlan } from "@/hooks/usePlan";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
