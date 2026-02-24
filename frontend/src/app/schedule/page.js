@@ -56,21 +56,26 @@ export default function SchedulePage() {
 
   useEffect(() => { load(); }, [selectedDate]);
 
-  // Fetch busy days for the visible calendar month
+  // Fetch busy days for the visible calendar month (parallel)
   useEffect(() => {
     let cancelled = false;
     async function fetchMonth() {
       const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+      const batch = [];
       for (let i = 1; i <= daysInMonth; i++) {
-        if (cancelled) break;
         const ds = calYear + "-" + String(calMonth + 1).padStart(2, "0") + "-" + String(i).padStart(2, "0");
-        if (busyDays[ds] !== undefined) continue; // already know this day
-        try {
-          const res = await getAssignments(ds);
-          const list = res.assignments || res || [];
-          setBusyDays(prev => ({ ...prev, [ds]: list.length }));
-        } catch (e) {}
-        await new Promise(r => setTimeout(r, 150)); // 150ms delay between calls
+        if (busyDays[ds] !== undefined) continue;
+        batch.push(ds);
+      }
+      // Fire all in parallel (batches of 10 to avoid throttle)
+      for (let b = 0; b < batch.length; b += 10) {
+        if (cancelled) break;
+        const chunk = batch.slice(b, b + 10);
+        const results = await Promise.allSettled(chunk.map(ds => getAssignments(ds).then(res => ({ ds, count: (res.assignments || res || []).length }))));
+        if (cancelled) break;
+        const updates = {};
+        results.forEach(r => { if (r.status === "fulfilled") updates[r.value.ds] = r.value.count; });
+        setBusyDays(prev => ({ ...prev, ...updates }));
       }
     }
     fetchMonth();
