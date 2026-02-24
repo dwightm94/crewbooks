@@ -170,6 +170,12 @@ function FilledDashboard({ data, router }) {
               <div><p className="font-bold text-sm" style={{ color: "var(--text)" }}>Settings</p><p className="text-xs" style={{ color: "var(--text2)" }}>Profile & Preferences</p></div>
             </div>
           </button>
+          <button onClick={() => router.push("/settings")} className="card-hover text-left">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">⚙️</span>
+              <div><p className="font-bold text-sm" style={{ color: "var(--text)" }}>Settings</p><p className="text-xs" style={{ color: "var(--text2)" }}>Profile & Preferences</p></div>
+            </div>
+          </button>
         </div>
       </section>
     </div>
