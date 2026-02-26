@@ -55,7 +55,7 @@ export const cognitoGetUser = () =>
         userId: payload.sub,
         email: payload.email,
         name: payload.name || payload.email.split("@")[0],
-        token: session.getIdToken().getJwtToken(),
+        token: session.getAccessToken().getJwtToken(),
       });
     } catch (e) { reject(e); }
   });
