@@ -6,14 +6,14 @@ import { getReports } from "@/lib/api";
 import { usePlan } from "@/hooks/usePlan";
 import { ProGate } from "@/components/ProGate";
 import { money } from "@/lib/utils";
-import { TrendingUp, TrendingDown, DollarSign, Briefcase, AlertTriangle, ChevronRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Briefcase, AlertTriangle, ChevronRight, ArrowUpRight, ArrowDownRight, Target, Clock, Users, TrendingUp, DollarSign } from "lucide-react";
 
 export default function ReportsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("kpis");
   const router = useRouter();
-  const { isFree, features } = usePlan();
+  const { features } = usePlan();
 
   useEffect(() => { getReports().then(setData).catch(console.error).finally(() => setLoading(false)); }, []);
 
@@ -35,11 +35,9 @@ export default function ReportsPage() {
     </AppShell>
   );
 
-  const { summary, monthlyTrends, jobProfitability, statusCounts, expensesByCategory, clients } = data;
-  const profitMargin = summary.totalRevenue > 0 ? ((summary.totalProfit / summary.totalRevenue) * 100).toFixed(1) : 0;
-  const isPositive = summary.totalProfit >= 0;
-  const losingJobs = (jobProfitability || []).filter(j => j.margin < 0);
-  const TABS = ["overview", "jobs", "expenses", "clients"];
+  const { summary, monthlyTrends, cashFlow, jobProfitability, bidAccuracy, statusCounts, expensesByCategory, invoiceAging, agingBuckets, agingAmounts, crewPerformance, clients } = data;
+  const s = summary || {};
+  const TABS = ["kpis", "money", "jobs", "crew"];
 
   return (
     <AppShell title="Reports">
@@ -52,95 +50,84 @@ export default function ReportsPage() {
               color: tab === t ? "var(--text)" : "var(--muted)",
               boxShadow: tab === t ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
             }}>
-            {t.charAt(0).toUpperCase() + t.slice(1)}
+            {({ kpis: "Dashboard", money: "Cash Flow", jobs: "Job Costing", crew: "Crew" })[t]}
           </button>
         ))}
       </div>
 
-      {tab === "overview" && (
-        <div className="mt-4 space-y-4">
-          <div className="rounded-2xl p-5" style={{
-            background: isPositive ? "linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.02))" : "linear-gradient(135deg, rgba(239,68,68,0.08), rgba(239,68,68,0.02))",
-            border: "1px solid " + (isPositive ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)"),
-          }}>
-            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--muted)" }}>Net Profit</p>
-            <div className="flex items-end justify-between mt-1">
-              <div>
-                <p className="text-3xl font-black" style={{ color: isPositive ? "#22C55E" : "#EF4444" }}>{money(summary.totalProfit)}</p>
-                <p className="text-xs mt-1" style={{ color: "var(--text2)" }}>{profitMargin}% margin on {money(summary.totalRevenue)} revenue</p>
-              </div>
-              <div className="flex items-center gap-1 px-3 py-1.5 rounded-full" style={{ background: isPositive ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)" }}>
-                {isPositive ? <ArrowUpRight size={14} style={{ color: "#22C55E" }} /> : <ArrowDownRight size={14} style={{ color: "#EF4444" }} />}
-                <span className="text-xs font-bold" style={{ color: isPositive ? "#22C55E" : "#EF4444" }}>{profitMargin}%</span>
-              </div>
-            </div>
+      {tab === "kpis" && (
+        <div className="mt-4 space-y-3">
+          <KPIHero label="Net Profit" value={money(s.totalProfit || 0)} subtitle={`${s.totalRevenue > 0 ? ((s.totalProfit / s.totalRevenue) * 100).toFixed(1) : 0}% margin`} positive={(s.totalProfit || 0) >= 0} />
+          <div className="grid grid-cols-2 gap-2">
+            <KPICard icon={Target} label="Close Rate" value={s.closeRate !== null && s.closeRate !== undefined ? s.closeRate + "%" : "—"} subtitle={s.totalEstimates ? `${s.acceptedEstimates || 0} of ${s.totalEstimates} estimates` : "No estimates yet"} color={s.closeRate >= 50 ? "#22C55E" : s.closeRate >= 25 ? "#F59E0B" : "#EF4444"} />
+            <KPICard icon={TrendingUp} label="Bid Accuracy" value={s.avgBidVariance !== null && s.avgBidVariance !== undefined ? (s.avgBidVariance >= 0 ? "+" : "") + s.avgBidVariance + "%" : "—"} subtitle={s.overBudgetJobs ? `${s.overBudgetJobs} job${s.overBudgetJobs > 1 ? "s" : ""} over budget` : "All on track"} color={s.avgBidVariance >= 0 ? "#22C55E" : "#EF4444"} />
+            <KPICard icon={Clock} label="Outstanding" value={money(s.totalOutstanding || 0)} subtitle={`${(invoiceAging || []).length} unpaid invoice${(invoiceAging || []).length !== 1 ? "s" : ""}`} color={(s.totalOutstanding || 0) > 0 ? "#F59E0B" : "#22C55E"} />
+            <KPICard icon={DollarSign} label="Avg Job Value" value={money(s.avgJobValue || 0)} subtitle={`${s.totalJobs || 0} total jobs`} color="#3B82F6" />
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <MetricCard label="Revenue" value={money(summary.totalRevenue)} color="#22C55E" />
-            <MetricCard label="Expenses" value={money(summary.totalExpenses)} color="#EF4444" />
-            <MetricCard label="Avg Job" value={money(summary.avgJobValue)} color="#F59E0B" />
-          </div>
-
-          <div className="rounded-2xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--muted)" }}>Job Pipeline</p>
+          <Panel title="Pipeline">
             <div className="flex items-center gap-1">
               {[
-                { label: "Bid", count: statusCounts.bidding, color: "#8B5CF6" },
-                { label: "Active", count: statusCounts.active, color: "#3B82F6" },
-                { label: "Done", count: statusCounts.complete, color: "#F59E0B" },
-                { label: "Paid", count: statusCounts.paid, color: "#22C55E" },
-              ].map(s => {
-                const total = (statusCounts.bidding||0) + (statusCounts.active||0) + (statusCounts.complete||0) + (statusCounts.paid||0);
-                const pct = total > 0 ? Math.max((s.count / total) * 100, 8) : 25;
+                { label: "Bid", count: statusCounts?.bidding || 0, color: "#8B5CF6" },
+                { label: "Active", count: statusCounts?.active || 0, color: "#3B82F6" },
+                { label: "Done", count: statusCounts?.complete || 0, color: "#F59E0B" },
+                { label: "Paid", count: statusCounts?.paid || 0, color: "#22C55E" },
+              ].map(st => {
+                const total = (statusCounts?.bidding||0) + (statusCounts?.active||0) + (statusCounts?.complete||0) + (statusCounts?.paid||0);
+                const pct = total > 0 ? Math.max((st.count / total) * 100, 10) : 25;
                 return (
-                  <div key={s.label} className="text-center" style={{ flex: pct }}>
-                    <div className="h-10 rounded-lg flex items-center justify-center mb-1.5" style={{ background: s.color }}>
-                      <span className="text-white font-black text-sm">{s.count}</span>
+                  <div key={st.label} className="text-center" style={{ flex: pct }}>
+                    <div className="h-9 rounded-lg flex items-center justify-center mb-1" style={{ background: st.color }}>
+                      <span className="text-white font-black text-sm">{st.count}</span>
                     </div>
-                    <p className="text-[10px] font-bold" style={{ color: "var(--text2)" }}>{s.label}</p>
+                    <p className="text-[10px] font-bold" style={{ color: "var(--text2)" }}>{st.label}</p>
                   </div>
                 );
               })}
             </div>
-          </div>
+          </Panel>
 
-          <div className="rounded-2xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--muted)" }}>Monthly Trend</p>
-            <div className="space-y-2">
-              {monthlyTrends.map(m => {
-                const maxRev = Math.max(...monthlyTrends.map(x => Math.max(x.revenue, x.expenses)), 1);
-                const revPct = Math.max((m.revenue / maxRev) * 100, 3);
-                const expPct = Math.max((m.expenses / maxRev) * 100, 3);
-                const net = m.revenue - m.expenses;
-                return (
-                  <div key={m.month} className="flex items-center gap-3">
-                    <span className="text-[11px] font-bold w-8 shrink-0" style={{ color: "var(--text2)" }}>{m.label?.slice(0, 3)}</span>
-                    <div className="flex-1"><div className="flex gap-0.5 h-3">
-                      <div className="rounded-full h-full" style={{ width: revPct+"%", background: "#22C55E" }} />
-                      <div className="rounded-full h-full" style={{ width: expPct+"%", background: "#EF4444", opacity: 0.5 }} />
-                    </div></div>
-                    <span className="text-[11px] font-bold w-16 text-right shrink-0" style={{ color: net >= 0 ? "#22C55E" : "#EF4444" }}>{net >= 0 ? "+" : ""}{money(net)}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex items-center gap-4 mt-3 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
-              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: "#22C55E" }} /><span className="text-[10px] font-semibold" style={{ color: "var(--text2)" }}>Revenue</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ background: "#EF4444", opacity: 0.5 }} /><span className="text-[10px] font-semibold" style={{ color: "var(--text2)" }}>Expenses</span></div>
-            </div>
-          </div>
-
-          {losingJobs.length > 0 && (
-            <div className="rounded-2xl p-4" style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.12)" }}>
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle size={16} style={{ color: "#EF4444" }} />
-                <p className="text-xs font-bold" style={{ color: "#EF4444" }}>{losingJobs.length} job{losingJobs.length > 1 ? "s" : ""} losing money</p>
+          {(invoiceAging || []).length > 0 && (
+            <Panel title="Invoice Aging">
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                {["0-30", "31-60", "61-90", "90+"].map(bucket => {
+                  const count = agingBuckets?.[bucket] || 0;
+                  const amt = agingAmounts?.[bucket] || 0;
+                  const isLate = bucket === "61-90" || bucket === "90+";
+                  return (
+                    <div key={bucket} className="text-center p-2 rounded-lg" style={{ background: isLate && count > 0 ? "rgba(239,68,68,0.06)" : "var(--input)" }}>
+                      <p className="text-xs font-bold" style={{ color: isLate && count > 0 ? "#EF4444" : "var(--text2)" }}>{bucket}d</p>
+                      <p className="text-base font-black" style={{ color: isLate && count > 0 ? "#EF4444" : "var(--text)" }}>{count}</p>
+                      <p className="text-[10px]" style={{ color: "var(--muted)" }}>{money(amt)}</p>
+                    </div>
+                  );
+                })}
               </div>
-              {losingJobs.slice(0, 3).map(j => (
-                <button key={j.jobId} onClick={() => router.push("/jobs/"+j.jobId)} className="flex items-center justify-between w-full py-1.5">
-                  <span className="text-xs font-semibold" style={{ color: "var(--text)" }}>{j.jobName}</span>
-                  <span className="text-xs font-bold" style={{ color: "#EF4444" }}>{money(j.profit)}</span>
+              {invoiceAging.slice(0, 5).map(inv => (
+                <div key={inv.invoiceId} className="flex items-center justify-between py-2" style={{ borderTop: "1px solid var(--border)" }}>
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>{inv.clientName}</p>
+                    <p className="text-[11px]" style={{ color: "var(--text2)" }}>{inv.jobName}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{money(inv.amount)}</p>
+                    <p className="text-[10px] font-bold" style={{ color: inv.daysOutstanding > 60 ? "#EF4444" : inv.daysOutstanding > 30 ? "#F59E0B" : "var(--muted)" }}>{inv.daysOutstanding}d overdue</p>
+                  </div>
+                </div>
+              ))}
+            </Panel>
+          )}
+
+          {(bidAccuracy || []).filter(b => b.status === "over").length > 0 && (
+            <div className="rounded-2xl p-4" style={{ background: "rgba(239,68,68,0.04)", border: "1px solid rgba(239,68,68,0.1)" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle size={15} style={{ color: "#EF4444" }} />
+                <p className="text-xs font-bold" style={{ color: "#EF4444" }}>{bidAccuracy.filter(b => b.status === "over").length} job{bidAccuracy.filter(b => b.status === "over").length > 1 ? "s" : ""} over budget</p>
+              </div>
+              {bidAccuracy.filter(b => b.status === "over").slice(0, 3).map(b => (
+                <button key={b.jobId} onClick={() => router.push("/jobs/" + b.jobId)} className="flex items-center justify-between w-full py-1.5">
+                  <span className="text-xs font-semibold" style={{ color: "var(--text)" }}>{b.jobName}</span>
+                  <span className="text-xs font-bold" style={{ color: "#EF4444" }}>{b.variancePct}% over</span>
                 </button>
               ))}
             </div>
@@ -148,20 +135,104 @@ export default function ReportsPage() {
         </div>
       )}
 
+      {tab === "money" && (
+        <div className="mt-4 space-y-3">
+          <div className="grid grid-cols-3 gap-2">
+            <MetricCard label="Revenue" value={money(s.totalRevenue || 0)} color="#22C55E" />
+            <MetricCard label="Expenses" value={money(s.totalExpenses || 0)} color="#EF4444" />
+            <MetricCard label="Profit" value={money(s.totalProfit || 0)} color={(s.totalProfit || 0) >= 0 ? "#22C55E" : "#EF4444"} />
+          </div>
+          <Panel title="Cash Flow (6 Months)">
+            {(cashFlow || monthlyTrends || []).map(m => {
+              const inAmt = m.cashIn || m.revenue || 0;
+              const outAmt = m.cashOut || m.expenses || 0;
+              const net = m.net || m.profit || inAmt - outAmt;
+              const maxVal = Math.max(...(cashFlow || monthlyTrends || []).map(x => Math.max(x.cashIn || x.revenue || 0, x.cashOut || x.expenses || 0)), 1);
+              return (
+                <div key={m.month} className="flex items-center gap-3 py-1.5">
+                  <span className="text-[11px] font-bold w-10 shrink-0" style={{ color: "var(--text2)" }}>{m.label?.slice(0, 3)}</span>
+                  <div className="flex-1 space-y-0.5">
+                    <div className="h-2 rounded-full" style={{ width: Math.max((inAmt / maxVal) * 100, 3) + "%", background: "#22C55E" }} />
+                    <div className="h-2 rounded-full" style={{ width: Math.max((outAmt / maxVal) * 100, 3) + "%", background: "#EF4444", opacity: 0.5 }} />
+                  </div>
+                  <span className="text-[11px] font-bold w-16 text-right shrink-0" style={{ color: net >= 0 ? "#22C55E" : "#EF4444" }}>{net >= 0 ? "+" : ""}{money(net)}</span>
+                </div>
+              );
+            })}
+            <div className="flex items-center gap-4 mt-2 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
+              <Legend color="#22C55E" label="Money In" />
+              <Legend color="#EF4444" label="Money Out" opacity={0.5} />
+            </div>
+          </Panel>
+          <Panel title="Expenses by Category">
+            {Object.keys(expensesByCategory || {}).length === 0 ? (
+              <p className="text-sm text-center py-4" style={{ color: "var(--text2)" }}>No expenses tracked yet</p>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(expensesByCategory).sort((a, b) => b[1] - a[1]).map(([cat, amount]) => {
+                  const pct = (s.totalExpenses || 0) > 0 ? (amount / s.totalExpenses * 100) : 0;
+                  const colors = { Materials: "#3B82F6", Labor: "#8B5CF6", Equipment: "#F59E0B", Permits: "#22C55E", Fuel: "#EF4444", Subcontractor: "#EC4899", Disposal: "#6366F1", Rental: "#14B8A6", Other: "#6B7280" };
+                  const color = colors[cat] || "#F59E0B";
+                  return (
+                    <div key={cat}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+                          <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>{cat}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold" style={{ color: "var(--text)" }}>{money(amount)}</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: color + "15", color }}>{pct.toFixed(0)}%</span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 rounded-full" style={{ background: "var(--input)" }}>
+                        <div className="h-full rounded-full" style={{ width: pct + "%", background: color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Panel>
+        </div>
+      )}
+
       {tab === "jobs" && (
-        <div className="mt-4 space-y-4">
-          <div className="rounded-2xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--muted)" }}>Profitability Ranking</p>
-            {(jobProfitability || []).length === 0 ? (
-              <p className="text-sm text-center py-4" style={{ color: "var(--text2)" }}>No completed jobs yet</p>
+        <div className="mt-4 space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <KPICard icon={Target} label="Avg Bid Accuracy" value={s.avgBidVariance !== null && s.avgBidVariance !== undefined ? (s.avgBidVariance >= 0 ? "+" : "") + s.avgBidVariance + "%" : "—"} subtitle="bid vs actual cost" color={s.avgBidVariance >= 0 ? "#22C55E" : "#EF4444"} />
+            <KPICard icon={AlertTriangle} label="Over Budget" value={String(s.overBudgetJobs || 0)} subtitle={`of ${(bidAccuracy || []).length} completed`} color={(s.overBudgetJobs || 0) > 0 ? "#EF4444" : "#22C55E"} />
+          </div>
+          <Panel title="Bid vs Actual Cost">
+            {(bidAccuracy || []).length === 0 ? (
+              <p className="text-sm text-center py-4" style={{ color: "var(--text2)" }}>Complete jobs with expenses to see bid accuracy</p>
             ) : (
               <div className="space-y-1">
-                {jobProfitability.slice(0, 15).map((j, i) => (
-                  <button key={j.jobId} onClick={() => router.push("/jobs/"+j.jobId)}
-                    className="flex items-center w-full py-2.5 px-2 rounded-xl transition-colors"
-                    style={{ background: i % 2 === 0 ? "transparent" : "var(--input)" }}>
+                {(bidAccuracy || []).slice(0, 15).map((b, i) => (
+                  <button key={b.jobId} onClick={() => router.push("/jobs/" + b.jobId)} className="flex items-center w-full py-2.5 px-2 rounded-xl" style={{ background: i % 2 === 0 ? "transparent" : "var(--input)" }}>
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{b.jobName}</p>
+                      <p className="text-[11px]" style={{ color: "var(--text2)" }}>Bid {money(b.bidAmount)} · Actual {money(b.actualCost)}</p>
+                    </div>
+                    <div className="text-right mr-2">
+                      <p className="text-sm font-black" style={{ color: b.status === "over" ? "#EF4444" : "#22C55E" }}>{b.variancePct >= 0 ? "+" : ""}{b.variancePct}%</p>
+                      <p className="text-[10px]" style={{ color: "var(--text2)" }}>{b.status === "over" ? "over" : "under"} by {money(Math.abs(b.variance))}</p>
+                    </div>
+                    <ChevronRight size={14} style={{ color: "var(--muted)" }} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </Panel>
+          <Panel title="Profitability Ranking">
+            {(jobProfitability || []).length === 0 ? (
+              <p className="text-sm text-center py-4" style={{ color: "var(--text2)" }}>No jobs with bids yet</p>
+            ) : (
+              <div className="space-y-1">
+                {jobProfitability.slice(0, 10).map((j, i) => (
+                  <button key={j.jobId} onClick={() => router.push("/jobs/" + j.jobId)} className="flex items-center w-full py-2.5 px-2 rounded-xl" style={{ background: i % 2 === 0 ? "transparent" : "var(--input)" }}>
                     <span className="w-6 text-xs font-black" style={{ color: i < 3 ? "#F59E0B" : "var(--muted)" }}>{i + 1}</span>
-                    <div className="flex-1 text-left ml-2">
+                    <div className="flex-1 text-left ml-1">
                       <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{j.jobName}</p>
                       <p className="text-[11px]" style={{ color: "var(--text2)" }}>{j.clientName}</p>
                     </div>
@@ -174,59 +245,48 @@ export default function ReportsPage() {
                 ))}
               </div>
             )}
-          </div>
+          </Panel>
         </div>
       )}
 
-      {tab === "expenses" && (
-        <div className="mt-4 space-y-4">
-          <div className="rounded-2xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--muted)" }}>Total Expenses</p>
-            <p className="text-2xl font-black mt-1" style={{ color: "#EF4444" }}>{money(summary.totalExpenses)}</p>
+      {tab === "crew" && (
+        <div className="mt-4 space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <MetricCard label="Crew Size" value={String(s.crewCount || 0)} color="#3B82F6" />
+            <MetricCard label="Assignments" value={String(s.totalAssignments || 0)} color="#8B5CF6" />
           </div>
-          <div className="rounded-2xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <p className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: "var(--muted)" }}>By Category</p>
-            {Object.keys(expensesByCategory || {}).length === 0 ? (
-              <p className="text-sm text-center py-4" style={{ color: "var(--text2)" }}>No expenses tracked yet</p>
+          <Panel title="Revenue per Crew Member">
+            {(crewPerformance || []).length === 0 ? (
+              <p className="text-sm text-center py-4" style={{ color: "var(--text2)" }}>Assign crew to jobs to see performance</p>
             ) : (
-              <div className="space-y-3">
-                {Object.entries(expensesByCategory).sort((a, b) => b[1] - a[1]).map(([cat, amount]) => {
-                  const pct = summary.totalExpenses > 0 ? (amount / summary.totalExpenses * 100) : 0;
-                  const colors = { Materials: "#3B82F6", Labor: "#8B5CF6", Equipment: "#F59E0B", Permits: "#22C55E", Fuel: "#EF4444", Subcontractor: "#EC4899", Disposal: "#6366F1", Rental: "#14B8A6", Other: "#6B7280" };
-                  const color = colors[cat] || "#F59E0B";
+              <div className="space-y-1">
+                {crewPerformance.map((c, i) => {
+                  const maxRev = crewPerformance[0]?.revenue || 1;
+                  const pct = (c.revenue / maxRev) * 100;
                   return (
-                    <div key={cat}>
+                    <div key={c.crewId} className="py-2.5 px-2 rounded-xl" style={{ background: i % 2 === 0 ? "transparent" : "var(--input)" }}>
                       <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
-                          <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>{cat}</span>
+                        <div>
+                          <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{c.name}</p>
+                          <p className="text-[11px]" style={{ color: "var(--text2)" }}>{c.role || "Crew"} · {c.jobCount} job{c.jobCount !== 1 ? "s" : ""}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold" style={{ color: "var(--text)" }}>{money(amount)}</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: color+"15", color }}>{pct.toFixed(0)}%</span>
-                        </div>
+                        <p className="text-sm font-black" style={{ color: "#F59E0B" }}>{money(c.revenue)}</p>
                       </div>
                       <div className="h-1.5 rounded-full" style={{ background: "var(--input)" }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: pct+"%", background: color }} />
+                        <div className="h-full rounded-full" style={{ width: pct + "%", background: "linear-gradient(90deg, #3B82F6, #8B5CF6)" }} />
                       </div>
                     </div>
                   );
                 })}
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {tab === "clients" && (
-        <div className="mt-4 space-y-4">
-          <div className="rounded-2xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-            <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--muted)" }}>Client Revenue</p>
+          </Panel>
+          <Panel title="Top Clients by Revenue">
             {(clients || []).length === 0 ? (
               <p className="text-sm text-center py-4" style={{ color: "var(--text2)" }}>No client data yet</p>
             ) : (
               <div className="space-y-1">
-                {clients.slice(0, 15).map((c, i) => {
+                {clients.slice(0, 10).map((c, i) => {
                   const maxVal = clients[0]?.totalValue || 1;
                   const pct = (c.totalValue / maxVal) * 100;
                   return (
@@ -239,19 +299,49 @@ export default function ReportsPage() {
                         <p className="text-sm font-black" style={{ color: "#F59E0B" }}>{money(c.totalValue)}</p>
                       </div>
                       <div className="h-1 rounded-full" style={{ background: "var(--input)" }}>
-                        <div className="h-full rounded-full" style={{ width: pct+"%", background: "linear-gradient(90deg, #F59E0B, #EF4444)" }} />
+                        <div className="h-full rounded-full" style={{ width: pct + "%", background: "linear-gradient(90deg, #F59E0B, #EF4444)" }} />
                       </div>
                     </div>
                   );
                 })}
               </div>
             )}
-          </div>
+          </Panel>
         </div>
       )}
 
-      <div className="h-4" />
+      <div className="h-6" />
     </AppShell>
+  );
+}
+
+function KPIHero({ label, value, subtitle, positive }) {
+  return (
+    <div className="rounded-2xl p-5" style={{ background: positive ? "linear-gradient(135deg, rgba(34,197,94,0.06), rgba(34,197,94,0.01))" : "linear-gradient(135deg, rgba(239,68,68,0.06), rgba(239,68,68,0.01))", border: "1px solid " + (positive ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)") }}>
+      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>{label}</p>
+      <div className="flex items-end justify-between mt-1">
+        <div>
+          <p className="text-3xl font-black tracking-tight" style={{ color: positive ? "#22C55E" : "#EF4444" }}>{value}</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text2)" }}>{subtitle}</p>
+        </div>
+        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ background: positive ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)" }}>
+          {positive ? <ArrowUpRight size={13} style={{ color: "#22C55E" }} /> : <ArrowDownRight size={13} style={{ color: "#EF4444" }} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KPICard({ icon: Icon, label, value, subtitle, color }) {
+  return (
+    <div className="rounded-xl p-3" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+      <div className="flex items-center gap-1.5 mb-1">
+        <Icon size={12} style={{ color: "var(--muted)" }} />
+        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--muted)" }}>{label}</p>
+      </div>
+      <p className="text-xl font-black" style={{ color: color || "var(--text)" }}>{value}</p>
+      <p className="text-[10px] mt-0.5" style={{ color: "var(--text2)" }}>{subtitle}</p>
+    </div>
   );
 }
 
@@ -260,6 +350,24 @@ function MetricCard({ label, value, color }) {
     <div className="rounded-xl p-3 text-center" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
       <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--muted)" }}>{label}</p>
       <p className="text-base font-black mt-0.5" style={{ color }}>{value}</p>
+    </div>
+  );
+}
+
+function Panel({ title, children }) {
+  return (
+    <div className="rounded-2xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+      <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: "var(--muted)" }}>{title}</p>
+      {children}
+    </div>
+  );
+}
+
+function Legend({ color, label, opacity }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="w-2.5 h-2.5 rounded-full" style={{ background: color, opacity: opacity || 1 }} />
+      <span className="text-[10px] font-semibold" style={{ color: "var(--text2)" }}>{label}</span>
     </div>
   );
 }
