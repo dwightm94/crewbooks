@@ -91,13 +91,13 @@ footer p{color:#999;font-size:13px}
 <div class="grid">
 <div class="card"><span>💼</span><h3>Job Tracking</h3><p>Create jobs, track status from bid to paid. See margin on every project in real time.</p></div>
 <div class="card"><span>📄</span><h3>Invoicing <span style="font-size:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;vertical-align:middle">PRO</span></h3><p>Generate professional PDF invoices. Email to clients, track payments, send reminders.</p></div>
-<div class="card"><span>👷</span><h3>Crew Management</h3><p>Add crew members, assign to jobs, schedule daily. Everyone knows where to be.</p></div>
-<div class="card"><span>📸</span><h3>Photo Documentation</h3><p>Snap job photos, organize by category. Before/after, progress, issues — all documented.</p></div>
+<div class="card"><span>👷</span><h3>Crew Management <span style="font-size:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;vertical-align:middle">PRO</span></h3><p>Add crew members, assign to jobs, schedule daily. Everyone knows where to be.</p></div>
+<div class="card"><span>📸</span><h3>Photo Documentation <span style="font-size:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;vertical-align:middle">PRO</span></h3><p>Snap job photos, organize by category. Before/after, progress, issues — all documented.</p></div>
 <div class="card"><span>📊</span><h3>Reports & Analytics <span style="font-size:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;vertical-align:middle">PRO</span></h3><p>Revenue charts, profitability rankings, expense breakdowns. Know your numbers.</p></div>
 <div class="card"><span>💳</span><h3>Online Payments <span style="font-size:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;vertical-align:middle">PRO</span></h3><p>Clients pay invoices by credit card. Funds go straight to your bank. 2.5% fee.</p></div>
 <div class="card"><span>📋</span><h3>Estimates & Bidding</h3><p>Create estimates, send to clients for approval. Convert accepted bids to jobs instantly.</p></div>
 <div class="card"><span>🛡️</span><h3>Compliance Tracking <span style="font-size:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;vertical-align:middle">PRO</span></h3><p>Track licenses, insurance, certifications. Get alerts before anything expires.</p></div>
-<div class="card"><span>📅</span><h3>Daily Logs</h3><p>Log work performed, weather, crew hours. Complete job documentation for disputes.</p></div>
+<div class="card"><span>📅</span><h3>Daily Logs <span style="font-size:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;vertical-align:middle">PRO</span></h3><p>Log work performed, weather, crew hours. Complete job documentation for disputes.</p></div>
 </div>
 </section>
 
@@ -128,7 +128,7 @@ footer p{color:#999;font-size:13px}
 </div>
 <div class="plan dim" style="border:1px solid rgba(0,0,0,.08)">
 <h3>Team</h3><p class="price">$79<span>/mo</span></p><p class="plan-sub">For growing companies</p>
-<div class="plan-btn" style="background:#F3F4F6;color:#999;text-align:center">Coming Soon</div>
+<div style="margin-top:8px"><input type="email" id="team-notify-email" placeholder="Enter your email" style="width:100%;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;margin-bottom:8px;box-sizing:border-box"><button onclick="notifyTeam()" style="width:100%;padding:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">Notify Me When Available</button></div>
 <ul><li style="color:#6366F1;font-weight:700">Everything in Pro, plus:</li><li><span class="check">✓</span>Up to 10 users</li><li><span class="check">✓</span>25GB photo storage</li><li><span class="check">✓</span>QuickBooks sync</li><li><span class="check">✓</span>Dedicated support</li></ul>
 </div>
 </div>
@@ -145,5 +145,22 @@ footer p{color:#999;font-size:13px}
 <p>&copy; 2026 CrewBooks. Built for the trades.</p>
 <div class="foot-links"><a href="mailto:crewbookss@gmail.com">Support</a><a href="/auth/login">Login</a></div>
 </footer>
+
+<script>
+function notifyTeam() {
+  const email = document.getElementById("team-notify-email").value;
+  if (!email || !email.includes("@")) { alert("Please enter a valid email."); return; }
+  fetch("https://api.crewbooksapp.com/notify-team", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ email })
+  }).then(() => {
+    document.getElementById("team-notify-email").value = "";
+    alert("Got it! We'll notify you when Team plan launches.");
+  }).catch(() => {
+    alert("Got it! We'll notify you when Team plan launches.");
+  });
+}
+</script>
 </body>
 </html>
