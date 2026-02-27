@@ -16,7 +16,7 @@ export default function ClientsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", notes: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", city: "", state: "", zip: "", notes: "" });
   const { features } = usePlan();
 
   useEffect(() => { load(); }, []);
@@ -26,8 +26,8 @@ export default function ClientsPage() {
     getClients().then(setClients).catch(console.error).finally(() => setLoading(false));
   };
 
-  const openAdd = () => { setForm({ name: "", phone: "", email: "", address: "", notes: "" }); setEditingClient(null); setShowForm(true); };
-  const openEdit = (c) => { setForm({ name: c.name, phone: c.phone || "", email: c.email || "", address: c.address || "", notes: c.notes || "" }); setEditingClient(c); setShowForm(true); };
+  const openAdd = () => { setForm({ name: "", phone: "", email: "", address: "", city: "", state: "", zip: "", notes: "" }); setEditingClient(null); setShowForm(true); };
+  const openEdit = (c) => { setForm({ name: c.name, phone: c.phone || "", email: c.email || "", address: c.address || "", city: c.city || "", state: c.state || "", zip: c.zip || "", notes: c.notes || "" }); setEditingClient(c); setShowForm(true); };
 
   const save = async () => {
     if (!form.name.trim()) return alert("Client name is required");
@@ -171,7 +171,14 @@ export default function ClientsPage() {
               </div>
               <div>
                 <label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>ADDRESS</label>
-                <input value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="123 Main St, City, State" className="input w-full" />
+                <input value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="Street address" className="input w-full" />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div><label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>CITY</label><input value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder="City" className="input w-full" /></div>
+                <div><label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>STATE</label><input value={form.state} onChange={e => setForm({...form, state: e.target.value})} placeholder="NJ" className="input w-full" maxLength={2} /></div>
+                <div><label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>ZIP</label><input value={form.zip} onChange={e => setForm({...form, zip: e.target.value})} placeholder="07001" className="input w-full" maxLength={10} /></div>
+              </div>
+              <div style={{display:"none"}}>x
               </div>
               <div>
                 <label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>NOTES</label>
