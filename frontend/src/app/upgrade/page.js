@@ -16,7 +16,6 @@ const FEATURES = [
   { label: "Invoice PDF & Email", free: false, pro: true, team: true },
   { label: "Client CRM", free: false, pro: true, team: true },
   { label: "Compliance Tracking", free: false, pro: true, team: true },
-  { label: "Reports & Analytics", free: false, pro: true, team: true },
   { label: "Payment Reminders", free: false, pro: true, team: true },
   { label: "Online Payments", free: false, pro: true, team: true },
   { label: "Priority Support", free: false, pro: true, team: true },
@@ -98,7 +97,7 @@ export default function UpgradePage() {
               <p>Unlimited jobs, crew and invoices</p>
               <p>Invoice PDF, email and reminders</p>
               <p>Client CRM and compliance tracking</p>
-              <p>Reports, analytics and 5 GB storage</p>
+              <p>Analytics and 5 GB storage</p>
               <p>Online payments (2.5% fee)</p>
             </div>
             <div className="mt-3">
