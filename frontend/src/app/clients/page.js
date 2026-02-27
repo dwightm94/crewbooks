@@ -143,20 +143,47 @@ export default function ClientsPage() {
         </div>
       )}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-6 pb-8" style={{ background: "var(--card)" }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-extrabold" style={{ color: "var(--text)" }}>{editingClient ? "Edit Client" : "Add Client"}</h2>
-              <button onClick={() => setShowForm(false)}><X size={20} style={{ color: "var(--text2)" }} /></button>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(0,0,0,0.6)" }}>
+          <div className="w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-6 pb-8" style={{ background: "var(--card)", boxShadow: "0 -4px 32px rgba(0,0,0,0.15)" }}>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-xl font-extrabold" style={{ color: "var(--text)" }}>{editingClient ? "Edit Client" : "New Client"}</h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text2)" }}>Fill in the details below</p>
+              </div>
+              <button onClick={() => setShowForm(false)} className="p-2 rounded-xl" style={{ background: "var(--input)", color: "var(--text2)" }}><X size={18} /></button>
             </div>
+            {/* Form fields */}
             <div className="space-y-3">
-              <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Client name *" className="input w-full" />
-              <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="Phone number" className="input w-full" type="tel" />
-              <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="Email address" className="input w-full" type="email" />
-              <input value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="Address" className="input w-full" />
-              <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="Notes (e.g. slow payer, referred by John...)" className="input w-full" rows={3} />
+              <div>
+                <label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>CLIENT NAME *</label>
+                <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. John Smith" className="input w-full" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>PHONE</label>
+                  <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="(555) 000-0000" className="input w-full" type="tel" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>EMAIL</label>
+                  <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@example.com" className="input w-full" type="email" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>ADDRESS</label>
+                <input value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="123 Main St, City, State" className="input w-full" />
+              </div>
+              <div>
+                <label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>NOTES</label>
+                <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="e.g. Slow payer, referred by John, prefers texts..." className="input w-full" rows={3} />
+              </div>
             </div>
-            <button onClick={save} disabled={saving} className="btn-primary w-full mt-4">{saving ? "Saving..." : editingClient ? "Save Changes" : "Add Client"}</button>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl font-bold text-sm" style={{ background: "var(--input)", color: "var(--text2)" }}>Cancel</button>
+              <button onClick={save} disabled={saving} className="flex-1 py-3 rounded-xl font-bold text-sm text-white" style={{ background: saving ? "var(--text2)" : "var(--brand)" }}>
+                {saving ? "Saving..." : editingClient ? "Save Changes" : "Add Client"}
+              </button>
+            </div>
           </div>
         </div>
       )}
