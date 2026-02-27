@@ -121,3 +121,10 @@ export const getQBStatus = () => api("/quickbooks/status");
 export const connectQuickBooks = () => api("/quickbooks/connect");
 export const syncQuickBooks = (type) => api("/quickbooks/sync", { method: "POST", body: { type } });
 export const disconnectQuickBooks = () => api("/quickbooks/disconnect", { method: "POST" });
+
+// === CLIENTS ===
+export const getClients = () => api("/clients");
+export const getClient = (id) => api(`/clients/${id}`);
+export const createClient = (data) => api("/clients", { method: "POST", body: data });
+export const updateClient = (id, data) => api(`/clients/${id}`, { method: "PUT", body: data });
+export const deleteClient = (id) => api(`/clients/${id}`, { method: "DELETE" });
