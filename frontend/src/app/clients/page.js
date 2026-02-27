@@ -68,7 +68,7 @@ export default function ClientsPage() {
 
   return (
     <AppShell title="Clients" subtitle={`${clients.length} clients`}
-      action={<button onClick={openAdd} className="btn-primary flex items-center gap-1"><Plus size={16} />Add Client</button>}>
+      action={<button onClick={openAdd} className="btn btn-brand btn-sm"><Plus size={16} />Add Client</button>}>
       <div className="flex gap-2 mt-4">
         <div className="flex-1 relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text2)" }} />
@@ -143,8 +143,8 @@ export default function ClientsPage() {
         </div>
       )}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="w-full max-w-lg rounded-t-2xl p-6 pb-8" style={{ background: "var(--card)" }}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-6 pb-8" style={{ background: "var(--card)" }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-extrabold" style={{ color: "var(--text)" }}>{editingClient ? "Edit Client" : "Add Client"}</h2>
               <button onClick={() => setShowForm(false)}><X size={20} style={{ color: "var(--text2)" }} /></button>
