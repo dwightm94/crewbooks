@@ -20,10 +20,6 @@ export default function NewJobPage() {
   const [clientMode, setClientMode] = useState("pick"); // "pick" or "manual"
 
   useEffect(() => { getClients().then(setClients).catch(() => {}); }, []);
-  const [clients, setClients] = useState([]);
-  const [clientMode, setClientMode] = useState("pick"); // "pick" or "manual"
-
-  useEffect(() => { getClients().then(setClients).catch(() => {}); }, []);
   const router = useRouter();
   const up = (f) => (e) => setForm({ ...form, [f]: e.target.value });
 
