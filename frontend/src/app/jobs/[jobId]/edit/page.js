@@ -90,7 +90,7 @@ export default function EditJobPage() {
                 <select className="field" value={form.clientName}
                   onChange={e => {
                     const found = clients.find(cl => cl.name === e.target.value);
-                    if (found) setForm({...form, clientName: found.name, clientPhone: found.phone || "", clientEmail: found.email || "", clientId: found.clientId || ""});
+                    if (found) setForm({...form, clientName: found.name, clientPhone: found.phone || "", clientEmail: found.email || "", clientId: found.clientId || "", address: [found.address, found.city, found.state, found.zip].filter(Boolean).join(", ")});
                     else setForm({...form, clientName: e.target.value, clientId: ""});
                   }}>
                   <option value="">— Select a client —</option>
