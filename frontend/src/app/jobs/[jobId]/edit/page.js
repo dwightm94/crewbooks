@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { getJob, updateJob } from "@/lib/api";
+import { getJob, updateJob, getClients } from "@/lib/api";
 
 const STATUSES = [
   { value: "bidding", label: "Bidding", desc: "Haven't won it yet" },
@@ -14,13 +14,17 @@ const STATUSES = [
 export default function EditJobPage() {
   const { jobId } = useParams();
   const [form, setForm] = useState({
-    jobName: "", clientName: "", clientPhone: "", clientEmail: "",
+    jobName: "", clientName: "", clientPhone: "", clientEmail: "", clientId: "",
     address: "", bidAmount: "", status: "active", startDate: "", notes: "",
   });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [clients, setClients] = useState([]);
+  const [clientMode, setClientMode] = useState("pick");
   const router = useRouter();
+
+  useEffect(() => { getClients().then(setClients).catch(() => {}); }, []);
 
   useEffect(() => {
     async function load() {
@@ -66,9 +70,46 @@ export default function EditJobPage() {
         <section>
           <h3 className="section-title">Client Info</h3>
           <div className="space-y-3">
-            <div><label className="field-label">Client Name *</label><input value={form.clientName} onChange={up("clientName")} placeholder="John Smith" className="field" required /></div>
-            <div><label className="field-label">Phone</label><input type="tel" value={form.clientPhone} onChange={up("clientPhone")} placeholder="(555) 123-4567" className="field" /></div>
-            <div><label className="field-label">Email</label><input type="email" value={form.clientEmail} onChange={up("clientEmail")} placeholder="john@email.com" className="field" /></div>
+            {clients.length > 0 && (
+              <div className="flex gap-2 mb-1">
+                <button type="button" onClick={() => setClientMode("pick")}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  style={{ background: clientMode === "pick" ? "var(--brand)" : "var(--input)", color: clientMode === "pick" ? "#fff" : "var(--text2)" }}>
+                  Pick Existing
+                </button>
+                <button type="button" onClick={() => { setClientMode("manual"); setForm({...form, clientName: "", clientPhone: "", clientEmail: "", clientId: ""}); }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                  style={{ background: clientMode === "manual" ? "var(--brand)" : "var(--input)", color: clientMode === "manual" ? "#fff" : "var(--text2)" }}>
+                  New / Manual
+                </button>
+              </div>
+            )}
+            {clientMode === "pick" && clients.length > 0 ? (
+              <div>
+                <label className="field-label">Select Client</label>
+                <select className="field" value={form.clientName}
+                  onChange={e => {
+                    const found = clients.find(cl => cl.name === e.target.value);
+                    if (found) setForm({...form, clientName: found.name, clientPhone: found.phone || "", clientEmail: found.email || "", clientId: found.clientId || ""});
+                    else setForm({...form, clientName: e.target.value, clientId: ""});
+                  }}>
+                  <option value="">— Select a client —</option>
+                  {clients.map(cl => <option key={cl.clientId} value={cl.name}>{cl.name}{cl.phone ? " · " + cl.phone : ""}</option>)}
+                </select>
+                {form.clientName && (
+                  <div className="mt-2 p-3 rounded-xl text-sm space-y-1" style={{ background: "var(--input)" }}>
+                    {form.clientPhone && <p style={{ color: "var(--text2)" }}>📞 {form.clientPhone}</p>}
+                    {form.clientEmail && <p style={{ color: "var(--text2)" }}>✉️ {form.clientEmail}</p>}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <div><label className="field-label">Client Name *</label><input value={form.clientName} onChange={up("clientName")} placeholder="John Smith" className="field" required /></div>
+                <div><label className="field-label">Phone</label><input type="tel" value={form.clientPhone} onChange={up("clientPhone")} placeholder="(555) 123-4567" className="field" /></div>
+                <div><label className="field-label">Email</label><input type="email" value={form.clientEmail} onChange={up("clientEmail")} placeholder="john@email.com" className="field" /></div>
+              </>
+            )}
           </div>
         </section>
         <section>

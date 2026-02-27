@@ -11,7 +11,7 @@ const STATUSES = [
 
 export default function NewJobPage() {
   const [form, setForm] = useState({
-    jobName: "", clientName: "", clientPhone: "", clientEmail: "",
+    jobName: "", clientName: "", clientPhone: "", clientEmail: "", clientId: "",
     address: "", bidAmount: "", status: "active", startDate: "", notes: "",
   });
   const [saving, setSaving] = useState(false);
@@ -59,7 +59,7 @@ export default function NewJobPage() {
                   style={{ background: clientMode === "pick" ? "var(--brand)" : "var(--input)", color: clientMode === "pick" ? "#fff" : "var(--text2)" }}>
                   Pick Existing
                 </button>
-                <button type="button" onClick={() => { setClientMode("manual"); setForm({...form, clientName: "", clientPhone: "", clientEmail: ""}); }}
+                <button type="button" onClick={() => { setClientMode("manual"); setForm({...form, clientName: "", clientPhone: "", clientEmail: "", clientId: ""}); }}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                   style={{ background: clientMode === "manual" ? "var(--brand)" : "var(--input)", color: clientMode === "manual" ? "#fff" : "var(--text2)" }}>
                   New / Manual
@@ -72,7 +72,7 @@ export default function NewJobPage() {
                 <select className="field" value={form.clientName}
                   onChange={e => {
                     const found = clients.find(cl => cl.name === e.target.value);
-                    if (found) setForm({...form, clientName: found.name, clientPhone: found.phone || "", clientEmail: found.email || ""});
+                    if (found) setForm({...form, clientName: found.name, clientPhone: found.phone || "", clientEmail: found.email || "", clientId: found.clientId || ""});
                     else setForm({...form, clientName: e.target.value});
                   }}>
                   <option value="">— Select a client —</option>

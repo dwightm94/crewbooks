@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { getClients, createClient, updateClient, deleteClient } from "@/lib/api";
+import { getClients, createClient, updateClient, deleteClient, getJobs } from "@/lib/api";
 import { usePlan } from "@/hooks/usePlan";
 import { ProGate } from "@/components/ProGate";
 import { Users, Phone, Mail, MapPin, Clock, Plus, X, Edit2, Trash2, ChevronDown, ChevronUp, Search } from "lucide-react";
@@ -16,6 +16,7 @@ export default function ClientsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [allJobs, setAllJobs] = useState([]);
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", city: "", state: "", zip: "", notes: "" });
   const { features } = usePlan();
 
@@ -23,7 +24,7 @@ export default function ClientsPage() {
 
   const load = () => {
     setLoading(true);
-    getClients().then(setClients).catch(console.error).finally(() => setLoading(false));
+    Promise.all([getClients(), getJobs()]).then(([cls, jobs]) => { setClients(cls); setAllJobs(jobs || []); }).catch(console.error).finally(() => setLoading(false));
   };
 
   const openAdd = () => { setForm({ name: "", phone: "", email: "", address: "", city: "", state: "", zip: "", notes: "" }); setEditingClient(null); setShowForm(true); };
@@ -122,21 +123,45 @@ export default function ClientsPage() {
                     </button>
                   </div>
                 </div>
-                {isExpanded && (
-                  <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--border)" }}>
-                    {c.notes && <div className="mb-3 p-2 rounded-lg text-sm" style={{ background: "var(--input)", color: "var(--text2)" }}>📝 {c.notes}</div>}
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="p-2 rounded-lg" style={{ background: "var(--input)" }}>
-                        <p className="text-xs" style={{ color: "var(--text2)" }}>Added</p>
-                        <p className="font-semibold" style={{ color: "var(--text)" }}>{new Date(c.createdAt).toLocaleDateString()}</p>
+                {isExpanded && (() => {
+                  const clientJobs = allJobs.filter(j => j.clientId === c.clientId || j.clientName === c.name);
+                  const outstanding = clientJobs.reduce((s, j) => s + (j.status !== "paid" && j.bidAmount ? j.bidAmount : 0), 0);
+                  const totalEarned = clientJobs.filter(j => j.status === "paid").reduce((s, j) => s + (j.bidAmount || 0), 0);
+                  return (
+                    <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--border)" }}>
+                      {c.notes && <div className="mb-3 p-2 rounded-lg text-sm" style={{ background: "var(--input)", color: "var(--text2)" }}>📝 {c.notes}</div>}
+                      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                        <div className="p-2 rounded-lg" style={{ background: "var(--input)" }}>
+                          <p className="text-xs" style={{ color: "var(--text2)" }}>Total Earned</p>
+                          <p className="font-bold" style={{ color: "var(--green)" }}>${totalEarned.toLocaleString()}</p>
+                        </div>
+                        <div className="p-2 rounded-lg" style={{ background: outstanding > 0 ? "rgba(239,68,68,0.08)" : "var(--input)" }}>
+                          <p className="text-xs" style={{ color: "var(--text2)" }}>Outstanding</p>
+                          <p className="font-bold" style={{ color: outstanding > 0 ? "var(--red)" : "var(--text2)" }}>${outstanding.toLocaleString()}</p>
+                        </div>
                       </div>
-                      <div className="p-2 rounded-lg" style={{ background: "var(--input)" }}>
-                        <p className="text-xs" style={{ color: "var(--text2)" }}>Last Updated</p>
-                        <p className="font-semibold" style={{ color: "var(--text)" }}>{new Date(c.updatedAt).toLocaleDateString()}</p>
-                      </div>
+                      {clientJobs.length > 0 && (
+                        <div>
+                          <p className="text-xs font-bold mb-2" style={{ color: "var(--text2)" }}>JOB HISTORY ({clientJobs.length})</p>
+                          <div className="space-y-1">
+                            {clientJobs.map(j => (
+                              <div key={j.jobId} className="flex items-center justify-between p-2 rounded-lg" style={{ background: "var(--input)" }}>
+                                <div>
+                                  <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>{j.jobName}</p>
+                                  <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{
+                                    background: j.status === "paid" ? "rgba(34,197,94,0.1)" : j.status === "active" ? "rgba(59,130,246,0.1)" : "rgba(156,163,175,0.15)",
+                                    color: j.status === "paid" ? "var(--green)" : j.status === "active" ? "var(--blue)" : "var(--text2)"
+                                  }}>{j.status}</span>
+                                </div>
+                                <p className="text-xs font-bold" style={{ color: "var(--text)" }}>${(j.bidAmount || 0).toLocaleString()}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })}
