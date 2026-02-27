@@ -41,8 +41,7 @@ export default function NewJobPage() {
           <div className="space-y-3">
             <div><label className="field-label">Job Name *</label><input value={form.jobName} onChange={up("jobName")} placeholder="Kitchen Remodel — 123 Oak St" className="field" required /></div>
             <div><label className="field-label">Bid Amount ($)</label><input type="number" inputMode="decimal" value={form.bidAmount} onChange={up("bidAmount")} placeholder="8,500" className="field text-xl font-bold" /></div>
-            </div>
-              {clientMode !== "pick" || !form.clientName ? <div><label className="field-label">Address</label><input value={form.address} onChange={up("address")} placeholder="123 Oak Street, Newark NJ" className="field" /></div> : null}</div>
+            {!(clientMode === "pick" && form.clientName) && <div><label className="field-label">Address</label><input value={form.address} onChange={up("address")} placeholder="123 Oak Street, Newark NJ" className="field" /></div>}
           </div>
         </section>
 
