@@ -155,7 +155,7 @@ function FilledDashboard({ data, router }) {
           <button onClick={() => router.push("/compliance")} className="card-hover text-left">
             <div className="flex items-center gap-3">
               <span className="text-xl">🛡️</span>
-              <div><p className="font-bold text-sm" style={{ color: "var(--text)" }}>Compliance</p><p className="text-xs" style={{ color: "var(--text2)" }}>Licenses & Docs</p></div>
+              <div><p className="font-bold text-sm" style={{ color: "var(--text)" }}>Company Compliance</p><p className="text-xs" style={{ color: "var(--text2)" }}>Licenses & Docs</p></div>
             </div>
           </button>
           <button onClick={() => router.push("/settings")} className="card-hover text-left">

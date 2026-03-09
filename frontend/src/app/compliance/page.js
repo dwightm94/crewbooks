@@ -48,10 +48,10 @@ export default function CompliancePage() {
 
   const addBtn = <button onClick={() => router.push("/compliance/new")} className="btn btn-brand btn-sm"><Plus size={18} />Add</button>;
 
-  if (!features.compliance) return (<AppShell title="Compliance" back="/dashboard"><ProGate feature="Compliance Tracking" title="Track Compliance" description="Monitor licenses, certifications, and insurance expiry dates for your crew. Upgrade to Pro to unlock." /></AppShell>);
+  if (!features.compliance) return (<AppShell title="Company Compliance" back="/dashboard"><ProGate feature="Compliance Tracking" title="Track Company Compliance" description="Monitor your business licenses, insurance, permits, and certifications. Upgrade to Pro to unlock." /></AppShell>);
 
   return (
-    <AppShell title="Compliance" subtitle={`${docs.length} documents`} action={addBtn}>
+    <AppShell title="Company Compliance" subtitle={`${docs.length} documents`} action={addBtn}>
       {/* Alert banner */}
       {(expiredCount > 0 || expiringCount > 0) && (
         <div className="mt-4 rounded-2xl p-4" style={{ background: expiredCount > 0 ? "rgba(239,68,68,0.1)" : "rgba(234,179,8,0.1)" }}>
