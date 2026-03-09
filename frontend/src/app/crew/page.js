@@ -101,6 +101,11 @@ export default function CrewPage() {
                             )}
                           </span>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <button onClick={() => router.push(`/crew/${m.memberId}/edit`)} className="p-2 rounded-lg" style={{ color: "var(--text2)" }}>
                       <Edit3 size={20} />
                     </button>
                     <button onClick={() => doDelete(m.memberId, m.name)} className="p-2 rounded-lg" style={{ color: "var(--red)" }}>
