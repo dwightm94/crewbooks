@@ -57,18 +57,25 @@ exports.handler = async (event) => {
     if (method === "POST" && path.includes("/send")) {
       const inv = await db.get(INV, `JOB#${jobId}`, `INVOICE#${invoiceId}`);
       if (!inv || inv.userId !== userId) return error("Invoice not found", 404);
+      // Always use current job data for client info
+      const job = await db.get(JOBS, `USER#${userId}`, `JOB#${jobId}`).catch(() => null);
+      const clientEmail = job?.clientEmail || inv.clientEmail;
+      const clientName = job?.clientName || inv.clientName;
+      const jobName = job?.jobName || inv.jobName;
       const now = new Date().toISOString();
-      if (inv.clientEmail) {
+      if (clientEmail) {
         try {
           await ses.send(new SendEmailCommand({
             Source: "invoices@crewbooks.app",
-            Destination: { ToAddresses: [inv.clientEmail] },
+            Destination: { ToAddresses: [clientEmail] },
             Message: {
-              Subject: { Data: `Invoice: ${inv.jobName} - $${inv.amount.toFixed(2)}` },
-              Body: { Html: { Data: `<p>Hi ${inv.clientName},</p><p>Invoice for <b>$${inv.amount.toFixed(2)}</b> is due by ${inv.dueDate}.</p>` } },
+              Subject: { Data: `Invoice: ${jobName} - $${inv.amount.toFixed(2)}` },
+              Body: { Html: { Data: `<p>Hi ${clientName},</p><p>Invoice for <b>$${inv.amount.toFixed(2)}</b> is due by ${inv.dueDate}.</p><p>Thank you for your business!</p>` } },
             },
           }));
         } catch (e) { console.warn("Email failed:", e.message); }
+      } else {
+        console.warn("No client email on file for job", jobId);
       }
       await db.update(INV, `JOB#${jobId}`, `INVOICE#${invoiceId}`, {
         status: "sent", sentAt: now, updatedAt: now, GSI1SK: `INVSTATUS#sent#DATE#${now}`,
