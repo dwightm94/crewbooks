@@ -33,7 +33,7 @@ export default function EditCrewMemberPage() {
   }, [memberId]);
 
   const up = (f) => (e) => setForm({ ...form, [f]: e.target.value });
-  const addCert = () => { setCertifications([...certifications, { name: "", expiryDate: "", notes: "" }]); setCertsOpen(true); };
+  const addCert = () => { setCertifications([...certifications, { docType: "", name: "", issuer: "", licenseNumber: "", expiryDate: "", notes: "" }]); setCertsOpen(true); };
   const removeCert = (i) => setCertifications(certifications.filter((_, idx) => idx !== i));
   const updateCert = (i, field, value) => { const u = [...certifications]; u[i] = { ...u[i], [field]: value }; setCertifications(u); };
 
@@ -99,20 +99,43 @@ export default function EditCrewMemberPage() {
           {certsOpen && (
             <div className="mt-3 space-y-3">
               {certifications.map((cert, i) => (
-                <div key={i} className="card space-y-3">
+                                <div key={i} className="card space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-bold" style={{ color: "var(--text2)" }}>Certification {i + 1}</span>
                     <button type="button" onClick={() => removeCert(i)} className="p-1 rounded-lg" style={{ color: "var(--red)" }}><Trash2 size={16} /></button>
                   </div>
                   <div>
                     <label className="field-label">Type</label>
-                    <select value={cert.name} onChange={(e) => updateCert(i, "name", e.target.value)} className="field">
-                      <option value="">Select type...</option>
-                      {CERT_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    {cert.name === "Other" && (
-                      <input value={cert.customName || ""} onChange={(e) => updateCert(i, "customName", e.target.value)} placeholder="Enter certification name..." className="field mt-2" />
-                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { type: "License", icon: "📄", desc: "Contractor, trade, or business license" },
+                        { type: "Insurance", icon: "🛡️", desc: "General liability, workers comp, auto" },
+                        { type: "Certification", icon: "🏅", desc: "OSHA, trade certs, safety training" },
+                        { type: "Vehicle", icon: "🚛", desc: "Registration, inspection, DOT" },
+                        { type: "Permit", icon: "📋", desc: "Building, electrical, plumbing permits" },
+                        { type: "Other", icon: "📁", desc: "Other document" },
+                      ].map(({ type, icon, desc }) => (
+                        <button type="button" key={type} onClick={() => updateCert(i, "docType", type)}
+                          className="card text-left p-3 transition-all"
+                          style={{ borderColor: cert.docType === type ? "var(--brand)" : "var(--border)", borderWidth: "2px" }}>
+                          <div className="text-lg">{icon}</div>
+                          <div className="font-bold text-xs mt-1" style={{ color: cert.docType === type ? "var(--brand)" : "var(--text)" }}>{type}</div>
+                          <div className="text-xs mt-0.5" style={{ color: "var(--text2)" }}>{desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="field-label">Document Name *</label>
+                    <input value={cert.name} onChange={(e) => updateCert(i, "name", e.target.value)} placeholder="e.g. OSHA 30, CDL License" className="field" />
+                  </div>
+                  <div>
+                    <label className="field-label">Issuer</label>
+                    <input value={cert.issuer || ""} onChange={(e) => updateCert(i, "issuer", e.target.value)} placeholder="e.g. State of New Jersey, OSHA" className="field" />
+                  </div>
+                  <div>
+                    <label className="field-label">License / Certificate Number</label>
+                    <input value={cert.licenseNumber || ""} onChange={(e) => updateCert(i, "licenseNumber", e.target.value)} placeholder="e.g. LC-123456" className="field" />
                   </div>
                   <div>
                     <label className="field-label">Expiry Date</label>
@@ -120,10 +143,10 @@ export default function EditCrewMemberPage() {
                   </div>
                   <div>
                     <label className="field-label">Notes</label>
-                    <input value={cert.notes} onChange={(e) => updateCert(i, "notes", e.target.value)} placeholder="License #, issuing body..." className="field" />
+                    <textarea value={cert.notes} onChange={(e) => updateCert(i, "notes", e.target.value)} placeholder="Any additional notes..." className="field" rows={2} />
                   </div>
                 </div>
-              ))}
+              )}
               <button type="button" onClick={addCert}
                 className="w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold"
                 style={{ border: "2px dashed var(--border)", color: "var(--brand)" }}>
