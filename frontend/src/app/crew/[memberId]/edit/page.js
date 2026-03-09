@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { getCrewMember, updateCrewMember } from "@/lib/api";
-import { Plus, Trash2, ChevronDown, ChevronUp, ShieldCheck, Upload, X } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, ShieldCheck, Upload, X, Share2, CheckCircle2 } from "lucide-react";
 
 const ROLES = ["Electrician", "Plumber", "Carpenter", "Laborer", "Foreman", "Apprentice", "HVAC Tech", "Painter", "Mason", "Roofer", "Other"];
 const CERT_TYPES = ["OSHA 10", "OSHA 30", "Driver's License", "Forklift Certification", "First Aid/CPR", "Electrical License", "Plumbing License", "CDL", "Other"];
@@ -16,6 +16,8 @@ export default function EditCrewMemberPage() {
   const certFileRefs = useRef({});
   const [certsOpen, setCertsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [memberToken, setMemberToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -27,6 +29,7 @@ export default function EditCrewMemberPage() {
         const m = res.data || res;
         setForm({ name: m.name || "", phone: m.phone || "", role: m.role || "", hourlyRate: m.hourlyRate ? String(m.hourlyRate) : "" });
         setCertifications(m.certifications || []);
+        setMemberToken(m.token || null);
         if ((m.certifications || []).length > 0) setCertsOpen(true);
       } catch (e) { setError("Could not load crew member"); }
       setLoading(false);
@@ -38,6 +41,12 @@ export default function EditCrewMemberPage() {
   const addCert = () => { setCertifications([...certifications, { docType: "", name: "", issuer: "", licenseNumber: "", expiryDate: "", notes: "" }]); setCertsOpen(true); };
   const removeCert = (i) => setCertifications(certifications.filter((_, idx) => idx !== i));
   const updateCert = (i, field, value) => { const u = [...certifications]; u[i] = { ...u[i], [field]: value }; setCertifications(u); };
+
+  const copyLink = () => {
+    if (!memberToken) return;
+    const link = "https://crewbooksapp.com/crew-view/" + memberToken;
+    navigator.clipboard.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  };
 
   const submit = async (e) => {
     e.preventDefault(); setError(null); setSaving(true);
@@ -183,6 +192,23 @@ export default function EditCrewMemberPage() {
             </div>
           )}
         </section>
+
+        {memberToken && (
+          <section>
+            <h3 className="section-title">Crew View Link</h3>
+            <div className="card">
+              <p className="text-xs mb-3" style={{ color: "var(--text2)" }}>Share this link with the crew member so they can view their schedule and clock in/out.</p>
+              <div className="flex items-center gap-2 p-3 rounded-xl mb-3" style={{ background: "var(--input)", wordBreak: "break-all" }}>
+                <p className="text-xs font-mono flex-1" style={{ color: "var(--text2)" }}>crewbooksapp.com/crew-view/{memberToken}</p>
+              </div>
+              <button type="button" onClick={copyLink}
+                className="btn w-full"
+                style={{ background: copied ? "var(--green-bg, #d1fae5)" : "var(--input)", color: copied ? "var(--green)" : "var(--brand)" }}>
+                {copied ? <><CheckCircle2 size={18} /> Copied!</> : <><Share2 size={18} /> Copy Link</>}
+              </button>
+            </div>
+          </section>
+        )}
 
         <button type="submit" disabled={saving} className="btn btn-brand w-full text-lg">
           {saving ? "Saving..." : "Save Changes"}

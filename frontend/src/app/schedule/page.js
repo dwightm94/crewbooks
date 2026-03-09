@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { getCrew, getJobs, getAssignments, createAssignment, deleteAssignment, notifyCrew, getTracker } from "@/lib/api";
 import { money } from "@/lib/utils";
-import { Calendar, MapPin, Clock, Send, UserPlus, Trash2, Edit3, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Users, Briefcase } from "lucide-react";
+import { Calendar, MapPin, Clock, Send, UserPlus, Trash2, Edit3, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Users, Briefcase, Share2 } from "lucide-react";
+
+const APP_URL = "https://crewbooksapp.com";
 
 function getDateStr(offset = 0) {
   const d = new Date(); d.setDate(d.getDate() + offset);
@@ -29,6 +31,7 @@ export default function SchedulePage() {
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [notifying, setNotifying] = useState(false);
   const [notifyResult, setNotifyResult] = useState(null);
+  const [copiedToken, setCopiedToken] = useState(null);
 
   const date = selectedDate;
 
@@ -120,6 +123,15 @@ export default function SchedulePage() {
     setNotifying(false);
   };
 
+  const copyLink = (token, memberId) => {
+    if (!token) { alert("No link available for this crew member"); return; }
+    const link = `${APP_URL}/crew-view/${token}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedToken(memberId);
+      setTimeout(() => setCopiedToken(null), 2000);
+    });
+  };
+
   const assigned = assignments.map(a => a.memberId);
   const unassigned = crew.filter(m => !assigned.includes(m.memberId) && m.status === "active");
 
@@ -205,6 +217,9 @@ export default function SchedulePage() {
                     <div className="flex flex-col items-end gap-1">
                       {a.clockIn && <span className="badge badge-green text-[10px]">Clocked In</span>}
                       {a.clockOut && <span className="badge badge-purple text-[10px]">{a.hoursWorked}h</span>}
+                      <button onClick={() => copyLink(a.memberToken, a.memberId)} className="p-2 rounded-xl" style={{ color: copiedToken === a.memberId ? "var(--green)" : "var(--text2)" }} title="Copy crew link">
+                        {copiedToken === a.memberId ? <CheckCircle2 size={18} /> : <Share2 size={18} />}
+                      </button>
                       <button onClick={() => setEditAssignment(a)} className="p-2 rounded-xl" style={{ color: "var(--brand)" }}><Edit3 size={20} /></button>
                       <button onClick={() => { if (confirm("Remove " + a.memberName + " from this day?")) doRemove(a.memberId); }} className="p-2 rounded-xl" style={{ color: "var(--red)" }}><Trash2 size={20} /></button>
                     </div>
@@ -414,15 +429,9 @@ function EditAssignModal({ assignment, jobs, crew, onSave, onClose }) {
         <div className="space-y-5">
           <div>
             <label className="field-label">Crew Member</label>
-            <select
-              value={memberId}
-              onChange={e => setMemberId(e.target.value)}
-              className="field"
-              style={{ color: "var(--brand)", fontWeight: "bold" }}>
+            <select value={memberId} onChange={e => setMemberId(e.target.value)} className="field" style={{ color: "var(--brand)", fontWeight: "bold" }}>
               {crew.map(m => (
-                <option key={m.memberId} value={m.memberId}>
-                  {m.name}{m.role ? " – " + m.role : ""}
-                </option>
+                <option key={m.memberId} value={m.memberId}>{m.name}{m.role ? " – " + m.role : ""}</option>
               ))}
             </select>
           </div>

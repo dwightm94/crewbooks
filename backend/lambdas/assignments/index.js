@@ -7,21 +7,15 @@ const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
 const ASSIGN_TABLE = process.env.ASSIGNMENTS_TABLE;
 const CREW_TABLE = process.env.CREW_TABLE;
 const JOBS_TABLE = process.env.JOBS_TABLE;
+const APP_URL = process.env.APP_URL || "https://crewbooksapp.com";
 const sns = new SNSClient({ region: process.env.REGION });
 
 exports.handler = async (event) => {
   const method = event.httpMethod;
   const path = event.resource || event.path || "";
 
-  // Public: crew member checks their assignment via token
-  if (path === "/crew-view/{token}" && method === "GET") {
-    return await getCrewView(event);
-  }
-
-  // Public: clock in/out
-  if (path === "/crew-view/{token}/clock" && method === "POST") {
-    return await clockInOut(event);
-  }
+  if (path === "/crew-view/{token}" && method === "GET") return await getCrewView(event);
+  if (path === "/crew-view/{token}/clock" && method === "POST") return await clockInOut(event);
 
   const userId = getUserId(event);
   if (!userId) return error("Unauthorized", 401);
@@ -99,7 +93,8 @@ async function notifyCrew(userId, event) {
     if (!a.memberPhone) { results.push({ name: a.memberName, sent: false, reason: "no phone" }); continue; }
     const phone = a.memberPhone.replace(/\D/g, "");
     const fullPhone = phone.length === 10 ? `+1${phone}` : `+${phone}`;
-    const msg = `Hey ${a.memberName.split(" ")[0]}, you're at ${a.jobAddress || a.jobName} tomorrow. Start ${a.startTime}. - CrewBooks`;
+    const link = a.memberToken ? `\n${APP_URL}/crew-view/${a.memberToken}` : "";
+    const msg = `Hey ${a.memberName.split(" ")[0]}, you're at ${a.jobAddress || a.jobName} tomorrow. Start ${a.startTime}.${link} - CrewBooks`;
     try {
       await sns.send(new PublishCommand({ PhoneNumber: fullPhone, Message: msg }));
       results.push({ name: a.memberName, sent: true });
@@ -151,9 +146,7 @@ async function clockInOut(event) {
   const now = new Date().toISOString();
 
   if (action === "clockIn") {
-    await db.update(ASSIGN_TABLE, a.PK, a.SK, {
-      clockIn: now, clockInGps: lat && lng ? { lat, lng } : null,
-    });
+    await db.update(ASSIGN_TABLE, a.PK, a.SK, { clockIn: now, clockInGps: lat && lng ? { lat, lng } : null });
     return success({ clockedIn: true, time: now });
   } else if (action === "clockOut") {
     const clockIn = a.clockIn ? new Date(a.clockIn) : new Date();
