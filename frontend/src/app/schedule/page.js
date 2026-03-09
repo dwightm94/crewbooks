@@ -35,13 +35,14 @@ export default function SchedulePage() {
 
   const date = selectedDate;
 
-  const load = async () => {
+  const load = async (dateOverride) => {
     setLoading(true);
+    const loadDate = dateOverride || selectedDate;
     try {
       const [c, j, a] = await Promise.all([
         getCrew().catch(() => ({ members: [] })),
         getJobs().catch(() => []),
-        getAssignments(date).catch(() => ({ assignments: [] })),
+        getAssignments(loadDate).catch(() => ({ assignments: [] })),
       ]);
       setCrew(c.members || c || []);
       const jobList = j.jobs || (Array.isArray(j) ? j : []);
@@ -55,7 +56,7 @@ export default function SchedulePage() {
     try { const t = await getTracker(); setTracker(t.crew || t || []); } catch { }
   };
 
-  useEffect(() => { load(); }, [selectedDate]);
+  useEffect(() => { load(selectedDate); }, [selectedDate]);
 
   useEffect(() => {
     let cancelled = false;
