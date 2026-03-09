@@ -11,7 +11,7 @@ const sns = new SNSClient({ region: process.env.REGION });
 
 exports.handler = async (event) => {
   const method = event.httpMethod;
-  const path = event.resource;
+  const path = event.resource || event.path || "";
 
   // Public: crew member checks their assignment via token
   if (path === "/crew-view/{token}" && method === "GET") {
@@ -37,7 +37,7 @@ exports.handler = async (event) => {
       case "DELETE": return await deleteAssignment(userId, event);
       default: return error("Method not allowed", 405);
     }
-  } catch (err) { console.error(err); return error("Internal server error", 500); }
+  } catch (err) { console.error("HANDLER ERROR:", err.message, err); return error("Internal server error", 500); }
 };
 
 async function createAssignment(userId, event) {
@@ -71,12 +71,10 @@ async function createAssignment(userId, event) {
 async function listAssignments(userId, event) {
   const date = event.queryStringParameters?.date;
   if (date) {
-    // Get all assignments for a specific date
     const items = await db.query(ASSIGN_TABLE, `DATE#${date}`, `USER#${userId}#`);
     const assignments = items.map(({ PK, SK, GSI1PK, GSI1SK, ...rest }) => rest);
     return success({ assignments, date });
   }
-  // Get recent assignments via GSI1
   const items = await db.query(ASSIGN_TABLE, `USER#${userId}`, "DATE#", { indexName: "GSI1" });
   const assignments = items.map(({ PK, SK, GSI1PK, GSI1SK, ...rest }) => rest);
   return success({ assignments });
@@ -117,12 +115,10 @@ async function getCrewView(event) {
   const token = event.pathParameters?.token;
   if (!token) return error("Token required");
 
-  // Find member by token via GSI1
   const members = await db.query(CREW_TABLE, `TOKEN#${token}`, "CREW#", { indexName: "GSI1" });
   if (!members.length) return error("Invalid link", 404);
   const member = members[0];
 
-  // Get today and tomorrow's assignments
   const today = new Date().toISOString().split("T")[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
 
@@ -141,7 +137,7 @@ async function getCrewView(event) {
 async function clockInOut(event) {
   const token = event.pathParameters?.token;
   const data = JSON.parse(event.body || "{}");
-  const { action, lat, lng } = data; // action: "clockIn" | "clockOut"
+  const { action, lat, lng } = data;
 
   const members = await db.query(CREW_TABLE, `TOKEN#${token}`, "CREW#", { indexName: "GSI1" });
   if (!members.length) return error("Invalid link", 404);
