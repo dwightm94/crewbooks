@@ -429,11 +429,21 @@ function EditAssignModal({ assignment, jobs, crew, onSave, onClose }) {
         <div className="space-y-5">
           <div>
             <label className="field-label">Crew Member</label>
-            <select value={memberId} onChange={e => setMemberId(e.target.value)} className="field" style={{ color: "var(--brand)", fontWeight: "bold" }}>
+            <div className="space-y-2">
               {crew.map(m => (
-                <option key={m.memberId} value={m.memberId}>{m.name}{m.role ? " – " + m.role : ""}</option>
+                <button key={m.memberId} onClick={() => setMemberId(m.memberId)}
+                  className="card w-full text-left transition-all"
+                  style={{ borderColor: memberId === m.memberId ? "var(--brand)" : "var(--border)", borderWidth: "2px" }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold" style={{ color: memberId === m.memberId ? "var(--brand)" : "var(--text)" }}>{m.name}</p>
+                      <p className="text-xs" style={{ color: "var(--text2)" }}>{m.role}{m.hourlyRate ? " · $" + m.hourlyRate + "/hr" : ""}</p>
+                    </div>
+                    {memberId === m.memberId && <CheckCircle2 size={20} style={{ color: "var(--brand)" }} />}
+                  </div>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
           <div>
             <label className="field-label">Move to Date (optional)</label>
