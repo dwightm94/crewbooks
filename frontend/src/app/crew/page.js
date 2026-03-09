@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { getCrew, deleteCrewMember } from "@/lib/api";
-import { Plus, Users, Phone, Trash2, Edit3, Copy, Check, DollarSign, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Plus, Users, Phone, Trash2, Edit3, Copy, Check, DollarSign, ShieldCheck, AlertTriangle, Share2, CheckCircle2 } from "lucide-react";
 
 function getCertStatus(certifications) {
   if (!certifications?.length) return null;
@@ -107,6 +107,11 @@ export default function CrewPage() {
                     <button onClick={() => router.push(`/crew/${m.memberId}/edit`)} className="p-2 rounded-lg" style={{ color: "var(--text2)" }}>
                       <Edit3 size={20} />
                     </button>
+                    {m.token && (
+                      <button onClick={() => copyLink(m.token)} className="p-2 rounded-lg" style={{ color: copied === m.token ? "var(--green)" : "var(--brand)" }} title="Copy crew link">
+                        {copied === m.token ? <CheckCircle2 size={20} /> : <Share2 size={20} />}
+                      </button>
+                    )}
                     <button onClick={() => doDelete(m.memberId, m.name)} className="p-2 rounded-lg" style={{ color: "var(--red)" }}>
                       <Trash2 size={20} />
                     </button>
