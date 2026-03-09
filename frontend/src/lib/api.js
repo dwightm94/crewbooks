@@ -2,8 +2,17 @@ import { cognitoGetUser } from "./auth";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
+// Cache in-flight user promise to prevent race conditions on concurrent requests
+let _userPromise = null;
+async function getUser() {
+  if (!_userPromise) {
+    _userPromise = cognitoGetUser().finally(() => { _userPromise = null; });
+  }
+  return _userPromise;
+}
+
 async function api(path, options = {}) {
-  const user = await cognitoGetUser();
+  const user = await getUser();
   const res = await fetch(`${BASE}${path}`, {
     ...options,
     headers: {
