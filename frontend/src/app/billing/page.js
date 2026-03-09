@@ -26,7 +26,7 @@ export default function BillingPage() {
       setJobs(jobList);
       // Fetch invoices for all jobs in parallel
       const invResults = await Promise.allSettled(
-        jobList.map(j => getInvoices(j.jobId).then(r => (r.invoices || r || []).map(inv => ({ ...inv, jobName: inv.jobName || j.jobName, clientName: inv.clientName || j.clientName }))))
+        jobList.map(j => getInvoices(j.jobId).then(r => (r.invoices || r || []).map(inv => ({ ...inv, jobName: j.jobName, clientName: j.clientName, clientEmail: j.clientEmail, clientPhone: j.clientPhone }))))
       );
       const allInv = invResults.flatMap(r => r.status === "fulfilled" ? r.value : []);
       // Sort by date, newest first
