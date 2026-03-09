@@ -4,8 +4,23 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { getCrew, deleteCrewMember } from "@/lib/api";
-import { money } from "@/lib/utils";
-import { Plus, Users, Phone, Trash2, Edit3, Copy, Check, DollarSign } from "lucide-react";
+import { Plus, Users, Phone, Trash2, Edit3, Copy, Check, DollarSign, ShieldCheck, AlertTriangle } from "lucide-react";
+
+function getCertStatus(certifications) {
+  if (!certifications?.length) return null;
+  const today = new Date();
+  const soon = new Date(); soon.setDate(today.getDate() + 30);
+  let expired = 0, expiring = 0;
+  for (const c of certifications) {
+    if (!c.expiryDate) continue;
+    const exp = new Date(c.expiryDate);
+    if (exp < today) expired++;
+    else if (exp <= soon) expiring++;
+  }
+  if (expired > 0) return { status: "expired", count: expired, color: "var(--red)", bg: "var(--red-bg)", label: `${expired} expired` };
+  if (expiring > 0) return { status: "expiring", count: expiring, color: "#f59e0b", bg: "#fef3c7", label: `${expiring} expiring soon` };
+  return { status: "ok", count: certifications.filter(c => c.name).length, color: "var(--green)", bg: "var(--green-bg)", label: `${certifications.filter(c => c.name).length} certs` };
+}
 
 export default function CrewPage() {
   const [members, setMembers] = useState([]);
@@ -17,12 +32,10 @@ export default function CrewPage() {
   useEffect(() => { load(); }, []);
 
   const doDelete = async (id, name) => {
-    if (confirm(`Remove ${name} from your crew?`)) {
-      await deleteCrewMember(id); load();
-    }
+    if (confirm(`Remove ${name} from your crew?`)) { await deleteCrewMember(id); load(); }
   };
 
-  const copyLink = (token, name) => {
+  const copyLink = (token) => {
     const url = `${window.location.origin}/crew-view/${token}`;
     navigator.clipboard.writeText(url);
     setCopied(token);
@@ -51,45 +64,57 @@ export default function CrewPage() {
         </div>
       ) : (
         <div className="space-y-3 mt-4">
-          {members.map(m => (
-            <div key={m.memberId} className="card">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold text-white" style={{ background: m.status === "active" ? "var(--green)" : "var(--muted)" }}>
-                    {m.name?.[0]?.toUpperCase() || "?"}
-                  </div>
-                  <div>
-                    <p className="font-bold text-base" style={{ color: "var(--text)" }}>{m.name}</p>
-                    {m.role && <p className="text-sm" style={{ color: "var(--text2)" }}>{m.role}</p>}
-                    <div className="flex items-center gap-3 mt-1">
-                      {m.hourlyRate > 0 && (
-                        <span className="flex items-center gap-1 text-xs font-bold" style={{ color: "var(--green)" }}>
-                          <DollarSign size={12} />{m.hourlyRate}/hr
-                        </span>
-                      )}
-                      {m.phone && (
-                        <a href={`tel:${m.phone}`} className="flex items-center gap-1 text-xs" style={{ color: "var(--blue)" }}>
-                          <Phone size={12} />{m.phone}
-                        </a>
-                      )}
+          {members.map(m => {
+            const certStatus = getCertStatus(m.certifications);
+            return (
+              <div key={m.memberId} className="card">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold text-white" style={{ background: m.status === "active" ? "var(--green)" : "var(--muted)" }}>
+                      {m.name?.[0]?.toUpperCase() || "?"}
+                    </div>
+                    <div>
+                      <p className="font-bold text-base" style={{ color: "var(--text)" }}>{m.name}</p>
+                      {m.role && <p className="text-sm" style={{ color: "var(--text2)" }}>{m.role}</p>}
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        {m.hourlyRate > 0 && (
+                          <span className="flex items-center gap-1 text-xs font-bold" style={{ color: "var(--green)" }}>
+                            <DollarSign size={12} />{m.hourlyRate}/hr
+                          </span>
+                        )}
+                        {m.phone && (
+                          <a href={`tel:${m.phone}`} className="flex items-center gap-1 text-xs" style={{ color: "var(--blue)" }}>
+                            <Phone size={12} />{m.phone}
+                          </a>
+                        )}
+                        {certStatus && (
+                          <span className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full"
+                            style={{ background: certStatus.bg, color: certStatus.color }}>
+                            {certStatus.status === "expired" || certStatus.status === "expiring"
+                              ? <AlertTriangle size={11} />
+                              : <ShieldCheck size={11} />}
+                            {certStatus.label}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <button onClick={() => copyLink(m.token, m.name)} className="btn btn-outline btn-sm text-xs" title="Copy crew view link">
-                    {copied === m.token ? <Check size={14} /> : <Copy size={14} />}
-                    {copied === m.token ? "Copied!" : "Link"}
-                  </button>
-                  <button onClick={() => router.push("/crew/" + m.memberId + "/edit")} className="p-2 rounded-lg" style={{ color: "var(--brand)" }}>
-                    <Edit3 size={20} />
-                  </button>
-                  <button onClick={() => doDelete(m.memberId, m.name)} className="p-2 rounded-lg" style={{ color: "var(--red)" }}>
-                    <Trash2 size={20} />
-                  </button>
+                  <div className="flex flex-col gap-1">
+                    <button onClick={() => copyLink(m.token)} className="btn btn-outline btn-sm text-xs" title="Copy crew view link">
+                      {copied === m.token ? <Check size={14} /> : <Copy size={14} />}
+                      {copied === m.token ? "Copied!" : "Link"}
+                    </button>
+                    <button onClick={() => router.push("/crew/" + m.memberId + "/edit")} className="p-2 rounded-lg" style={{ color: "var(--brand)" }}>
+                      <Edit3 size={20} />
+                    </button>
+                    <button onClick={() => doDelete(m.memberId, m.name)} className="p-2 rounded-lg" style={{ color: "var(--red)" }}>
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </AppShell>
