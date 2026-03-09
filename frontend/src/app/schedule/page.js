@@ -429,21 +429,27 @@ function EditAssignModal({ assignment, jobs, crew, onSave, onClose }) {
         <div className="space-y-5">
           <div>
             <label className="field-label">Crew Member</label>
-            <div className="space-y-2">
+            <select
+              value={memberId}
+              onChange={e => setMemberId(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "14px 16px",
+                fontSize: "16px",
+                borderRadius: "12px",
+                border: "2px solid var(--border)",
+                background: "var(--card)",
+                color: "var(--brand)",
+                fontWeight: "bold",
+                appearance: "auto",
+                WebkitAppearance: "auto",
+                MozAppearance: "auto",
+              }}
+            >
               {crew.map(m => (
-                <button key={m.memberId} onClick={() => setMemberId(m.memberId)}
-                  className="card w-full text-left transition-all"
-                  style={{ borderColor: memberId === m.memberId ? "var(--brand)" : "var(--border)", borderWidth: "2px" }}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-bold" style={{ color: memberId === m.memberId ? "var(--brand)" : "var(--text)" }}>{m.name}</p>
-                      <p className="text-xs" style={{ color: "var(--text2)" }}>{m.role}{m.hourlyRate ? " · $" + m.hourlyRate + "/hr" : ""}</p>
-                    </div>
-                    {memberId === m.memberId && <CheckCircle2 size={20} style={{ color: "var(--brand)" }} />}
-                  </div>
-                </button>
+                <option key={m.memberId} value={m.memberId}>{m.name}{m.role ? " – " + m.role : ""}</option>
               ))}
-            </div>
+            </select>
           </div>
           <div>
             <label className="field-label">Move to Date (optional)</label>
