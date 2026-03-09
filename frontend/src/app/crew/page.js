@@ -90,21 +90,16 @@ export default function CrewPage() {
                         {certStatus && (
                           <span className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full"
                             style={{ background: certStatus.bg, color: certStatus.color }}>
-                            {certStatus.status === "expired" || certStatus.status === "expiring"
-                              ? <AlertTriangle size={11} />
-                              : <ShieldCheck size={11} />}
-                            {certStatus.label}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <button onClick={() => copyLink(m.token)} className="btn btn-outline btn-sm text-xs" title="Copy crew view link">
-                      {copied === m.token ? <Check size={14} /> : <Copy size={14} />}
-                      {copied === m.token ? "Copied!" : "Link"}
-                    </button>
-                    <button onClick={() => router.push("/crew/" + m.memberId + "/edit")} className="p-2 rounded-lg" style={{ color: "var(--brand)" }}>
+                            {certStatus.expired > 0 && (
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "var(--red-bg)", color: "var(--red)" }}>
+                                ⚠ {certStatus.expired} expired
+                              </span>
+                            )}
+                            {certStatus.expiring > 0 && (
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "#fef3c7", color: "#f59e0b" }}>
+                                ⚠ {certStatus.expiring} expiring soon
+                              </span>
+                            )}>
                       <Edit3 size={20} />
                     </button>
                     <button onClick={() => doDelete(m.memberId, m.name)} className="p-2 rounded-lg" style={{ color: "var(--red)" }}>
