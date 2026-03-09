@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { getCrewMember, updateCrewMember } from "@/lib/api";
