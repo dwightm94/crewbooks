@@ -27,8 +27,6 @@ export default function SchedulePage() {
   const [busyDays, setBusyDays] = useState({});
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calYear, setCalYear] = useState(new Date().getFullYear());
-
-
   const [notifying, setNotifying] = useState(false);
   const [notifyResult, setNotifyResult] = useState(null);
 
@@ -56,7 +54,6 @@ export default function SchedulePage() {
 
   useEffect(() => { load(); }, [selectedDate]);
 
-  // Fetch busy days for the visible calendar month (parallel)
   useEffect(() => {
     let cancelled = false;
     async function fetchMonth() {
@@ -67,7 +64,6 @@ export default function SchedulePage() {
         if (busyDays[ds] !== undefined) continue;
         batch.push(ds);
       }
-      // Fire all in parallel (batches of 10 to avoid throttle)
       for (let b = 0; b < batch.length; b += 10) {
         if (cancelled) break;
         const chunk = batch.slice(b, b + 10);
@@ -81,6 +77,7 @@ export default function SchedulePage() {
     fetchMonth();
     return () => { cancelled = true; };
   }, [calMonth, calYear]);
+
   useEffect(() => { if (tab === "tracker") loadTracker(); }, [tab]);
 
   const doAssign = async (memberIds, jobId, startTime) => {
@@ -95,10 +92,10 @@ export default function SchedulePage() {
     }
   };
 
-  const doEdit = async (memberId, jobId, startTime, newDate) => {
+  const doEdit = async (oldMemberId, newMemberId, jobId, startTime, newDate) => {
     try {
-      await deleteAssignment(date, memberId);
-      await createAssignment({ memberId, jobId, date: newDate || date, startTime });
+      await deleteAssignment(date, oldMemberId);
+      await createAssignment({ memberId: newMemberId, jobId, date: newDate || date, startTime });
       const target = newDate || date;
       setBusyDays(prev => ({
         ...prev,
@@ -128,7 +125,6 @@ export default function SchedulePage() {
 
   return (
     <AppShell title="Schedule">
-      {/* Tabs */}
       <div className="flex gap-1 mt-4 p-1 rounded-xl" style={{ background: "var(--input)" }}>
         {["schedule", "tracker"].map(t => (
           <button key={t} onClick={() => setTab(t)}
@@ -141,10 +137,7 @@ export default function SchedulePage() {
 
       {tab === "schedule" ? (
         <>
-          {/* Calendar */}
-          <MiniCalendar date={date} onSelect={(d) => {
-            setSelectedDate(d);
-          }} busyDays={busyDays} calMonth={calMonth} calYear={calYear} setCalMonth={setCalMonth} setCalYear={setCalYear} />
+          <MiniCalendar date={date} onSelect={(d) => { setSelectedDate(d); }} busyDays={busyDays} calMonth={calMonth} calYear={calYear} setCalMonth={setCalMonth} setCalYear={setCalYear} />
           <p className="text-center text-sm font-bold mt-2" style={{ color: "var(--text)" }}>{formatDate(date)}</p>
           <div className="flex items-center justify-center gap-4 mt-2">
             <div className="flex items-center gap-1.5">
@@ -157,7 +150,6 @@ export default function SchedulePage() {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-2 mt-4">
             <button onClick={() => setShowAssignModal(true)} className="btn btn-brand flex-1" disabled={unassigned.length === 0 || jobs.length === 0}>
               <UserPlus size={18} />Assign Crew
@@ -169,7 +161,6 @@ export default function SchedulePage() {
             )}
           </div>
 
-          {/* Notify results */}
           {notifyResult && (
             <div className="card mt-3">
               <h3 className="section-title">Notification Results</h3>
@@ -183,7 +174,6 @@ export default function SchedulePage() {
             </div>
           )}
 
-          {/* Assignments list */}
           {loading ? (
             <div className="space-y-3 mt-4">{[1,2,3].map(i => <div key={i} className="skeleton h-20" />)}</div>
           ) : assignments.length === 0 ? (
@@ -225,7 +215,6 @@ export default function SchedulePage() {
           )}
         </>
       ) : (
-        /* Live Tracker */
         <div className="mt-4">
           <button onClick={loadTracker} className="btn btn-outline w-full mb-4">Refresh Tracker</button>
           {tracker.length === 0 ? (
@@ -258,12 +247,11 @@ export default function SchedulePage() {
         </div>
       )}
 
-      {/* Assign Modal */}
       {showAssignModal && (
         <AssignModal crew={unassigned} jobs={jobs} onAssign={doAssign} onClose={() => setShowAssignModal(false)} />
       )}
       {editAssignment && (
-        <EditAssignModal assignment={editAssignment} jobs={jobs} onSave={doEdit} onClose={() => setEditAssignment(null)} />
+        <EditAssignModal assignment={editAssignment} jobs={jobs} crew={crew.filter(m => m.status === "active")} onSave={doEdit} onClose={() => setEditAssignment(null)} />
       )}
     </AppShell>
   );
@@ -402,7 +390,8 @@ function AssignModal({ crew, jobs, onAssign, onClose }) {
   );
 }
 
-function EditAssignModal({ assignment, jobs, onSave, onClose }) {
+function EditAssignModal({ assignment, jobs, crew, onSave, onClose }) {
+  const [memberId, setMemberId] = useState(assignment.memberId);
   const [jobId, setJobId] = useState(assignment.jobId);
   const [startTime, setStartTime] = useState(assignment.startTime || "7:00 AM");
   const [assignDate, setAssignDate] = useState("");
@@ -411,7 +400,7 @@ function EditAssignModal({ assignment, jobs, onSave, onClose }) {
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(assignment.memberId, jobId, startTime, assignDate || null);
+    await onSave(assignment.memberId, memberId, jobId, startTime, assignDate || null);
     setSaving(false);
   };
 
@@ -423,9 +412,23 @@ function EditAssignModal({ assignment, jobs, onSave, onClose }) {
           <button onClick={onClose} className="text-sm font-bold" style={{ color: "var(--brand)" }}>Cancel</button>
         </div>
         <div className="space-y-5">
-          <div className="card" style={{ borderColor: "var(--brand)", borderWidth: "2px" }}>
-            <p className="font-bold text-lg" style={{ color: "var(--brand)" }}>{assignment.memberName}</p>
-            <p className="text-xs" style={{ color: "var(--text2)" }}>Editing assignment</p>
+          <div>
+            <label className="field-label">Crew Member</label>
+            <div className="space-y-2">
+              {crew.map(m => (
+                <button key={m.memberId} onClick={() => setMemberId(m.memberId)}
+                  className="card w-full text-left transition-all"
+                  style={{ borderColor: memberId === m.memberId ? "var(--brand)" : "var(--border)", borderWidth: "2px" }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold" style={{ color: memberId === m.memberId ? "var(--brand)" : "var(--text)" }}>{m.name}</p>
+                      <p className="text-xs" style={{ color: "var(--text2)" }}>{m.role}{m.hourlyRate ? " · $" + m.hourlyRate + "/hr" : ""}</p>
+                    </div>
+                    {memberId === m.memberId && <CheckCircle2 size={20} style={{ color: "var(--brand)" }} />}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
           <div>
             <label className="field-label">Move to Date (optional)</label>
