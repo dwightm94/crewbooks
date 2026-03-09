@@ -8,18 +8,17 @@ import { Plus, Users, Phone, Trash2, Edit3, Copy, Check, DollarSign, ShieldCheck
 
 function getCertStatus(certifications) {
   if (!certifications?.length) return null;
-  const today = new Date();
-  const soon = new Date(); soon.setDate(today.getDate() + 30);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const soon = new Date(today); soon.setDate(today.getDate() + 30);
   let expired = 0, expiring = 0;
   for (const c of certifications) {
     if (!c.expiryDate) continue;
-    const exp = new Date(c.expiryDate);
+    const exp = new Date(c.expiryDate + "T12:00:00");
     if (exp < today) expired++;
     else if (exp <= soon) expiring++;
   }
-  if (expired > 0) return { status: "expired", count: expired, color: "var(--red)", bg: "var(--red-bg)", label: `${expired} expired` };
-  if (expiring > 0) return { status: "expiring", count: expiring, color: "#f59e0b", bg: "#fef3c7", label: `${expiring} expiring soon` };
-  return { status: "ok", count: certifications.filter(c => c.name).length, color: "var(--green)", bg: "var(--green-bg)", label: `${certifications.filter(c => c.name).length} certs` };
+  if (expired === 0 && expiring === 0) return null;
+  return { expired, expiring };
 }
 
 export default function CrewPage() {
