@@ -9,7 +9,7 @@ const JOBS = process.env.JOBS_TABLE;
 const ses = new SESClient({ region: process.env.REGION });
 
 exports.handler = async (event) => {
-  const path = event.resource;
+  const path = event.resource || event.path || "";
   const method = event.httpMethod;
 
   try {
@@ -28,6 +28,13 @@ exports.handler = async (event) => {
     const userId = getUserId(event);
     if (!userId) return error("Unauthorized", 401);
     const { jobId, invoiceId } = event.pathParameters || {};
+
+    // List invoices for a job
+    if (method === "GET" && jobId && !invoiceId) {
+      const items = await db.query(INV, `JOB#${jobId}`);
+      const invoices = (items || []).filter(i => i.userId === userId);
+      return success({ invoices });
+    }
 
     // Create invoice
     if (method === "POST" && !path.includes("/send")) {
@@ -57,7 +64,6 @@ exports.handler = async (event) => {
     if (method === "POST" && path.includes("/send")) {
       const inv = await db.get(INV, `JOB#${jobId}`, `INVOICE#${invoiceId}`);
       if (!inv || inv.userId !== userId) return error("Invoice not found", 404);
-      // Always use current job data for client info
       const job = await db.get(JOBS, `USER#${userId}`, `JOB#${jobId}`).catch(() => null);
       const clientEmail = job?.clientEmail || inv.clientEmail;
       const clientName = job?.clientName || inv.clientName;
@@ -113,6 +119,14 @@ exports.handler = async (event) => {
         status: "paid", updatedAt: now, GSI1SK: `STATUS#paid#DATE#${now}`,
       });
       return success({ paid: true, invoiceId, paidAt: now });
+    }
+
+    // Delete invoice
+    if (method === "DELETE" && invoiceId) {
+      const inv = await db.get(INV, `JOB#${jobId}`, `INVOICE#${invoiceId}`);
+      if (!inv || inv.userId !== userId) return error("Invoice not found", 404);
+      await db.delete(INV, `JOB#${jobId}`, `INVOICE#${invoiceId}`);
+      return success({ deleted: true, invoiceId });
     }
 
     return error("Method not allowed", 405);
