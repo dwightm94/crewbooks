@@ -7,7 +7,7 @@ const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
 const ASSIGN_TABLE = process.env.ASSIGNMENTS_TABLE;
 const CREW_TABLE = process.env.CREW_TABLE;
 const JOBS_TABLE = process.env.JOBS_TABLE;
-const APP_URL = process.env.APP_URL || "https://crewbooksapp.com";
+const APP_URL = process.env.APP_URL || "https://master.dlw0zhxk42vjk.amplifyapp.com";
 const sns = new SNSClient({ region: process.env.REGION });
 
 exports.handler = async (event) => {

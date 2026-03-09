@@ -5,7 +5,7 @@ import { getCrew, getJobs, getAssignments, createAssignment, deleteAssignment, n
 import { money } from "@/lib/utils";
 import { Calendar, MapPin, Clock, Send, UserPlus, Trash2, Edit3, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Users, Briefcase, Share2 } from "lucide-react";
 
-const APP_URL = "https://crewbooksapp.com";
+const APP_URL = "https://master.dlw0zhxk42vjk.amplifyapp.com";
 
 function getDateStr(offset = 0) {
   const d = new Date(); d.setDate(d.getDate() + offset);
