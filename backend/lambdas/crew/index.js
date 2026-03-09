@@ -2,12 +2,23 @@ const { randomUUID } = require("crypto");
 const { db } = require("../../lib/dynamodb");
 const { success, error, created } = require("../../lib/response");
 const { getUserId } = require("../../lib/validators");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+
 const TABLE = process.env.CREW_TABLE;
+const PHOTOS_BUCKET = process.env.PHOTOS_BUCKET;
+const s3 = new S3Client({ region: process.env.REGION });
 
 exports.handler = async (event) => {
   const method = event.httpMethod;
   const userId = getUserId(event);
   if (!userId) return error("Unauthorized", 401);
+
+  // Handle presigned URL endpoint: POST /crew/{memberId}/cert-upload
+  const path = event.path || "";
+  if (method === "POST" && path.includes("/cert-upload")) {
+    return await getCertUploadUrl(userId, event);
+  }
 
   try {
     switch (method) {
@@ -22,11 +33,26 @@ exports.handler = async (event) => {
   } catch (err) { console.error(err); return error("Internal server error", 500); }
 };
 
+async function getCertUploadUrl(userId, event) {
+  const memberId = event.pathParameters?.memberId;
+  if (!memberId) return error("Member ID required");
+  const data = JSON.parse(event.body || "{}");
+  if (!data.fileName || !data.contentType) return error("fileName and contentType required");
+  const certId = data.certId || randomUUID();
+  const ext = data.fileName.split(".").pop() || "pdf";
+  const fileKey = `${userId}/crew-certs/${memberId}/${certId}.${ext}`;
+  const uploadUrl = await getSignedUrl(s3, new PutObjectCommand({
+    Bucket: PHOTOS_BUCKET, Key: fileKey, ContentType: data.contentType,
+  }), { expiresIn: 300 });
+  const fileUrl = `https://${PHOTOS_BUCKET}.s3.amazonaws.com/${fileKey}`;
+  return success({ uploadUrl, fileUrl, fileKey, certId });
+}
+
 async function createMember(userId, event) {
   const data = JSON.parse(event.body || "{}");
   if (!data.name) return error("Name is required");
   const memberId = randomUUID(), now = new Date().toISOString();
-  const token = randomUUID().replace(/-/g, "").slice(0, 16); // short unique token for crew view link
+  const token = randomUUID().replace(/-/g, "").slice(0, 16);
   const member = {
     PK: `USER#${userId}`, SK: `CREW#${memberId}`,
     GSI1PK: `TOKEN#${token}`, GSI1SK: `CREW#${memberId}`,

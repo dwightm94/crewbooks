@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { getCrewMember, updateCrewMember } from "@/lib/api";
-import { Plus, Trash2, ChevronDown, ChevronUp, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, ShieldCheck, Upload, X } from "lucide-react";
 
 const ROLES = ["Electrician", "Plumber", "Carpenter", "Laborer", "Foreman", "Apprentice", "HVAC Tech", "Painter", "Mason", "Roofer", "Other"];
 const CERT_TYPES = ["OSHA 10", "OSHA 30", "Driver's License", "Forklift Certification", "First Aid/CPR", "Electrical License", "Plumbing License", "CDL", "Other"];
@@ -12,6 +12,8 @@ export default function EditCrewMemberPage() {
   const { memberId } = useParams();
   const [form, setForm] = useState({ name: "", phone: "", role: "", hourlyRate: "" });
   const [certifications, setCertifications] = useState([]);
+  const [certFiles, setCertFiles] = useState({});
+  const certFileRefs = useRef({});
   const [certsOpen, setCertsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,18 @@ export default function EditCrewMemberPage() {
   const submit = async (e) => {
     e.preventDefault(); setError(null); setSaving(true);
     try {
-      await updateCrewMember(memberId, { ...form, hourlyRate: Number(form.hourlyRate) || 0, certifications: certifications.filter(c => c.name) });
+      // Upload any new cert files first
+      const certsWithFiles = await Promise.all(certifications.filter(c => c.name).map(async (cert, i) => {
+        const file = certFiles[i];
+        if (!file) return cert;
+        const certId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+        const result = await getCertUploadUrl(memberId, file.name, file.type, certId);
+        if (result.uploadUrl) {
+          await fetch(result.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+        }
+        return { ...cert, fileUrl: result.fileUrl, fileKey: result.fileKey };
+      }));
+      await updateCrewMember(memberId, { ...form, hourlyRate: Number(form.hourlyRate) || 0, certifications: certsWithFiles });
       router.replace("/crew");
     } catch (e) { setError(e.message); setSaving(false); }
   };
@@ -144,6 +157,21 @@ export default function EditCrewMemberPage() {
                   <div>
                     <label className="field-label">Notes</label>
                     <textarea value={cert.notes} onChange={(e) => updateCert(i, "notes", e.target.value)} placeholder="Any additional notes..." className="field" rows={2} />
+                  </div>
+                  <div>
+                    <label className="field-label">Attach Document</label>
+                    <input ref={el => certFileRefs.current[i] = el} type="file" accept="image/*,.pdf"
+                      onChange={e => setCertFiles(prev => ({ ...prev, [i]: e.target.files?.[0] || null }))}
+                      className="hidden" />
+                    <button type="button" onClick={() => certFileRefs.current[i]?.click()}
+                      className="card w-full text-center py-4 transition-all"
+                      style={{ borderStyle: "dashed", borderWidth: "2px", borderColor: certFiles[i] || cert.fileUrl ? "var(--green)" : "var(--border)" }}>
+                      <Upload size={20} className="mx-auto mb-1" style={{ color: certFiles[i] || cert.fileUrl ? "var(--green)" : "var(--muted)" }} />
+                      <p className="text-sm font-bold" style={{ color: certFiles[i] || cert.fileUrl ? "var(--green)" : "var(--text2)" }}>
+                        {certFiles[i] ? certFiles[i].name : cert.fileUrl ? "File attached ✓" : "Tap to upload photo or PDF"}
+                      </p>
+                      {certFiles[i] && <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{(certFiles[i].size / 1024).toFixed(0)} KB</p>}
+                    </button>
                   </div>
                 </div>
               ))}

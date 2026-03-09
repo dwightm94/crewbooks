@@ -71,6 +71,7 @@ export const getCrewMember = (id) => api(`/crew/${id}`);
 export const createCrewMember = (data) => api("/crew", { method: "POST", body: data });
 export const updateCrewMember = (id, data) => api(`/crew/${id}`, { method: "PUT", body: data });
 export const deleteCrewMember = (id) => api(`/crew/${id}`, { method: "DELETE" });
+export const getCertUploadUrl = (memberId, fileName, contentType, certId) => api(`/crew/${memberId}/cert-upload`, { method: "POST", body: { fileName, contentType, certId } });
 
 // Assignments
 export const getAssignments = (date) => api(`/assignments?date=${date}`);
