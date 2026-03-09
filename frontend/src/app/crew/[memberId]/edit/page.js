@@ -146,7 +146,7 @@ export default function EditCrewMemberPage() {
                     <textarea value={cert.notes} onChange={(e) => updateCert(i, "notes", e.target.value)} placeholder="Any additional notes..." className="field" rows={2} />
                   </div>
                 </div>
-              )}
+              ))}
               <button type="button" onClick={addCert}
                 className="w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold"
                 style={{ border: "2px dashed var(--border)", color: "var(--brand)" }}>
