@@ -64,13 +64,31 @@ exports.handler = async (event) => {
       const jobName = job?.jobName || inv.jobName;
       const now = new Date().toISOString();
       if (clientEmail) {
+        const payLink = `https://master.dlw0zhxk42vjk.amplifyapp.com/pay/${invoiceId}`;
+        const emailHtml = `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+            <div style="background:#FDB241;border-radius:12px;padding:16px;text-align:center;margin-bottom:24px;">
+              <h1 style="margin:0;color:#0F172A;font-size:20px;">CrewBooks Invoice</h1>
+            </div>
+            <p style="font-size:16px;color:#0F172A;">Hi ${clientName},</p>
+            <p style="color:#64748B;">You have an invoice for <b>${jobName}</b>.</p>
+            <div style="background:#F8FAFC;border:2px solid #E2E8F0;border-radius:12px;padding:24px;text-align:center;margin:24px 0;">
+              <p style="margin:0;color:#94A3B8;font-size:12px;font-weight:bold;">AMOUNT DUE</p>
+              <p style="margin:8px 0 0;font-size:40px;font-weight:900;color:#0F172A;">$${inv.amount.toFixed(2)}</p>
+              ${inv.dueDate ? `<p style="margin:8px 0 0;color:#94A3B8;font-size:13px;">Due by ${inv.dueDate}</p>` : ""}
+            </div>
+            <a href="${payLink}" style="display:block;background:#635BFF;color:white;text-align:center;padding:16px;border-radius:12px;font-size:16px;font-weight:bold;text-decoration:none;">
+              Pay Now
+            </a>
+            <p style="text-align:center;color:#94A3B8;font-size:11px;margin-top:16px;">Secure payment powered by Stripe</p>
+          </div>`;
         try {
           await ses.send(new SendEmailCommand({
-            Source: "invoices@crewbooks.app",
+            Source: "Dwightm94@msn.com",
             Destination: { ToAddresses: [clientEmail] },
             Message: {
               Subject: { Data: `Invoice: ${jobName} - $${inv.amount.toFixed(2)}` },
-              Body: { Html: { Data: `<p>Hi ${clientName},</p><p>Invoice for <b>$${inv.amount.toFixed(2)}</b> is due by ${inv.dueDate}.</p><p>Thank you for your business!</p>` } },
+              Body: { Html: { Data: emailHtml } },
             },
           }));
         } catch (e) { console.warn("Email failed:", e.message); }
