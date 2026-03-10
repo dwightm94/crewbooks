@@ -1,7 +1,7 @@
 {
   "name": "CrewBooks",
   "short_name": "CrewBooks",
-  "description": "Track every dollar. Know who owes you.",
+  "description": "Jobs, invoices, and crew — all in one place.",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#FFFFFF",
