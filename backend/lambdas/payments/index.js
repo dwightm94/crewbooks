@@ -5,7 +5,15 @@ const { success, error } = require("../../lib/response");
 
 const INVOICES_TABLE = process.env.INVOICES_TABLE;
 const USERS_TABLE = process.env.USERS_TABLE;
-const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY;
+const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
+const ssm = new SSMClient({ region: process.env.REGION || "us-east-1" });
+let cachedStripeSecret = null;
+const getStripeSecret = async () => {
+  if (cachedStripeSecret) return cachedStripeSecret;
+  const res = await ssm.send(new GetParameterCommand({ Name: "/crewbooks/prod/STRIPE_SECRET_KEY", WithDecryption: true }));
+  cachedStripeSecret = res.Parameter.Value;
+  return cachedStripeSecret;
+};
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://master.dlw0zhxk42vjk.amplifyapp.com";
 const PLATFORM_FEE_PERCENT = 2.5; // 2.5% flat fee
 
