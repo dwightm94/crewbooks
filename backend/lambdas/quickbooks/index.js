@@ -1,5 +1,21 @@
 const { db } = require("../../lib/dynamodb");
 const { success, error } = require("../../lib/response");
+const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
+const ssmClient = new SSMClient({ region: process.env.REGION || "us-east-1" });
+const STAGE = process.env.STAGE || "prod";
+let cachedQBClientId, cachedQBClientSecret;
+async function getQBClientId() {
+  if (cachedQBClientId) return cachedQBClientId;
+  const r = await ssmClient.send(new GetParameterCommand({ Name: `/crewbooks/${STAGE}/QB_CLIENT_ID`, WithDecryption: true }));
+  cachedQBClientId = r.Parameter.Value;
+  return cachedQBClientId;
+}
+async function getQBClientSecret() {
+  if (cachedQBClientSecret) return cachedQBClientSecret;
+  const r = await ssmClient.send(new GetParameterCommand({ Name: `/crewbooks/${STAGE}/QB_CLIENT_SECRET`, WithDecryption: true }));
+  cachedQBClientSecret = r.Parameter.Value;
+  return cachedQBClientSecret;
+}
 
 const USERS_TABLE = process.env.USERS_TABLE;
 const JOBS_TABLE = process.env.JOBS_TABLE;
@@ -36,7 +52,7 @@ async function startConnect(userId) {
   if (!QB_CLIENT_ID) return error("QuickBooks not configured.");
 
   const state = Buffer.from(JSON.stringify({ userId })).toString("base64");
-  const redirectUri = `https://ppbgwv8xzg.execute-api.us-east-1.amazonaws.com/dev/quickbooks/callback`;
+  const redirectUri = `https://hwytiq6q53.execute-api.us-east-1.amazonaws.com/staging/quickbooks/callback`;
   const scope = "com.intuit.quickbooks.accounting";
 
   const url = `${QB_AUTH_URL}?client_id=${QB_CLIENT_ID}&response_type=code&scope=${scope}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
@@ -60,11 +76,11 @@ async function handleCallback(event) {
 
   // Exchange code for tokens
   const https = require("https");
-  const tokenData = await new Promise((resolve, reject) => {
-    const postData = `grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent(`${FRONTEND_URL}/quickbooks/callback`)}`;
-    const QB_CLIENT_ID = await getQBClientId();
+  const QB_CLIENT_ID = await getQBClientId();
   const QB_CLIENT_SECRET = await getQBClientSecret();
-  const auth = Buffer.from(`${QB_CLIENT_ID}:${QB_CLIENT_SECRET}`).toString("base64");
+  const tokenData = await new Promise((resolve, reject) => {
+    const postData = `grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent(`https://hwytiq6q53.execute-api.us-east-1.amazonaws.com/staging/quickbooks/callback`)}`;
+    const auth = Buffer.from(`${QB_CLIENT_ID}:${QB_CLIENT_SECRET}`).toString("base64");
     const req = https.request(QB_TOKEN_URL, {
       method: "POST",
       headers: {
@@ -238,11 +254,11 @@ async function disconnect(userId) {
 // Helper: Refresh QB token
 async function refreshQBToken(refreshToken) {
   const https = require("https");
+  const QB_CLIENT_ID = await getQBClientId();
+  const QB_CLIENT_SECRET = await getQBClientSecret();
   return new Promise((resolve, reject) => {
     const postData = `grant_type=refresh_token&refresh_token=${refreshToken}`;
-    const QB_CLIENT_ID = await getQBClientId();
-  const QB_CLIENT_SECRET = await getQBClientSecret();
-  const auth = Buffer.from(`${QB_CLIENT_ID}:${QB_CLIENT_SECRET}`).toString("base64");
+    const auth = Buffer.from(`${QB_CLIENT_ID}:${QB_CLIENT_SECRET}`).toString("base64");
     const req = https.request(QB_TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: `Basic ${auth}`, Accept: "application/json" },
