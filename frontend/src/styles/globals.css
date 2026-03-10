@@ -25,7 +25,7 @@
 }
 
 @layer components {
-  .btn { @apply font-semibold py-3.5 px-6 rounded-2xl transition-all min-h-[52px] flex items-center justify-center gap-2 active:scale-[0.97] text-base; }
+  .btn { @apply font-semibold py-3.5 px-6 rounded-2xl transition-all min-h-[52px] flex items-center justify-center gap-2 active:scale-[0.95] active:brightness-90 text-base; }
   .btn-brand { background: var(--brand); color: #0F172A; }
   .btn-brand:hover { background: var(--brand-hover); }
   .btn-outline { background: var(--card); border: 2px solid var(--border); color: var(--text); }
