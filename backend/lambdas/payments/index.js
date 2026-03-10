@@ -14,6 +14,17 @@ const getStripeSecret = async () => {
   cachedStripeSecret = res.Parameter.Value;
   return cachedStripeSecret;
 };
+const getParam = async (name) => {
+  const res = await ssm.send(new GetParameterCommand({ Name: name, WithDecryption: true }));
+  return res.Parameter.Value;
+};
+let cachedWebhookSecret = null;
+const getWebhookSecret = async () => {
+  if (cachedWebhookSecret) return cachedWebhookSecret;
+  const res = await ssm.send(new GetParameterCommand({ Name: "/crewbooks/prod/STRIPE_WEBHOOK_SECRET", WithDecryption: true }));
+  cachedWebhookSecret = res.Parameter.Value;
+  return cachedWebhookSecret;
+};
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://master.dlw0zhxk42vjk.amplifyapp.com";
 const PLATFORM_FEE_PERCENT = 2.5; // 2.5% flat fee
 
@@ -221,8 +232,15 @@ async function createCheckout(event) {
 
 // ===== WEBHOOK: Handle payment completion =====
 async function handleWebhook(event) {
+  const sig = event.headers["Stripe-Signature"];
   let webhookEvent;
-  try { webhookEvent = JSON.parse(event.body); } catch (e) { return error("Invalid payload", 400); }
+  try {
+    const secret = await getWebhookSecret();
+    webhookEvent = stripe.webhooks.constructEvent(event.body, sig, secret);
+  } catch (e) {
+    console.error("Webhook signature failed:", e.message);
+    return error("Invalid signature", 400);
+  }
 
   if (webhookEvent.type === "checkout.session.completed") {
     const session = webhookEvent.data.object;

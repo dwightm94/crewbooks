@@ -1,5 +1,5 @@
 import "@/styles/globals.css";
-export const metadata = { title: "CrewBooks", description: "Track every dollar. Know who owes you.", manifest: "/manifest.json", themeColor: "#F59E0B" };
+export const metadata = { title: "CrewBooks", description: "Jobs, invoices, and crew — all in one place.", manifest: "/manifest.json", themeColor: "#F59E0B" };
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>

@@ -36,7 +36,7 @@ export default function LoginPage() {
           <Hammer size={38} className="text-white" strokeWidth={2.5} />
         </div>
         <h1 className="text-4xl font-extrabold tracking-tight" style={{ color: "var(--text)" }}>CrewBooks</h1>
-        <p className="mt-2 text-lg" style={{ color: "var(--text2)" }}>Track every dollar. Know who owes you.</p>
+        <p className="mt-2 text-lg" style={{ color: "var(--text2)" }}>Jobs, invoices, and crew — all in one place.</p>
       </div>
       <div className="w-full max-w-sm space-y-4" onKeyDown={handleKey}>
         {err && <div className="rounded-2xl p-4 text-sm text-center font-semibold" style={{ background: "var(--red-bg)", color: "var(--red)" }}>{err}</div>}
