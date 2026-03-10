@@ -11,18 +11,18 @@ export const useAuth = create((set) => ({
   },
   register: async ({ email, password, name }) => {
     set({ loading: true, error: null });
-    try { await cognitoSignUp(email, password, name); set({ loading: false }); return true; }
+    try { await cognitoSignUp(email.toLowerCase(), password, name); set({ loading: false }); return true; }
     catch (e) { set({ error: e.message, loading: false }); return false; }
   },
   confirm: async (email, code) => {
     set({ loading: true, error: null });
-    try { await cognitoConfirm(email, code); set({ loading: false }); return true; }
+    try { await cognitoConfirm(email.toLowerCase(), code); set({ loading: false }); return true; }
     catch (e) { set({ error: e.message, loading: false }); return false; }
   },
   login: async (email, password) => {
     set({ loading: true, error: null });
     try {
-      await cognitoLogin(email, password);
+      await cognitoLogin(email.toLowerCase(), password);
       const u = await cognitoGetUser();
       set({ user: u, loading: false }); return true;
     } catch (e) { set({ error: e.message, loading: false }); return false; }
