@@ -24,7 +24,7 @@ export default function LoginPage() {
       const ok = await login(email, pw);
       if (ok) window.location.href = "/dashboard";
       else setBusy(false);
-    } catch (e) { console.error('Login error full:', e, JSON.stringify(e)); setErr(e.message || e.code || JSON.stringify(e) || "Login failed"); setBusy(false); }
+    } catch (e) { setErr(e.message || "Login failed"); setBusy(false); }
   };
 
   const handleKey = (e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); doLogin(); } };
