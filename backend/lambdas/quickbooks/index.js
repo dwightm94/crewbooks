@@ -32,10 +32,11 @@ exports.handler = async (event) => {
 // Start QuickBooks OAuth flow
 async function startConnect(userId) {
   if (!userId) return error("Unauthorized", 401);
-  if (!QB_CLIENT_ID) return error("QuickBooks not configured. Add QB_CLIENT_ID to enable.");
+  const QB_CLIENT_ID = await getQBClientId();
+  if (!QB_CLIENT_ID) return error("QuickBooks not configured.");
 
   const state = Buffer.from(JSON.stringify({ userId })).toString("base64");
-  const redirectUri = `${FRONTEND_URL}/quickbooks/callback`;
+  const redirectUri = `https://ppbgwv8xzg.execute-api.us-east-1.amazonaws.com/dev/quickbooks/callback`;
   const scope = "com.intuit.quickbooks.accounting";
 
   const url = `${QB_AUTH_URL}?client_id=${QB_CLIENT_ID}&response_type=code&scope=${scope}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
@@ -61,7 +62,9 @@ async function handleCallback(event) {
   const https = require("https");
   const tokenData = await new Promise((resolve, reject) => {
     const postData = `grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent(`${FRONTEND_URL}/quickbooks/callback`)}`;
-    const auth = Buffer.from(`${QB_CLIENT_ID}:${QB_CLIENT_SECRET}`).toString("base64");
+    const QB_CLIENT_ID = await getQBClientId();
+  const QB_CLIENT_SECRET = await getQBClientSecret();
+  const auth = Buffer.from(`${QB_CLIENT_ID}:${QB_CLIENT_SECRET}`).toString("base64");
     const req = https.request(QB_TOKEN_URL, {
       method: "POST",
       headers: {
@@ -237,7 +240,9 @@ async function refreshQBToken(refreshToken) {
   const https = require("https");
   return new Promise((resolve, reject) => {
     const postData = `grant_type=refresh_token&refresh_token=${refreshToken}`;
-    const auth = Buffer.from(`${QB_CLIENT_ID}:${QB_CLIENT_SECRET}`).toString("base64");
+    const QB_CLIENT_ID = await getQBClientId();
+  const QB_CLIENT_SECRET = await getQBClientSecret();
+  const auth = Buffer.from(`${QB_CLIENT_ID}:${QB_CLIENT_SECRET}`).toString("base64");
     const req = https.request(QB_TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: `Basic ${auth}`, Accept: "application/json" },

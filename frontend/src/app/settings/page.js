@@ -275,6 +275,32 @@ function SubscriptionSection() {
 
 // === QuickBooks Section ===
 function QuickBooksSection() {
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    getQBStatus().then(r => { setStatus(r); setLoading(false); }).catch(() => setLoading(false));
+  }, []);
+
+  const handleConnect = async () => {
+    const res = await connectQuickBooks();
+    if (res?.url) window.location.href = res.url;
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    await syncQuickBooks("all");
+    setSyncing(false);
+    alert("Sync complete!");
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm("Disconnect QuickBooks?")) return;
+    await disconnectQuickBooks();
+    setStatus({ ...status, connected: false });
+  };
+
   return (
     <div className="card">
       <div className="flex items-center gap-3 mb-3">
@@ -286,9 +312,17 @@ function QuickBooksSection() {
           <p className="text-xs" style={{ color: "var(--muted)" }}>Sync invoices & expenses</p>
         </div>
       </div>
-      <div className="w-full py-3 rounded-xl text-center font-bold text-sm" style={{ background: "var(--input)", color: "var(--muted)" }}>
-        Coming Soon
-      </div>
+      {loading ? (
+        <div className="w-full py-3 rounded-xl text-center text-sm" style={{ background: "var(--input)", color: "var(--muted)" }}>Loading...</div>
+      ) : status?.connected ? (
+        <div className="space-y-2">
+          <div className="text-xs text-center" style={{ color: "var(--green)" }}>✓ Connected{status.lastSync ? ` · Last sync: ${new Date(status.lastSync).toLocaleDateString()}` : ""}</div>
+          <button onClick={handleSync} disabled={syncing} className="btn btn-brand w-full">{syncing ? "Syncing..." : "Sync Now"}</button>
+          <button onClick={handleDisconnect} className="btn btn-outline w-full">Disconnect</button>
+        </div>
+      ) : (
+        <button onClick={handleConnect} className="btn w-full font-bold" style={{ background: "#2CA01C", color: "white" }}>Connect QuickBooks</button>
+      )}
     </div>
   );
 }
