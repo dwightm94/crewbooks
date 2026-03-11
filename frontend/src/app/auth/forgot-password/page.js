@@ -10,13 +10,14 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [pw, setPw] = useState("");
-  const { forgotPassword, resetPassword, loading, error, clearError } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const { forgotPassword, resetPassword, error, clearError } = useAuth();
   const { init } = useTheme();
   const router = useRouter();
   useEffect(() => { init(); }, []);
 
-  const doSend = async () => { clearError(); if (await forgotPassword(email)) setStep("reset"); };
-  const doReset = async () => { clearError(); if (await resetPassword(email, code, pw)) router.push("/auth/login"); };
+  const doSend = async () => { if (busy) return; setBusy(true); clearError(); if (await forgotPassword(email)) setStep("reset"); setBusy(false); };
+  const doReset = async () => { if (busy) return; setBusy(true); clearError(); if (await resetPassword(email, code, pw)) router.push("/auth/login"); setBusy(false); };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: "var(--bg)" }}>
@@ -35,14 +36,14 @@ export default function ForgotPasswordPage() {
       {step === "email" ? (
         <div className="w-full max-w-sm space-y-4">
           <div><label className="field-label">Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" className="field" required /></div>
-          <button type="button" onClick={doSend} disabled={loading} className="btn btn-brand w-full">Send Reset Code</button>
+          <button type="button" onClick={doSend} disabled={busy} className="btn btn-brand w-full">Send Reset Code</button>
           <button type="button" onClick={() => router.push("/auth/login")} className="flex items-center gap-1 text-sm font-semibold mx-auto" style={{ color: "var(--text2)" }}><ArrowLeft size={16} />Back to login</button>
         </div>
       ) : (
         <div className="w-full max-w-sm space-y-4">
           <div><label className="field-label">Reset Code</label><input type="text" value={code} onChange={e => setCode(e.target.value)} placeholder="123456" className="field text-center text-2xl tracking-[0.3em] font-bold" maxLength={6} required /></div>
           <div><label className="field-label">New Password</label><input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="8+ characters" className="field" required minLength={8} /></div>
-          <button type="button" onClick={doReset} disabled={loading} className="btn btn-brand w-full">Reset Password</button>
+          <button type="button" onClick={doReset} disabled={busy} className="btn btn-brand w-full">Reset Password</button>
         </div>
       )}
     </div>
