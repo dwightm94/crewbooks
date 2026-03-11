@@ -30,7 +30,7 @@ export const useAuth = create((set) => ({
   logout: () => { cognitoLogout(); set({ user: null }); },
   forgotPassword: async (email) => {
     set({ loading: true, error: null });
-    try { await cognitoForgotPassword(email); set({ loading: false }); return true; }
+    try { await cognitoForgotPassword(email.toLowerCase()); set({ loading: false }); return true; }
     catch (e) { set({ error: e.message, loading: false }); return false; }
   },
   resetPassword: async (email, code, password) => {
