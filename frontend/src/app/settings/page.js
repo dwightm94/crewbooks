@@ -285,7 +285,14 @@ function QuickBooksSection() {
 
   const handleConnect = async () => {
     const res = await connectQuickBooks();
-    if (res?.url) window.location.href = res.url;
+    if (!res?.url) return;
+    const popup = window.open(res.url, "qb_connect", "width=600,height=700,scrollbars=yes");
+    const timer = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(timer);
+        getQBStatus().then(r => setStatus(r)).catch(() => {});
+      }
+    }, 500);
   };
 
   const handleSync = async () => {

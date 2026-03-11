@@ -52,7 +52,7 @@ async function startConnect(userId) {
   if (!QB_CLIENT_ID) return error("QuickBooks not configured.");
 
   const state = Buffer.from(JSON.stringify({ userId })).toString("base64");
-  const redirectUri = `https://hwytiq6q53.execute-api.us-east-1.amazonaws.com/staging/quickbooks/callback`;
+  const redirectUri = `https://ppbgwv8xzg.execute-api.us-east-1.amazonaws.com/dev/quickbooks/callback`;
   const scope = "com.intuit.quickbooks.accounting";
 
   const url = `${QB_AUTH_URL}?client_id=${QB_CLIENT_ID}&response_type=code&scope=${scope}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
@@ -284,7 +284,17 @@ async function qbApiCall(token, realmId, entity, method, body) {
     }, (res) => {
       let data = "";
       res.on("data", chunk => data += chunk);
-      res.on("end", () => { try { resolve(JSON.parse(data)); } catch { resolve(data); } });
+      res.on("end", () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (res.statusCode >= 400) {
+            console.error("QB API error:", res.statusCode, JSON.stringify(parsed));
+            reject(new Error(`QB API ${res.statusCode}: ${JSON.stringify(parsed)}`));
+          } else {
+            resolve(parsed);
+          }
+        } catch { resolve(data); }
+      });
     });
     req.on("error", reject);
     if (body) req.write(JSON.stringify(body));
