@@ -35,7 +35,7 @@ export const useAuth = create((set) => ({
   },
   resetPassword: async (email, code, password) => {
     set({ loading: true, error: null });
-    try { await cognitoConfirmPassword(email, code, password); set({ loading: false }); return true; }
+    try { await cognitoConfirmPassword(email.toLowerCase(), code, password); set({ loading: false }); return true; }
     catch (e) { set({ error: e.message, loading: false }); return false; }
   },
   resendCode: async (email) => {
