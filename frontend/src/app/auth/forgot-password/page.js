@@ -3,22 +3,20 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
-import { Hammer, ArrowLeft } from "lucide-react";
-
+import { Hammer, ArrowLeft, Eye, EyeOff } from "lucide-react";
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [pw, setPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [busy, setBusy] = useState(false);
   const { forgotPassword, resetPassword, error, clearError } = useAuth();
   const { init } = useTheme();
   const router = useRouter();
   useEffect(() => { init(); }, []);
-
-  const doSend = async () => { if (busy) return; setBusy(true); clearError(); if (await forgotPassword(email)) setStep("reset"); setBusy(false); };
-  const doReset = async () => { if (busy) return; setBusy(true); clearError(); if (await resetPassword(email, code, pw)) router.push("/auth/login"); setBusy(false); };
-
+  const doSend = async () => { if (busy || !email) return; setBusy(true); clearError(); if (await forgotPassword(email)) setStep("reset"); setBusy(false); };
+  const doReset = async () => { if (busy || !code || !pw) return; setBusy(true); clearError(); if (await resetPassword(email, code, pw)) router.push("/auth/login"); setBusy(false); };
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: "var(--bg)" }}>
       <div className="mb-8 text-center">
@@ -35,15 +33,21 @@ export default function ForgotPasswordPage() {
       {error && <div className="w-full max-w-sm rounded-2xl p-4 text-sm text-center font-semibold mb-4" style={{ background: "var(--red-bg)", color: "var(--red)" }}>{error}</div>}
       {step === "email" ? (
         <div className="w-full max-w-sm space-y-4">
-          <div><label className="field-label">Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" className="field" required /></div>
-          <button type="button" onClick={doSend} disabled={busy} className="btn btn-brand w-full">Send Reset Code</button>
+          <div><label className="field-label">Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" className="field" /></div>
+          <button type="button" onClick={doSend} disabled={busy} className="btn btn-brand w-full">{busy ? <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : "Send Reset Code"}</button>
           <button type="button" onClick={() => router.push("/auth/login")} className="flex items-center gap-1 text-sm font-semibold mx-auto" style={{ color: "var(--text2)" }}><ArrowLeft size={16} />Back to login</button>
         </div>
       ) : (
         <div className="w-full max-w-sm space-y-4">
-          <div><label className="field-label">Reset Code</label><input type="text" value={code} onChange={e => setCode(e.target.value)} placeholder="123456" className="field text-center text-2xl tracking-[0.3em] font-bold" maxLength={6} required /></div>
-          <div><label className="field-label">New Password</label><input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="8+ characters" className="field" required minLength={8} /></div>
-          <button type="button" onClick={doReset} disabled={busy} className="btn btn-brand w-full">Reset Password</button>
+          <div><label className="field-label">Reset Code</label><input type="text" value={code} onChange={e => setCode(e.target.value)} placeholder="123456" className="field text-center text-2xl tracking-[0.3em] font-bold" maxLength={6} /></div>
+          <div>
+            <label className="field-label">New Password</label>
+            <div className="relative">
+              <input type={showPw ? "text" : "password"} value={pw} onChange={e => setPw(e.target.value)} placeholder="8+ characters" className="field pr-12" minLength={8} />
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: "var(--muted)" }}>{showPw ? <EyeOff size={20} /> : <Eye size={20} />}</button>
+            </div>
+          </div>
+          <button type="button" onClick={doReset} disabled={busy} className="btn btn-brand w-full">{busy ? <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : "Reset Password"}</button>
         </div>
       )}
     </div>
