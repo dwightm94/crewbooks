@@ -123,7 +123,7 @@ export default function UpgradePage() {
                 <p className="text-xs" style={{ color: "var(--text2)" }}>For growing companies</p>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-extrabold" style={{ color: "var(--text)" }}>$79<span className="text-sm font-normal" style={{ color: "var(--text2)" }}>/mo</span></p>
+                <p className="text-2xl font-extrabold" style={{ color: "var(--text)" }}>$69<span className="text-sm font-normal" style={{ color: "var(--text2)" }}>/mo</span></p>
               </div>
             </div>
             <div className="mt-2 text-xs space-y-1" style={{ color: "var(--text2)" }}>
