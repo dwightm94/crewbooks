@@ -138,3 +138,7 @@ export const getClient = (id) => api(`/clients/${id}`);
 export const createClient = (data) => api("/clients", { method: "POST", body: data });
 export const updateClient = (id, data) => api(`/clients/${id}`, { method: "PUT", body: data });
 export const deleteClient = (id) => api(`/clients/${id}`, { method: "DELETE" });
+
+// Profile
+export const getProfile = () => api('/profile');
+export const updateProfile = (data) => api('/profile', { method: 'PUT', body: data });

@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { usePlan } from "@/hooks/usePlan";
 import { createConnectAccount, getConnectStatus, createOnboardLink, getConnectDashboard, getQBStatus, connectQuickBooks, syncQuickBooks, disconnectQuickBooks } from "@/lib/api";
+import { getProfile, updateProfile } from "@/lib/api";
 import { Sun, Moon, User, Building2, Wrench, CreditCard, ExternalLink, Bell, Shield, ChevronRight, CheckCircle2, AlertTriangle, Zap, Crown } from "lucide-react";
 
 const TRADES = ["Electrician","Plumber","HVAC","Carpenter","Painter","Roofer","Concrete","Framing","Drywall","Flooring","Landscaping","Masonry","General Contractor","Other"];
@@ -18,15 +19,14 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setCompany(localStorage.getItem("crewbooks_company") || "");
-      setTrade(localStorage.getItem("crewbooks_trade") || "");
-    }
+    getProfile().then(p => {
+      setCompany(p.companyName || "");
+      setTrade(p.trade || "");
+    }).catch(() => {});
   }, []);
 
-  const saveCompany = () => {
-    localStorage.setItem("crewbooks_company", company);
-    localStorage.setItem("crewbooks_trade", trade);
+  const saveCompany = async () => {
+    await updateProfile({ companyName: company, trade });
     setSaved(true); setTimeout(() => setSaved(false), 2000);
   };
 
