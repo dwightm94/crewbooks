@@ -23,7 +23,7 @@ export default function LoginPage() {
     try {
       const ok = await login(email, pw);
       if (ok) window.location.href = "/dashboard";
-      else setBusy(false);
+      else { setErr("Incorrect email or password."); setBusy(false); }
     } catch (e) { setErr(e.message || "Login failed"); setBusy(false); }
   };
 
