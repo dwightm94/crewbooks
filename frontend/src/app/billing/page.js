@@ -15,6 +15,7 @@ export default function BillingPage() {
   const [invoices, setInvoices] = useState([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const { features } = usePlan();
   const [showGenerate, setShowGenerate] = useState(false);
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function BillingPage() {
       allInv.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
       setInvoices(allInv);
     } catch (e) { console.error(e); }
-    setLoading(false);
+    setLoading(false); setInitialLoad(false);
   };
 
   useEffect(() => { loadAll(); }, []);
@@ -121,7 +122,7 @@ export default function BillingPage() {
       </div>
 
       {/* Invoice List */}
-      {loading ? (
+      {initialLoad ? (
         <div className="space-y-3 mt-4">{[1,2,3].map(i=><div key={i} className="skeleton h-24" />)}</div>
       ) : filtered.length === 0 ? (
         <div className="mt-12 text-center">
