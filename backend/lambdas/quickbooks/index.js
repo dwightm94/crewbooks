@@ -79,7 +79,7 @@ async function handleCallback(event) {
   const QB_CLIENT_ID = await getQBClientId();
   const QB_CLIENT_SECRET = await getQBClientSecret();
   const tokenData = await new Promise((resolve, reject) => {
-    const postData = `grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent(`https://hwytiq6q53.execute-api.us-east-1.amazonaws.com/staging/quickbooks/callback`)}`;
+    const postData = `grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent(`https://ppbgwv8xzg.execute-api.us-east-1.amazonaws.com/dev/quickbooks/callback`)}`;
     const auth = Buffer.from(`${QB_CLIENT_ID}:${QB_CLIENT_SECRET}`).toString("base64");
     const req = https.request(QB_TOKEN_URL, {
       method: "POST",
@@ -111,11 +111,18 @@ async function handleCallback(event) {
     updatedAt: new Date().toISOString(),
   });
 
-  // Redirect back to settings
+  // Close popup and notify parent
   return {
-    statusCode: 302,
-    headers: { Location: `${FRONTEND_URL}/settings?qb=connected` },
-    body: "",
+    statusCode: 200,
+    headers: { "Content-Type": "text/html" },
+    body: `<html><body><script>
+      if (window.opener) {
+        window.opener.postMessage({ type: "QB_CONNECTED" }, "*");
+        window.close();
+      } else {
+        window.location.href = "${FRONTEND_URL}/settings?qb=connected";
+      }
+    </script><p>Connected! You can close this window.</p></body></html>`,
   };
 }
 

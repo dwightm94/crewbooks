@@ -286,13 +286,14 @@ function QuickBooksSection() {
   const handleConnect = async () => {
     const res = await connectQuickBooks();
     if (!res?.url) return;
-    const popup = window.open(res.url, "qb_connect", "width=600,height=700,scrollbars=yes");
-    const timer = setInterval(() => {
-      if (popup?.closed) {
-        clearInterval(timer);
+    window.open(res.url, "qb_connect", "width=600,height=700,scrollbars=yes");
+    const onMessage = (e) => {
+      if (e.data?.type === "QB_CONNECTED") {
+        window.removeEventListener("message", onMessage);
         getQBStatus().then(r => setStatus(r)).catch(() => {});
       }
-    }, 500);
+    };
+    window.addEventListener("message", onMessage);
   };
 
   const handleSync = async () => {
