@@ -28,7 +28,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "https://master.dlw0zhxk42vjk.a
 // QuickBooks OAuth URLs
 const QB_AUTH_URL = "https://appcenter.intuit.com/connect/oauth2";
 const QB_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
-const QB_API_BASE = "https://quickbooks.api.intuit.com/v3/company";
+const QB_API_BASE = STAGE === "prod" ? "https://quickbooks.api.intuit.com/v3/company" : "https://sandbox-quickbooks.api.intuit.com/v3/company";
 
 exports.handler = async (event) => {
   const method = event.httpMethod;
@@ -52,7 +52,7 @@ async function startConnect(userId) {
   if (!QB_CLIENT_ID) return error("QuickBooks not configured.");
 
   const state = Buffer.from(JSON.stringify({ userId })).toString("base64");
-  const redirectUri = `https://ppbgwv8xzg.execute-api.us-east-1.amazonaws.com/dev/quickbooks/callback`;
+  const redirectUri = STAGE === "prod" ? `https://ppbgwv8xzg.execute-api.us-east-1.amazonaws.com/dev/quickbooks/callback` : `https://hwytiq6q53.execute-api.us-east-1.amazonaws.com/staging/quickbooks/callback`;
   const scope = "com.intuit.quickbooks.accounting";
 
   const url = `${QB_AUTH_URL}?client_id=${QB_CLIENT_ID}&response_type=code&scope=${scope}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
@@ -79,7 +79,8 @@ async function handleCallback(event) {
   const QB_CLIENT_ID = await getQBClientId();
   const QB_CLIENT_SECRET = await getQBClientSecret();
   const tokenData = await new Promise((resolve, reject) => {
-    const postData = `grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent(`https://ppbgwv8xzg.execute-api.us-east-1.amazonaws.com/dev/quickbooks/callback`)}`;
+    const redirectUri = STAGE === "prod" ? `https://ppbgwv8xzg.execute-api.us-east-1.amazonaws.com/dev/quickbooks/callback` : `https://hwytiq6q53.execute-api.us-east-1.amazonaws.com/staging/quickbooks/callback`;
+    const postData = `grant_type=authorization_code&code=${code}&redirect_uri=${encodeURIComponent(redirectUri)}`;
     const auth = Buffer.from(`${QB_CLIENT_ID}:${QB_CLIENT_SECRET}`).toString("base64");
     const req = https.request(QB_TOKEN_URL, {
       method: "POST",
