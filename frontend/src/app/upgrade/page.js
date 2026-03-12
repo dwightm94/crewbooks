@@ -19,6 +19,9 @@ const FEATURES = [
   { label: "Payment Reminders", free: false, pro: true, team: true },
   { label: "Online Payments", free: false, pro: true, team: true },
   { label: "Priority Support", free: false, pro: true, team: true },
+  { label: "Role-Based Access", free: false, pro: false, team: true },
+  { label: "Job Assignments & Notifications", free: false, pro: false, team: true },
+  { label: "Time Tracking", free: false, pro: false, team: true },
   { label: "QuickBooks Sync", free: false, pro: false, team: true },
 ];
 
