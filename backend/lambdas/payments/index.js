@@ -241,7 +241,8 @@ async function handleWebhook(event) {
   let webhookEvent;
   try {
     const secret = await getWebhookSecret();
-    webhookEvent = stripe.webhooks.constructEvent(event.body, sig, secret);
+    const s = await getStripe();
+    webhookEvent = s.webhooks.constructEvent(event.body, sig, secret);
   } catch (e) {
     console.error("Webhook signature failed:", e.message);
     return error("Invalid signature", 400);
