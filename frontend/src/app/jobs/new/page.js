@@ -55,7 +55,7 @@ export default function NewJobPage() {
                   style={{ background: clientMode === "pick" ? "var(--brand)" : "var(--input)", color: clientMode === "pick" ? "#fff" : "var(--text2)" }}>
                   Pick Existing
                 </button>
-                <button type="button" onClick={() => { setClientMode("manual"); setForm({...form, clientName: "", clientPhone: "", clientEmail: "", clientId: ""}); }}
+                <button type="button" onClick={() => { setClientMode("manual"); setForm({...form, clientName: "", clientPhone: "", clientEmail: "", clientId: "", address: ""}); }}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                   style={{ background: clientMode === "manual" ? "var(--brand)" : "var(--input)", color: clientMode === "manual" ? "#fff" : "var(--text2)" }}>
                   New / Manual
