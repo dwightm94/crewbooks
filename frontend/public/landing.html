@@ -67,6 +67,18 @@ footer p{color:#999;font-size:13px}
 .foot-links{margin-top:8px;display:flex;justify-content:center;gap:16px}
 .foot-links a{color:#999;font-size:13px;text-decoration:none}
 .dim{opacity:.7}
+.how{padding:60px 24px;background:#fff}
+.how-inner{max-width:900px;margin:0 auto;text-align:center}
+.how-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;margin-top:48px}
+.how-step{text-align:center}
+.how-icon{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#F59E0B,#EF4444);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px}
+.how-step h3{font-weight:800;font-size:16px;margin-bottom:6px}
+.how-step p{color:#666;font-size:14px;line-height:1.5}
+.faq{padding:60px 24px;max-width:700px;margin:0 auto}
+.faq h2{font-size:36px;font-weight:900;letter-spacing:-.5px;text-align:center;margin-bottom:32px}
+.faq-item{border-bottom:1px solid rgba(0,0,0,.08);padding:20px 0}
+.faq-item h4{font-weight:800;font-size:15px;margin-bottom:8px}
+.faq-item p{color:#666;font-size:14px;line-height:1.6}
 </style>
 </head>
 <body>
@@ -129,9 +141,31 @@ footer p{color:#999;font-size:13px}
 <div class="plan dim" style="border:1px solid rgba(0,0,0,.08)">
 <h3>Team</h3><p class="price">$69<span>/mo</span></p><p class="plan-sub">For growing companies</p>
 <div style="margin-top:8px"><input type="email" id="team-notify-email" placeholder="Enter your email" style="width:100%;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;margin-bottom:8px;box-sizing:border-box"><button onclick="notifyTeam()" style="width:100%;padding:10px;background:linear-gradient(135deg,#F59E0B,#EF4444);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">Notify Me When Available</button></div>
-<ul><li style="color:#6366F1;font-weight:700">Everything in Pro, plus:</li><li><span class="check">✓</span>Up to 10 users per account</li><li><span class="check">✓</span>25GB photo storage</li><li><span class="check">✓</span>QuickBooks sync</li></ul>
+<ul><li style="color:#6366F1;font-weight:700">Everything in Pro, plus:</li><li><span class="check">✓</span>Up to 10 users per account</li><li><span class="check">✓</span>Role-based access (Owner/Foreman/Crew)</li><li><span class="check">✓</span>Job assignments &amp; notifications</li><li><span class="check">✓</span>Time tracking</li><li><span class="check">✓</span>25GB photo storage</li><li><span class="check">✓</span>QuickBooks sync</li><li><span class="check">✓</span>Priority email support</li></ul>
 </div>
 </div>
+</section>
+
+<section class="how">
+<div class="how-inner">
+<h2 style="font-size:36px;font-weight:900;letter-spacing:-.5px;text-align:center">How it works</h2>
+<p style="color:#666;font-size:16px;margin-top:8px;text-align:center">Up and running in under 60 seconds.</p>
+<div class="how-grid">
+<div class="how-step"><div class="how-icon">💼</div><h3>Create a job</h3><p>Add client, address, and job value. Takes 30 seconds.</p></div>
+<div class="how-step"><div class="how-icon">👷</div><h3>Schedule your crew</h3><p>Assign crew members and set the schedule. Everyone gets notified.</p></div>
+<div class="how-step"><div class="how-icon">📄</div><h3>Send an invoice</h3><p>One tap generates a professional PDF. Send via email or text.</p></div>
+<div class="how-step"><div class="how-icon">💰</div><h3>Get paid</h3><p>Clients pay by card online. Money hits your bank account directly.</p></div>
+</div>
+</div>
+</section>
+
+<section class="faq">
+<h2>Common questions</h2>
+<div class="faq-item"><h4>Do I need a credit card to start?</h4><p>No. The Free plan is completely free — no credit card required. Upgrade only when you are ready.</p></div>
+<div class="faq-item"><h4>Can I cancel anytime?</h4><p>Yes. Cancel your Pro or Team subscription at any time from your settings. No cancellation fees, no questions asked.</p></div>
+<div class="faq-item"><h4>Is my data secure?</h4><p>Yes. CrewBooks is built on AWS with encrypted storage and secure authentication. Your business data is private and never shared.</p></div>
+<div class="faq-item"><h4>Does it work on my phone?</h4><p>CrewBooks is mobile-first — designed for contractors in the field. Works on any iPhone or Android browser, no app download needed.</p></div>
+<div class="faq-item"><h4>What is the 2.5% payment fee?</h4><p>When a client pays an invoice online by credit card, CrewBooks charges a 2.5% processing fee. No hidden fees on top of your subscription.</p></div>
 </section>
 
 <section class="cta-section"><div class="cta-box">
