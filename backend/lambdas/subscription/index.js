@@ -165,7 +165,7 @@ async function checkLimit(event, userId) {
 // === Create Stripe Checkout for Pro subscription ===
 async function createCheckout(event, userId) {
   if (!userId) return error("Unauthorized", 401);
-  const s = getStripe();
+  const s = await getStripe();
   const body = JSON.parse(event.body || "{}");
   const planKey = body.plan || "pro";
 
@@ -212,7 +212,7 @@ async function createCheckout(event, userId) {
 // === Create Stripe Customer Portal (manage/cancel) ===
 async function createPortal(event, userId) {
   if (!userId) return error("Unauthorized", 401);
-  const s = getStripe();
+  const s = await getStripe();
 
   const profile = await db.get(USERS_TABLE, `USER#${userId}`, `PROFILE#${userId}`).catch(() => null);
   if (!profile?.stripeCustomerId) return error("No subscription found");
