@@ -22,7 +22,7 @@ export default function SignupPage() {
       const ok = await register(form);
       if (ok) setStep("verify");
       else setErr("Registration failed. Try again.");
-    } catch (e) { setErr(e.message || "Registration failed"); }
+    } catch (e) { setErr(e.message || e.code || "Registration failed"); }
     setBusy(false);
   };
 
