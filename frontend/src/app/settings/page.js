@@ -164,6 +164,15 @@ function StripeConnectSection({ email }) {
 
   const openDashboard = async () => {
     try {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const appUrl = isIOS
+          ? "https://apps.apple.com/us/app/stripe-dashboard/id978516833"
+          : "https://play.google.com/store/apps/details?id=com.stripe.android.dashboard";
+        window.location.href = appUrl;
+        return;
+      }
       const link = await getConnectDashboard();
       if (link.url) window.open(link.url, "_blank");
     } catch (e) { alert("Error opening dashboard"); }
