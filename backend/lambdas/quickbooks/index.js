@@ -142,6 +142,27 @@ async function getStatus(userId) {
   });
 }
 
+
+// Find or create a customer in QB by name
+async function findOrCreateCustomer(accessToken, realmId, customerName) {
+  if (!customerName) return "1";
+  try {
+    // Search for existing customer
+    const query = encodeURIComponent(`SELECT * FROM Customer WHERE DisplayName = '${customerName.replace(/'/g, "\'")}'`);
+    const searchResult = await qbApiCall(accessToken, realmId, `query?query=${query}`, "GET", null);
+    if (searchResult?.QueryResponse?.Customer?.length > 0) {
+      return searchResult.QueryResponse.Customer[0].Id;
+    }
+    // Create new customer
+    const newCustomer = await qbApiCall(accessToken, realmId, "customer", "POST", {
+      DisplayName: customerName,
+    });
+    return newCustomer?.Customer?.Id || "1";
+  } catch (e) {
+    console.error("findOrCreateCustomer error:", e.message);
+    return "1";
+  }
+}
 // Sync invoices and expenses to QuickBooks
 async function syncData(event, userId) {
   if (!userId) return error("Unauthorized", 401);
@@ -176,11 +197,17 @@ async function syncData(event, userId) {
   // Sync invoices
   if (syncType === "invoices" || syncType === "all") {
     const jobs = await db.query(JOBS_TABLE, `USER#${userId}`, "JOB#").catch(() => []);
+    const customerCache = {};
     for (const job of jobs) {
       const invoices = await db.query(INVOICES_TABLE, `JOB#${job.jobId}`, "INVOICE#").catch(() => []);
       for (const inv of invoices) {
         if (inv.qb_synced) continue;
         try {
+          const clientName = inv.clientName || job.clientName;
+          if (clientName && !customerCache[clientName]) {
+            customerCache[clientName] = await findOrCreateCustomer(accessToken, realmId, clientName);
+          }
+          const customerId = customerCache[clientName] || "1";
           // Create invoice in QB
           const qbInvoice = {
             Line: [{
@@ -189,7 +216,7 @@ async function syncData(event, userId) {
               SalesItemLineDetail: { ItemRef: { value: "1", name: "Services" } },
               Description: job.jobName || "Service",
             }],
-            CustomerRef: { value: "1", name: inv.clientName || job.clientName },
+            CustomerRef: { value: customerId },
           };
 
           await qbApiCall(accessToken, realmId, "invoice", "POST", qbInvoice);

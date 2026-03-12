@@ -90,7 +90,7 @@ exports.handler = async (event) => {
           </div>`;
         try {
           await ses.send(new SendEmailCommand({
-            Source: "Dwightm94@msn.com",
+            Source: "noreply@crewbooksapp.com",
             Destination: { ToAddresses: [clientEmail] },
             Message: {
               Subject: { Data: `Invoice: ${jobName} - $${inv.amount.toFixed(2)}` },
