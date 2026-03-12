@@ -32,8 +32,8 @@ const client = new DynamoDBClient({ region: process.env.REGION || "us-east-1" })
 const docClient = DynamoDBDocumentClient.from(client, { marshallOptions: { removeUndefinedValues: true } });
 
 let stripe;
-function getStripe() {
-  if (!stripe) stripe = require("stripe")(STRIPE_SECRET);
+async function getStripe() {
+  if (!stripe) stripe = require("stripe")(await getStripeSecret());
   return stripe;
 }
 
@@ -70,7 +70,7 @@ exports.handler = async (event) => {
 // ===== STRIPE CONNECT: Create account for contractor =====
 async function createConnectAccount(event, userId) {
   if (!userId) return error("Unauthorized", 401);
-  const s = getStripe();
+  const s = await getStripe();
   const body = JSON.parse(event.body || "{}");
 
   // Check if user already has a connect account
@@ -86,6 +86,11 @@ async function createConnectAccount(event, userId) {
     email: body.email,
     capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
     business_type: "individual",
+    business_profile: {
+      mcc: "1731",
+      url: "https://crewbooksapp.com",
+      product_description: "Construction contractor services",
+    },
     metadata: { userId, platform: "crewbooks" },
   });
 
@@ -102,7 +107,7 @@ async function createConnectAccount(event, userId) {
 // ===== STRIPE CONNECT: Generate onboarding link =====
 async function createOnboardLink(event, userId) {
   if (!userId) return error("Unauthorized", 401);
-  const s = getStripe();
+  const s = await getStripe();
 
   const user = await db.get(USERS_TABLE, `USER#${userId}`, `PROFILE#${userId}`);
   if (!user?.stripeAccountId) return error("No Stripe account. Create one first.");
@@ -120,7 +125,7 @@ async function createOnboardLink(event, userId) {
 // ===== STRIPE CONNECT: Check account status =====
 async function getConnectStatus(event, userId) {
   if (!userId) return error("Unauthorized", 401);
-  const s = getStripe();
+  const s = await getStripe();
 
   const user = await db.get(USERS_TABLE, `USER#${userId}`, `PROFILE#${userId}`);
   if (!user?.stripeAccountId) return success({ connected: false });
@@ -145,7 +150,7 @@ async function getConnectStatus(event, userId) {
 // ===== STRIPE CONNECT: Dashboard link =====
 async function getConnectDashboard(event, userId) {
   if (!userId) return error("Unauthorized", 401);
-  const s = getStripe();
+  const s = await getStripe();
 
   const user = await db.get(USERS_TABLE, `USER#${userId}`, `PROFILE#${userId}`);
   if (!user?.stripeAccountId) return error("No Stripe account");
@@ -174,7 +179,7 @@ async function createCheckout(event) {
   if (!inv) return error("Invoice not found", 404);
   if (inv.status === "paid") return error("Invoice already paid");
 
-  const s = getStripe();
+  const s = await getStripe();
   const amountCents = Math.round((inv.amount || 0) * 100);
   const platformFee = Math.round(amountCents * PLATFORM_FEE_PERCENT / 100);
 
@@ -215,7 +220,7 @@ async function createCheckout(event) {
     mode: "payment",
     success_url: FRONTEND_URL + "/pay-success?invoice=" + invoiceId,
     cancel_url: FRONTEND_URL + "/pay/" + invoiceId + "?cancelled=true",
-    metadata: { invoiceId: invoiceId, PK: inv.PK, SK: inv.SK },
+    metadata: { invoiceId: invoiceId, PK: inv.PK, SK: inv.SK, jobId: inv.jobId, userId: inv.userId },
   };
 
   // If contractor has Stripe Connect, use it with platform fee
@@ -246,11 +251,18 @@ async function handleWebhook(event) {
     const session = webhookEvent.data.object;
     const meta = session.metadata || {};
     if (meta.invoiceId && meta.PK && meta.SK) {
+      const paidAt = new Date().toISOString();
       await db.update(INVOICES_TABLE, meta.PK, meta.SK, {
-        status: "paid", paidAt: new Date().toISOString(),
+        status: "paid", paidAt,
         stripeSessionId: session.id, stripePaymentIntent: session.payment_intent,
         amountPaid: session.amount_total ? session.amount_total / 100 : null,
       });
+      // Also update job status to paid
+      if (meta.jobId && meta.userId) {
+        await db.update(JOBS_TABLE, `USER#${meta.userId}`, `JOB#${meta.jobId}`, {
+          status: "paid", updatedAt: paidAt, GSI1SK: `STATUS#paid#DATE#${paidAt}`,
+        });
+      }
     }
   }
 
