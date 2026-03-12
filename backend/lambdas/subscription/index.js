@@ -40,8 +40,11 @@ const PLANS = {
 };
 
 let stripe;
-function getStripe() {
-  if (!stripe) stripe = require("stripe")(STRIPE_SECRET);
+async function getStripe() {
+  if (!stripe) {
+    const secret = await getStripeSecret();
+    stripe = require("stripe")(secret);
+  }
   return stripe;
 }
 
