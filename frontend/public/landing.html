@@ -86,7 +86,7 @@ nav {
    HERO
 ════════════════════════════ */
 .hero {
-  min-height: 100vh; padding-top: 64px;
+  min-height: auto; padding-top: 64px;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   text-align: center;
@@ -322,7 +322,7 @@ nav {
 .price-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
 
 .price-card.featured {
-  background: var(--ink-2); border-color: var(--amber);
+  background: var(--white); border-color: var(--amber);
   box-shadow: 0 8px 40px rgba(245,158,11,0.18);
 }
 
@@ -339,7 +339,7 @@ nav {
   font-size: 12px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.1em; color: var(--chalk-4); margin-bottom: 10px;
 }
-.price-card.featured .price-tier { color: rgba(255,255,255,0.38); }
+.price-card.featured .price-tier { color: var(--chalk-4); }
 
 .price-val {
   font-family: var(--font-h); font-size: 52px; font-weight: 800;
@@ -347,14 +347,14 @@ nav {
 }
 .price-val sup { font-size: 24px; font-weight: 700; vertical-align: top; margin-top: 10px; display: inline-block; }
 .price-val sub { font-size: 16px; font-weight: 500; color: var(--chalk-4); letter-spacing: 0; }
-.price-card.featured .price-val { color: var(--white); }
-.price-card.featured .price-val sub { color: rgba(255,255,255,0.35); }
+.price-card.featured .price-val { color: var(--ink); }
+.price-card.featured .price-val sub { color: var(--chalk-4); }
 
 .price-tagline { font-size: 13px; color: var(--chalk-4); margin: 6px 0 24px; }
-.price-card.featured .price-tagline { color: rgba(255,255,255,0.38); }
+.price-card.featured .price-tagline { color: var(--ink-4); }
 
 .price-divider { height: 1px; background: var(--chalk-2); margin-bottom: 22px; }
-.price-card.featured .price-divider { background: rgba(255,255,255,0.08); }
+.price-card.featured .price-divider { background: var(--chalk-2); }
 
 .price-features { list-style: none; display: flex; flex-direction: column; gap: 11px; margin-bottom: 28px; }
 
@@ -362,7 +362,7 @@ nav {
   display: flex; align-items: flex-start; gap: 9px;
   font-size: 14px; line-height: 1.4; color: var(--ink-4);
 }
-.price-card.featured .price-features li { color: rgba(255,255,255,0.6); }
+.price-card.featured .price-features li { color: var(--ink-4); }
 
 .check {
   width: 17px; height: 17px; flex-shrink: 0; margin-top: 0.5px;
@@ -370,7 +370,7 @@ nav {
   display: flex; align-items: center; justify-content: center;
   color: var(--green);
 }
-.price-card.featured .check { background: rgba(34,197,94,0.15); }
+.price-card.featured .check { background: var(--green-lt); }
 
 .price-cta {
   display: block; width: 100%; padding: 13px 20px;
@@ -626,7 +626,7 @@ footer {
 </nav>
 
 <!-- HERO -->
-<section class="hero" style="padding-bottom: 80px;">
+<section class="hero" style="padding-top: 96px; padding-bottom: 48px;">
   <div class="hero-eyebrow">
     <div class="eyebrow-dot"></div>
     <span class="eyebrow-text">Built for construction subcontractors</span>
@@ -809,6 +809,8 @@ footer {
       <div class="price-val"><sup>$</sup>39<sub>/mo</sub></div>
       <div class="price-tagline">Everything to run your business</div>
       <div class="price-divider"></div>
+      <a href="/auth/signup" class="price-cta" style="display:block;margin-bottom:20px;">Start Free Trial</a>
+      <div style="font-size:13px;font-weight:700;color:var(--amber-dk);margin-bottom:14px;">Everything in Free, plus:</div>
       <ul class="price-features">
         <li><div class="check"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>Unlimited jobs, crew &amp; invoices</li>
         <li><div class="check"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>Invoice PDF &amp; email</li>
@@ -819,7 +821,6 @@ footer {
         <li><div class="check"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>5 GB photo storage</li>
         <li><div class="check"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>Priority support</li>
       </ul>
-      <a href="/auth/signup" class="price-cta">Start Free Trial</a>
     </div>
 
     <!-- Team -->
@@ -922,7 +923,7 @@ footer {
   </div>
 </footer>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
   function toggleFaq(el) {
     const item = el.closest('.faq-item');
     const wasOpen = item.classList.contains('open');
@@ -933,7 +934,14 @@ footer {
   function handleNotify(btn) {
     const input = btn.previousElementSibling;
     if (input.value && input.value.includes('@')) {
-      btn.textContent = '✓ You\'ll be notified';
+      btn.textContent = "✓ You'll be notified";
       btn.style.background = '#16A34A';
       btn.disabled = true;
-    } el
+    } else {
+      input.style.borderColor = '#EF4444';
+      setTimeout(() => { input.style.borderColor = ''; }, 1500);
+    }
+  }
+</script>
+</body>
+</html>
