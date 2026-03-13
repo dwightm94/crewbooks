@@ -34,7 +34,7 @@ export default function LoginPage() {
     const redirectUri = "https://crewbooksapp.com/auth/callback";
     const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
     const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID;
-    const url = `${cognitoDomain}/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&identity_provider=Google&scope=email+openid+profile`;
+    const url = `${cognitoDomain}/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&identity_provider=Google&scope=prompt=select_account&identity_provider=Google&scope=email+openid+profile`;
     window.location.href = url;
   };
 
