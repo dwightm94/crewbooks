@@ -15,7 +15,7 @@ export default function CallbackPage() {
       try {
         const domain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
         const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID;
-        const redirectUri = `${window.location.origin}/auth/callback`;
+        const redirectUri = "https://crewbooksapp.com/auth/callback";
 
         const res = await fetch(`${domain}/oauth2/token`, {
           method: "POST",
