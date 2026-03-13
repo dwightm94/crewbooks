@@ -101,7 +101,7 @@ export default function UpgradePage() {
               <p>Invoice PDF, email and reminders</p>
               <p>Client CRM and compliance tracking</p>
               <p>Analytics and 5 GB storage</p>
-              <p>Online payments (2.5% fee)</p>
+              <p>Online payments + ACH bank transfer</p>
             </div>
             <div className="mt-3">
               {isPro ? (
@@ -126,7 +126,7 @@ export default function UpgradePage() {
                 <p className="text-xs" style={{ color: "var(--text2)" }}>For growing companies</p>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-extrabold" style={{ color: "var(--text)" }}>$69<span className="text-sm font-normal" style={{ color: "var(--text2)" }}>/mo</span></p>
+                <p className="text-2xl font-extrabold" style={{ color: "var(--text)" }}>$89<span className="text-sm font-normal" style={{ color: "var(--text2)" }}>/mo</span></p>
               </div>
             </div>
             <div className="mt-2 text-xs space-y-1" style={{ color: "var(--text2)" }}>
@@ -181,7 +181,7 @@ export default function UpgradePage() {
             </div>
             <div>
               <p className="font-bold text-sm" style={{ color: "var(--text)" }}>Is there a transaction fee?</p>
-              <p className="text-xs" style={{ color: "var(--text2)" }}>Online payments have a 2.5% processing fee (industry standard). This is separate from your subscription.</p>
+              <p className="text-xs" style={{ color: "var(--text2)" }}>Contractors can choose to pass the processing fee to clients or absorb it themselves. Bank transfers (ACH) are always free for clients.</p>
             </div>
           </div>
         </div>
