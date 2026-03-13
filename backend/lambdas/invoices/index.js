@@ -52,7 +52,7 @@ exports.handler = async (event) => {
         clientName: job.clientName, clientEmail: job.clientEmail, clientPhone: job.clientPhone,
         address: job.address, amount: parseFloat(amount), status: "draft", dueDate,
         lineItems: data.lineItems || [{ description: job.jobName, amount: parseFloat(amount) }],
-        notes: data.notes || "", companyName: "",
+        notes: data.notes || "", companyName: "", passFeeToClient: data.passFeeToClient === true,
         sentAt: null, viewedAt: null, paidAt: null, createdAt: now, updatedAt: now,
       };
       await db.put(INV, inv);
