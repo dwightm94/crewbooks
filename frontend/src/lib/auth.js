@@ -1,6 +1,6 @@
 import { CognitoUserPool, CognitoUser, AuthenticationDetails, CognitoUserAttribute } from "amazon-cognito-identity-js";
 
-const pool = new CognitoUserPool({
+const getPool = () => new CognitoUserPool({
   UserPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || "",
   ClientId: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "",
 });
@@ -11,14 +11,14 @@ export const cognitoSignUp = (email, password, name) =>
       new CognitoUserAttribute({ Name: "email", Value: email }),
       new CognitoUserAttribute({ Name: "name", Value: name }),
     ];
-    pool.signUp(email, password, attrs, null, (err, result) => {
+    getPool().signUp(email, password, attrs, null, (err, result) => {
       if (err) reject(err); else resolve(result);
     });
   });
 
 export const cognitoConfirm = (email, code) =>
   new Promise((resolve, reject) => {
-    const user = new CognitoUser({ Username: email, Pool: pool });
+    const user = new CognitoUser({ Username: email, Pool: getPool() });
     user.confirmRegistration(code, true, (err, result) => {
       if (err) reject(err); else resolve(result);
     });
@@ -26,7 +26,7 @@ export const cognitoConfirm = (email, code) =>
 
 export const cognitoLogin = (email, password) =>
   new Promise((resolve, reject) => {
-    const user = new CognitoUser({ Username: email, Pool: pool });
+    const user = new CognitoUser({ Username: email, Pool: getPool() });
     user.authenticateUser(new AuthenticationDetails({ Username: email, Password: password }), {
       onSuccess: (session) => resolve(session),
       onFailure: (err) => reject(err),
@@ -34,11 +34,11 @@ export const cognitoLogin = (email, password) =>
     });
   });
 
-export const cognitoLogout = () => { const u = pool.getCurrentUser(); if (u) u.signOut(); };
+export const cognitoLogout = () => { const u = getPool().getCurrentUser(); if (u) u.signOut(); };
 
 export const cognitoGetSession = () =>
   new Promise((resolve, reject) => {
-    const user = pool.getCurrentUser();
+    const user = getPool().getCurrentUser();
     if (!user) return reject(new Error("No user"));
     user.getSession((err, session) => {
       if (err || !session?.isValid()) return reject(err || new Error("Invalid session"));
@@ -62,19 +62,19 @@ export const cognitoGetUser = () =>
 
 export const cognitoForgotPassword = (email) =>
   new Promise((resolve, reject) => {
-    const user = new CognitoUser({ Username: email, Pool: pool });
+    const user = new CognitoUser({ Username: email, Pool: getPool() });
     user.forgotPassword({ onSuccess: resolve, onFailure: reject });
   });
 
 export const cognitoConfirmPassword = (email, code, newPassword) =>
   new Promise((resolve, reject) => {
-    const user = new CognitoUser({ Username: email, Pool: pool });
+    const user = new CognitoUser({ Username: email, Pool: getPool() });
     user.confirmPassword(code, newPassword, { onSuccess: resolve, onFailure: reject });
   });
 
 export const cognitoResendCode = (email) =>
   new Promise((resolve, reject) => {
-    const user = new CognitoUser({ Username: email, Pool: pool });
+    const user = new CognitoUser({ Username: email, Pool: getPool() });
     user.resendConfirmationCode((err, result) => {
       if (err) reject(err); else resolve(result);
     });
