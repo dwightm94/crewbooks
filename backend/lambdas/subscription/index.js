@@ -30,8 +30,8 @@ const PLANS = {
     maxCrew: Infinity, maxPhotoStorage: 5120, // 5GB
   },
   team: {
-    name: "Team", price: 7900, // cents ($79/mo)
-    priceDisplay: "$79/mo",
+    name: "Team", price: 8900, // cents ($89/mo)
+    priceDisplay: "$89/mo",
     maxActiveJobs: Infinity, maxInvoicesPerMonth: Infinity,
     onlinePayments: true, fullReports: true, paymentReminders: true,
     maxCrew: Infinity, maxPhotoStorage: 25600, // 25GB
@@ -293,7 +293,7 @@ async function getPlans() {
         "Accept online payments", "Full reports & analytics", "Payment reminders",
         "Priority support",
       ]},
-      { key: "team", name: "Team", price: 7900, priceDisplay: "$79/mo", comingSoon: true, features: [
+      { key: "team", name: "Team", price: 8900, priceDisplay: "$89/mo", comingSoon: true, features: [
         "Everything in Pro, plus:", "Up to 10 users", "Unlimited crew members",
         "25GB photo storage", "QuickBooks sync", "Priority support",
       ]},
