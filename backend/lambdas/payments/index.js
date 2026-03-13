@@ -180,8 +180,17 @@ async function createCheckout(event) {
   if (inv.status === "paid") return error("Invoice already paid");
 
   const s = await getStripe();
-  const amountCents = Math.round((inv.amount || 0) * 100);
-  const platformFee = Math.round(amountCents * PLATFORM_FEE_PERCENT / 100);
+  const body = JSON.parse(event.body || "{}");
+  const paymentMethod = body.paymentMethod || "card";
+  const passFee = inv.passFeeToClient === true;
+  const baseAmountCents = Math.round((inv.amount || 0) * 100);
+  let amountCents = baseAmountCents;
+  let feeLineCents = 0;
+  if (passFee && paymentMethod === "card") {
+    amountCents = Math.round((baseAmountCents + 30) / (1 - 0.029));
+    feeLineCents = amountCents - baseAmountCents;
+  }
+  const platformFee = Math.round(baseAmountCents * PLATFORM_FEE_PERCENT / 100);
 
   // Find the contractor's Stripe Connect account
   const pk = inv.PK || "";
