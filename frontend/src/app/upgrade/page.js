@@ -133,7 +133,7 @@ export default function UpgradePage() {
               <p>Everything in Pro</p>
               <p>Up to 10 users</p>
               <p>25 GB storage</p>
-              <p>QuickBooks sync</p>
+              <p>QuickBooks sync <span style="fontSize:10px;background:#e2e8f0;padding:2px 6px;borderRadius:10px;marginLeft:4px">Coming Soon</span></p>
             </div>
             <div className="mt-3">
               <div className="flex items-center justify-center gap-2 py-2 rounded-xl" style={{ background: "var(--input)" }}>
