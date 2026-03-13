@@ -49,7 +49,7 @@ export function AppShell({ children, title, subtitle, back, action }) {
   const router = useRouter();
   useEffect(() => { init(); themeInit(); }, []);
 
-  const handleLogout = () => { logout(); const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN; const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID; window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent("https://crewbooksapp.com/auth/login")}`; };
+  const handleLogout = () => { logout(); window.location.href = `https://crewbooks-auth.auth.us-east-1.amazoncognito.com/logout?client_id=48bj43ff24j0li5vsp15guk81s&logout_uri=${encodeURIComponent("https://crewbooksapp.com/auth/login")}`; };
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
