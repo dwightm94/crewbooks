@@ -6,15 +6,14 @@ export default function CallbackPage() {
     const run = async () => {
       const params = new URLSearchParams(window.location.search);
       const code = params.get("code");
-
       if (!code) {
         window.location.href = "/auth/login";
         return;
       }
-
       try {
         const domain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
         const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID;
+        const userPoolId = process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID;
         const redirectUri = "https://crewbooksapp.com/auth/callback";
 
         const res = await fetch(`${domain}/oauth2/token`, {
@@ -29,22 +28,29 @@ export default function CallbackPage() {
         });
 
         const tokens = await res.json();
-
-        if (tokens.access_token) {
-          localStorage.setItem("accessToken", tokens.access_token);
-          localStorage.setItem("idToken", tokens.id_token);
-          localStorage.setItem("refreshToken", tokens.refresh_token);
-          window.location.href = "/dashboard";
-        } else {
+        if (!tokens.access_token) {
           console.error("Token exchange failed", tokens);
           window.location.href = "/auth/login";
+          return;
         }
+
+        // Store tokens in Cognito SDK format so useAuth works
+        const key = `CognitoIdentityServiceProvider.${clientId}`;
+        const payload = JSON.parse(atob(tokens.id_token.split(".")[1]));
+        const username = payload["cognito:username"] || payload.sub;
+
+        localStorage.setItem(`${key}.LastAuthUser`, username);
+        localStorage.setItem(`${key}.${username}.idToken`, tokens.id_token);
+        localStorage.setItem(`${key}.${username}.accessToken`, tokens.access_token);
+        localStorage.setItem(`${key}.${username}.refreshToken`, tokens.refresh_token);
+        localStorage.setItem(`${key}.${username}.clockDrift`, "0");
+
+        window.location.href = "/dashboard";
       } catch (e) {
         console.error("Callback error", e);
         window.location.href = "/auth/login";
       }
     };
-
     run();
   }, []);
 
