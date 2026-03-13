@@ -205,18 +205,28 @@ async function createCheckout(event) {
   }
 
   const sessionParams = {
-    payment_method_types: ["card"],
-    line_items: [{
-      price_data: {
-        currency: "usd",
-        product_data: {
-          name: "Invoice: " + (inv.jobName || "Service"),
-          description: "Invoice for " + (inv.clientName || "Client"),
+    payment_method_types: paymentMethod === "ach" ? ["us_bank_account"] : ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: "Invoice: " + (inv.jobName || "Service"),
+            description: "Invoice for " + (inv.clientName || "Client"),
+          },
+          unit_amount: baseAmountCents,
         },
-        unit_amount: amountCents,
+        quantity: 1,
       },
-      quantity: 1,
-    }],
+      ...(feeLineCents > 0 ? [{
+        price_data: {
+          currency: "usd",
+          product_data: { name: "Processing Fee", description: "Online payment processing (2.9% + 30¢)" },
+          unit_amount: feeLineCents,
+        },
+        quantity: 1,
+      }] : []),
+    ],
     mode: "payment",
     success_url: FRONTEND_URL + "/pay-success?invoice=" + invoiceId,
     cancel_url: FRONTEND_URL + "/pay/" + invoiceId + "?cancelled=true",

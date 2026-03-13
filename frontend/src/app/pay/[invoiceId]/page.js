@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { money } from "@/lib/utils";
-import { CreditCard, CheckCircle2, FileText, AlertTriangle } from "lucide-react";
+import { CreditCard, CheckCircle2, FileText, AlertTriangle, Building2 } from "lucide-react";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -22,11 +22,12 @@ export default function PayInvoicePage() {
       .finally(() => setLoading(false));
   }, [invoiceId]);
 
-  const handlePay = async () => {
-    setPaying(true); setErr(null);
+  const handlePay = async (paymentMethod = "card") => {
+    setPaying(paymentMethod); setErr(null);
     try {
       const res = await fetch(`${BASE}/pay/${invoiceId}`, {
         method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentMethod }),
       });
       const data = await res.json();
       const d = data.data || data;
@@ -35,6 +36,11 @@ export default function PayInvoicePage() {
     } catch (e) { setErr("Payment failed — try again"); }
     setPaying(false);
   };
+  // Fee calculation for display
+  const passFee = inv?.passFeeToClient === true;
+  const baseAmount = inv?.amount || 0;
+  const cardTotal = passFee ? Math.round((baseAmount * 100 + 30) / (1 - 0.029)) / 100 : baseAmount;
+  const cardFee = passFee ? (cardTotal - baseAmount).toFixed(2) : 0;
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "#F8FAFC" }}>
@@ -90,13 +96,27 @@ export default function PayInvoicePage() {
               </div>
             )}
 
-            {/* Pay Button */}
-            <button onClick={handlePay} disabled={paying}
-              className="w-full py-4 rounded-xl text-lg font-bold flex items-center justify-center gap-2"
-              style={{ background: "#635BFF", color: "white" }}>
-              <CreditCard size={20} />
-              {paying ? "Setting up payment..." : `Pay ${money(inv?.amount)}`}
-            </button>
+            {/* Payment Options */}
+            <div className="space-y-3">
+              {/* ACH Bank Transfer */}
+              <button onClick={() => handlePay("ach")} disabled={!!paying}
+                className="w-full py-4 rounded-xl text-lg font-bold flex items-center justify-center gap-2"
+                style={{ background: "#0F172A", color: "white" }}>
+                <Building2 size={20} />
+                {paying === "ach" ? "Setting up..." : `Pay by Bank Transfer — No Fee`}
+              </button>
+              <p className="text-xs text-center" style={{ color: "#94A3B8" }}>ACH direct debit · 3-5 business days</p>
+
+              {/* Card */}
+              <button onClick={() => handlePay("card")} disabled={!!paying}
+                className="w-full py-4 rounded-xl text-lg font-bold flex items-center justify-center gap-2"
+                style={{ background: "#635BFF", color: "white" }}>
+                <CreditCard size={20} />
+                {paying === "card" ? "Setting up..." : passFee ? `Pay by Card — $${cardTotal.toFixed(2)} (includes $${cardFee} fee)` : `Pay by Card — ${money(baseAmount)}`}
+              </button>
+              <p className="text-xs text-center" style={{ color: "#94A3B8" }}>Instant payment</p>
+            </div>
+
             <div className="flex items-center justify-center gap-2 mt-3">
               <svg width="40" height="16" viewBox="0 0 40 16"><text x="0" y="13" fontSize="13" fontWeight="bold" fill="#635BFF" fontFamily="sans-serif">stripe</text></svg>
               <span className="text-[10px]" style={{ color: "#94A3B8" }}>Secure payment powered by Stripe</span>

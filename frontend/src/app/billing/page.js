@@ -18,6 +18,8 @@ export default function BillingPage() {
   const [initialLoad, setInitialLoad] = useState(true);
   const { features } = usePlan();
   const [showGenerate, setShowGenerate] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [passFeeToClient, setPassFeeToClient] = useState(false);
   const router = useRouter();
 
   const loadAll = async () => {
@@ -57,11 +59,14 @@ export default function BillingPage() {
       try { await deleteInvoice(jobId, invoiceId); loadAll(); } catch(e) { alert(e.message); }
     }
   };
-  const doGenerate = async (job) => {
+  const doGenerate = async () => {
+    if (!selectedJob) return;
     try {
       const notes = "";
-      await createInvoice(job.jobId, { amount: job.bidAmount, lineItems: [{ description: job.jobName, amount: job.bidAmount }], notes });
+      await createInvoice(selectedJob.jobId, { amount: selectedJob.bidAmount, lineItems: [{ description: selectedJob.jobName, amount: selectedJob.bidAmount }], notes, passFeeToClient });
       setShowGenerate(false);
+      setSelectedJob(null);
+      setPassFeeToClient(false);
       loadAll();
     } catch(e) { alert(e.message); }
   };
@@ -98,7 +103,7 @@ export default function BillingPage() {
             <p className="text-sm py-4 text-center" style={{ color: "var(--text2)" }}>No unbilled jobs available</p>
           ) : (
             jobs.filter(j => j.status !== "paid").map(j => (
-              <button key={j.jobId} onClick={() => doGenerate(j)} className="w-full text-left p-3 rounded-xl hover:bg-[var(--input)] transition-all flex justify-between items-center">
+              <button key={j.jobId} onClick={() => setSelectedJob(j)} className="w-full text-left p-3 rounded-xl hover:bg-[var(--input)] transition-all flex justify-between items-center">
                 <div>
                   <p className="font-bold text-sm" style={{ color: "var(--text)" }}>{j.jobName}</p>
                   <p className="text-xs" style={{ color: "var(--text2)" }}>{j.clientName}</p>
@@ -107,6 +112,29 @@ export default function BillingPage() {
               </button>
             ))
           )}
+        </div>
+      )}
+
+      {/* Pass Fee Toggle + Confirm */}
+      {selectedJob && (
+        <div className="card mt-2 p-4 space-y-3">
+          <p className="font-bold text-sm" style={{ color: "var(--text)" }}>Invoice for {selectedJob.jobName}</p>
+          <div className="flex items-center justify-between p-3 rounded-xl" style={{ background: "var(--input)" }}>
+            <div>
+              <p className="font-bold text-sm" style={{ color: "var(--text)" }}>Pass processing fee to client</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>Client pays 2.9% + 30¢ if paying by card. Bank transfer is always free.</p>
+            </div>
+            <button onClick={() => setPassFeeToClient(p => !p)}
+              className="w-12 h-6 rounded-full transition-all relative"
+              style={{ background: passFeeToClient ? "var(--brand)" : "var(--muted)" }}>
+              <div className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all"
+                style={{ left: passFeeToClient ? "calc(100% - 22px)" : "2px" }} />
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => { setSelectedJob(null); setPassFeeToClient(false); }} className="btn btn-outline flex-1">Cancel</button>
+            <button onClick={doGenerate} className="btn btn-brand flex-1">Create Invoice</button>
+          </div>
         </div>
       )}
 
