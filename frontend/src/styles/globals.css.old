@@ -2,82 +2,61 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 @layer base {
   :root {
-    --bg: #F8F7F5;        /* was #FFFFFF — warm off-white, less glare */
-    --bg2: #F0EFEC;        /* was #F8FAFC */
-    --card: #FFFFFF;       /* stays white — gives cards natural lift against bg */
-    --input: #F0EFEC;      /* was #F1F5F9 — warmer */
-    --border: #E5E3DE;     /* was #E2E8F0 — warmer, softer */
-    --text: #2C2B28;       /* was #0F172A — dark brown-gray, easier than blue-black */
-    --text2: #6B6860;      /* was #475569 — warm mid-gray */
-    --muted: #A09B93;      /* was #94A3B8 — warm light gray */
-    --brand: #E08A0D;      /* was #F59E0B — slightly deeper amber, less vibrating */
-    --brand-hover: #C97B0B;/* was #D97706 */
-    --brand-light: #FDF3E0;/* was #FEF3C7 — softer */
-    --green: #2D8E3C;      /* was #16A34A — slightly muted, less neon */
-    --green-bg: #E6F4E9;   /* was #DCFCE7 */
-    --red: #C83232;        /* was #DC2626 — slightly muted */
-    --red-bg: #FCE6E6;     /* was #FEE2E2 */
-    --yellow: #C17A0B;     /* was #D97706 */
-    --yellow-bg: #FDF3E0;  /* was #FEF3C7 */
-    --blue: #2563EB;       /* stays — already good */
-    --blue-bg: #DBEAFE;    /* stays */
-    --purple: #7C3AED;     /* stays */
-    --purple-bg: #EDE9FE;  /* stays */
+    --bg: #FFFFFF; --bg2: #F8FAFC; --card: #FFFFFF; --input: #F1F5F9;
+    --border: #E2E8F0; --text: #0F172A; --text2: #475569; --muted: #94A3B8;
+    --brand: #F59E0B; --brand-hover: #D97706; --brand-light: #FEF3C7;
+    --green: #16A34A; --green-bg: #DCFCE7; --red: #DC2626; --red-bg: #FEE2E2;
+    --yellow: #D97706; --yellow-bg: #FEF3C7; --blue: #2563EB; --blue-bg: #DBEAFE;
+    --purple: #7C3AED; --purple-bg: #EDE9FE;
   }
   .dark {
-    --bg: #1A1917;         /* was #0F172A — warm charcoal, not cold navy */
-    --bg2: #23221F;        /* was #1E293B */
-    --card: #23221F;       /* was #1E293B */
-    --input: #2D2C28;      /* was #334155 */
-    --border: #383630;     /* was #334155 — warm */
-    --text: #E5E3DE;       /* was #F1F5F9 — off-white, less harsh */
-    --text2: #9C9890;      /* was #94A3B8 */
-    --muted: #6B6760;      /* was #64748B */
-    --brand: #E08A0D;      /* same as light — consistent brand */
-    --brand-hover: #C97B0B;
-    --brand-light: rgba(224,138,13,0.12);
-    --green: #5CB870;      /* was #4ADE80 — less neon */
-    --green-bg: rgba(92,184,112,0.12);
-    --red: #E06060;        /* was #F87171 */
-    --red-bg: rgba(224,96,96,0.12);
-    --yellow: #E08A0D;
-    --yellow-bg: rgba(224,138,13,0.12);
-    --blue: #6B9EF7;       /* was #60A5FA */
-    --blue-bg: rgba(107,158,247,0.12);
-    --purple: #A78BFA;
-    --purple-bg: rgba(167,139,250,0.12);
+    --bg: #0F172A; --bg2: #1E293B; --card: #1E293B; --input: #334155;
+    --border: #334155; --text: #F1F5F9; --text2: #94A3B8; --muted: #64748B;
+    --brand: #FBBF24; --brand-hover: #F59E0B; --brand-light: rgba(251,191,36,0.15);
+    --green: #4ADE80; --green-bg: rgba(74,222,128,0.15); --red: #F87171; --red-bg: rgba(248,113,113,0.15);
+    --yellow: #FBBF24; --yellow-bg: rgba(251,191,36,0.15); --blue: #60A5FA; --blue-bg: rgba(96,165,250,0.15);
+    --purple: #A78BFA; --purple-bg: rgba(167,139,250,0.15);
   }
   body { background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
   input, select, textarea { font-size: 16px !important; }
 }
+
 @layer components {
   .btn { @apply font-semibold py-3.5 px-6 rounded-2xl transition-all min-h-[52px] flex items-center justify-center gap-2 active:scale-[0.95] active:brightness-90 text-base; }
-  .btn-brand { background: var(--brand); color: #FFFFFF; }
+  .btn-brand { background: var(--brand); color: #0F172A; }
   .btn-brand:hover { background: var(--brand-hover); }
   .btn-outline { background: var(--card); border: 2px solid var(--border); color: var(--text); }
   .btn-danger { background: var(--red); color: white; }
   .btn-sm { @apply py-2.5 px-4 min-h-[40px] text-sm rounded-xl; }
+
   .card { @apply rounded-2xl p-5; background: var(--card); border: 1px solid var(--border); }
   .card-hover { @apply card cursor-pointer transition-all; }
   .card-hover:hover { border-color: var(--brand); }
   .card-hover:active { @apply scale-[0.99]; }
+
   .field { @apply w-full rounded-xl py-3.5 px-4 min-h-[52px] outline-none text-base; background: var(--input); border: 2px solid transparent; color: var(--text); }
   .field::placeholder { color: var(--muted); }
-  .field:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(224,138,13,0.12); }
+  .field:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
   .field-label { @apply block text-sm font-semibold mb-2; color: var(--text2); }
+
   .badge { @apply inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide; }
   .badge-green { background: var(--green-bg); color: var(--green); }
   .badge-red { background: var(--red-bg); color: var(--red); }
   .badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
   .badge-blue { background: var(--blue-bg); color: var(--blue); }
   .badge-purple { background: var(--purple-bg); color: var(--purple); }
+
   .stat-card { @apply card text-center py-6; }
   .stat-value { @apply text-3xl font-extrabold tracking-tight; }
   .stat-label { @apply text-xs font-semibold uppercase tracking-wider mt-1; color: var(--muted); }
+
   .skeleton { @apply animate-pulse rounded-2xl; background: var(--input); }
   .divider { @apply my-4; border-top: 1px solid var(--border); }
   .section-title { @apply text-xs font-bold uppercase tracking-wider mb-3; color: var(--muted); }
   .empty-icon { @apply w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4; background: var(--input); }
 }
+
+.safe-b { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
