@@ -169,7 +169,7 @@ export function AppShell({ children, title, subtitle, back, action }) {
           .cb-m-header { display: none !important; }
           .cb-m-nav { display: none !important; }
           .cb-content { padding: 24px 28px; }
-          .cb-content-inner { max-width: 1000px; }
+          .cb-content-inner { max-width: 100%; }
         }
 
         /* Mobile overrides */
@@ -368,7 +368,7 @@ export function AppShell({ children, title, subtitle, back, action }) {
                 </button>
               )}
               <div>
-                {title && (
+                {title && title !== "CrewBooks" && (
                   <h1
                     className="text-xl font-extrabold"
                     style={{ color: "var(--text)" }}
@@ -384,7 +384,7 @@ export function AppShell({ children, title, subtitle, back, action }) {
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              {action}
+              
               <NotifBellInline />
             </div>
           </header>
@@ -398,7 +398,7 @@ export function AppShell({ children, title, subtitle, back, action }) {
                 borderBottom: "1px solid var(--border)",
               }}
             >
-              <div className="flex items-center justify-between max-w-lg mx-auto">
+              <div className="flex items-center justify-between max-w-xl mx-auto">
                 <div className="flex items-center gap-1">
                   {back && (
                     <button
@@ -452,7 +452,7 @@ export function AppShell({ children, title, subtitle, back, action }) {
               borderTop: "1px solid var(--border)",
             }}
           >
-            <div className="flex justify-around max-w-lg mx-auto">
+            <div className="flex justify-around max-w-xl mx-auto">
               {MOBILE_TABS.map(({ href, label, icon: Icon }) => {
                 const active = isActive(href);
                 return (
