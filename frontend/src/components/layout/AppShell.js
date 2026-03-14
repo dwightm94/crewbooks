@@ -169,7 +169,7 @@ export function AppShell({ children, title, subtitle, back, action }) {
           .cb-m-header { display: none !important; }
           .cb-m-nav { display: none !important; }
           .cb-content { padding: 24px 28px; }
-          .cb-content-inner { max-width: 100%; }
+          .cb-content-inner { max-width: 900px; }
         }
 
         /* Mobile overrides */
