@@ -4,8 +4,8 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard, Hammer, Users, Calendar, Receipt, Settings,
-  ChevronLeft, Bell, LogOut, Shield, BarChart3, Plus, Search,
-  UserCircle, Menu, X
+  ChevronLeft, Bell, LogOut, Shield, BarChart3, Plus, Search, Menu,
+  UserCircle, CheckCircle, Menu, X
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
@@ -13,10 +13,10 @@ import { useTheme } from "@/hooks/useTheme";
 /* ── Navigation Items ── */
 const MOBILE_TABS = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/schedule", label: "Schedule", icon: Calendar },
   { href: "/jobs", label: "Jobs", icon: Hammer },
-  { href: "/crew", label: "Crew", icon: Users },
-  { href: "/schedule", label: "Plan", icon: Calendar },
-  { href: "/billing", label: "Billing", icon: Receipt },
+  { href: "/clients", label: "Clients", icon: Users },
+  { href: "/more", label: "More", icon: Menu },
 ];
 
 const SIDEBAR_NAV = [
@@ -25,7 +25,7 @@ const SIDEBAR_NAV = [
   { href: "/jobs", label: "Jobs", icon: Hammer },
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/billing", label: "Invoices", icon: Receipt },
-  { href: "/crew", label: "Crew", icon: UserCircle },
+  { href: "/crew", label: "Crew", icon: UserCircle, CheckCircle },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/compliance", label: "Compliance", icon: Shield },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -390,55 +390,46 @@ export function AppShell({ children, title, subtitle, back, action }) {
             </div>
           </header>
 
-          {/* Mobile header (same as original) */}
-          {title && (
-            <header
-              className="cb-m-header sticky top-0 z-40 px-4 py-3"
-              style={{
-                background: "var(--bg)",
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <div className="flex items-center justify-between max-w-xl mx-auto">
-                <div className="flex items-center gap-1">
-                  {back && (
-                    <button
-                      onClick={() => router.push(back)}
-                      className="-ml-2 p-2 rounded-xl active:scale-95"
-                      style={{ color: "var(--text2)" }}
-                    >
-                      <ChevronLeft size={26} />
-                    </button>
-                  )}
-                  <div>
-                    <h1
-                      className="text-xl font-extrabold"
-                      style={{ color: "var(--text)" }}
-                    >
-                      {title}
-                    </h1>
-                    {subtitle && (
-                      <p className="text-sm" style={{ color: "var(--text2)" }}>
-                        {subtitle}
-                      </p>
-                    )}
+          {/* Mobile header — Uber style */}
+          <header
+            className="cb-m-header sticky top-0 z-40 px-4 py-3"
+            style={{background:"var(--bg)",borderBottom:"1px solid var(--border)"}}
+          >
+            <div className="flex items-center justify-between max-w-xl mx-auto">
+              {title === "Active Job" ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white" style={{background:"var(--brand)"}}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"/>
+                      In Progress
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  {action}
-                  <NotifBellInline />
-                  <button
-                    onClick={handleLogout}
-                    className="p-2 rounded-xl"
-                    style={{ color: "var(--text2)" }}
-                    title="Sign Out"
-                  >
-                    <LogOut size={20} />
-                  </button>
-                </div>
-              </div>
-            </header>
-          )}
+                  <span className="text-lg font-extrabold" style={{color:"var(--text)",fontVariantNumeric:"tabular-nums"}}>{subtitle}</span>
+                </>
+              ) : title === "Job Complete" ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{background:"var(--green-bg)"}}>
+                      <CheckCircle size={18} style={{color:"var(--green)"}}/>
+                    </div>
+                    <span className="text-base font-extrabold" style={{color:"var(--text)"}}>Job Complete</span>
+                  </div>
+                  <NotifBellInline/>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2.5">
+                    <div style={{width:32,height:32,borderRadius:8,background:"linear-gradient(135deg, var(--brand), var(--brand-hover))",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:12}}>CB</div>
+                    <span className="text-base font-extrabold" style={{color:"var(--text)"}}>CrewBooks</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {action}
+                    <NotifBellInline/>
+                  </div>
+                </>
+              )}
+            </div>
+          </header>
 
           {/* Content */}
           <main className="cb-content flex-1">
