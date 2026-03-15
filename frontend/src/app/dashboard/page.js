@@ -271,8 +271,6 @@ function ActiveJob({ job, secs, fmt, onComplete, router }) {
           <Navigation size={16} style={{color:"var(--text2)"}}/><span className="text-xs font-bold" style={{color:"var(--text)"}}>Navigate</span>
         </a>
       </div>
-        ))}
-      </div>
       <div className="grid grid-cols-2 gap-2">
         <button onClick={() => router.push("/jobs/"+job.jobId+"#photos")} className="card-hover text-left">
           <div className="flex items-center gap-3">
