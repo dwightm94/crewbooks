@@ -29,13 +29,6 @@ export default function DashboardPage() {
   const [err, setErr] = useState(null);
   const [showUpgrade, setShowUpgrade] = useState(null);
   const [view, setView] = useState("day");
-
-
-
-
-
-
-  });
   const [seconds, setSeconds] = useState(() => {
     if (typeof window !== "undefined") {
       const start = localStorage.getItem("cb_job_start");
