@@ -5,17 +5,22 @@ import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { usePlan } from "@/hooks/usePlan";
-import { createConnectAccount, getConnectStatus, createOnboardLink, getConnectDashboard, getQBStatus, connectQuickBooks, syncQuickBooks, disconnectQuickBooks } from "@/lib/api";
+import { createConnectAccount, getConnectStatus, createOnboardLink, getConnectDashboard } from "@/lib/api";
 import { getProfile, updateProfile } from "@/lib/api";
-import { Sun, Moon, User, Building2, Wrench, CreditCard, ExternalLink, Bell, Shield, ChevronRight, CheckCircle2, AlertTriangle, Zap, Crown } from "lucide-react";
+import {
+  Sun, Moon, Building2, Wrench, CreditCard, ExternalLink, Bell, Shield,
+  ChevronRight, CheckCircle2, AlertTriangle, Zap, LogOut, ChevronDown, ChevronUp
+} from "lucide-react";
 
 const TRADES = ["Electrician","Plumber","HVAC","Carpenter","Painter","Roofer","Concrete","Framing","Drywall","Flooring","Landscaping","Masonry","General Contractor","Other"];
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, logout } = useAuth();
   const { dark, toggle } = useTheme();
   const [company, setCompany] = useState("");
   const [trade, setTrade] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -27,115 +32,166 @@ export default function SettingsPage() {
 
   const saveCompany = async () => {
     await updateProfile({ companyName: company, trade });
-    setSaved(true); setTimeout(() => setSaved(false), 2000);
+    setSaved(true);
+    setTimeout(() => { setSaved(false); setEditOpen(false); }, 1200);
   };
+
+  const handleLogout = () => { logout(); window.location.href = "/auth/login"; };
+
+  if (!user) return null;
 
   return (
     <AppShell title="Settings">
-      {/* Profile & Company */}
-      <div className="card mt-4">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white" style={{ background: "var(--brand)" }}>
-            {user?.name?.[0]?.toUpperCase() || "U"}
+      <div className="py-4 space-y-5">
+
+        {/* ── USER CARD ─────────────────────────────────────── */}
+        <div className="rounded-2xl overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="flex items-center gap-3.5 p-4">
+            <div className="w-13 h-13 rounded-full flex items-center justify-center text-xl font-bold text-white flex-shrink-0" style={{ background: "var(--brand)", width: 52, height: 52 }}>
+              {user?.name?.[0]?.toUpperCase() || "U"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-base truncate" style={{ color: "var(--text)" }}>{user?.name || "Contractor"}</p>
+              <p className="text-sm truncate" style={{ color: "var(--text2)" }}>{user?.email}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-lg font-bold" style={{ color: "var(--text)" }}>{user?.name || "Contractor"}</p>
-            <p className="text-sm" style={{ color: "var(--text2)" }}>{user?.email}</p>
+          {/* Company row */}
+          <div className="px-4 pb-4">
+            <div className="flex items-center gap-2.5 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(var(--brand-rgb, 232,145,42), 0.1)" }}>
+                <Building2 size={14} style={{ color: "var(--brand)" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: "var(--text)" }}>{company || "Add company name"}</p>
+                <p className="text-[11px]" style={{ color: "var(--text3, var(--muted))" }}>{trade || "Set your trade"}{company && trade ? "" : ""}</p>
+              </div>
+              <button onClick={() => setEditOpen(!editOpen)} className="px-2.5 py-1 text-[11px] font-semibold rounded-lg" style={{ border: "1px solid var(--border)", color: "var(--text2)", background: "transparent" }}>
+                {editOpen ? "Cancel" : "Edit"}
+              </button>
+            </div>
+
+            {/* Edit form (collapsible) */}
+            {editOpen && (
+              <div className="mt-3 space-y-2.5">
+                <input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="Company name"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: "var(--bg2, var(--input))", border: "1px solid var(--border)", color: "var(--text)", outline: "none" }} />
+                <select value={trade} onChange={e => setTrade(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: "var(--bg2, var(--input))", border: "1px solid var(--border)", color: "var(--text)", outline: "none" }}>
+                  <option value="">Select your trade</option>
+                  {TRADES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <button onClick={saveCompany} className="w-full py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: "var(--brand)" }}>
+                  {saved ? "\u2713 Saved!" : "Save"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
-        <div className="space-y-3">
-          <div>
-            <label className="field-label"><Building2 size={14} className="inline mr-1" />Company Name</label>
-            <input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="Your Company LLC" className="field" />
+
+        {/* ── BILLING ───────────────────────────────────────── */}
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wider mb-2 px-1" style={{ color: "var(--text3, var(--muted))" }}>Billing</p>
+          <div className="rounded-2xl overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <StripeRow email={user?.email} />
+            <div style={{ borderTop: "1px solid var(--border)" }}>
+              <SubscriptionRow />
+            </div>
           </div>
-          <div>
-            <label className="field-label"><Wrench size={14} className="inline mr-1" />Trade</label>
-            <select value={trade} onChange={e => setTrade(e.target.value)} className="field">
-              <option value="">Select your trade</option>
-              {TRADES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+        </div>
+
+        {/* ── INTEGRATIONS ──────────────────────────────────── */}
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wider mb-2 px-1" style={{ color: "var(--text3, var(--muted))" }}>Integrations</p>
+          <div className="rounded-2xl overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#2CA01C" }}>
+                <span className="text-white font-bold text-[11px]">QB</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>QuickBooks Online</p>
+                <p className="text-xs" style={{ color: "var(--text3, var(--muted))" }}>Sync invoices & expenses</p>
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ background: "rgba(234,179,8,0.1)", color: "#D97706" }}>Coming soon</span>
+            </div>
           </div>
-          <button onClick={saveCompany} className="btn btn-brand w-full">{saved ? "\u2713 Saved!" : "Save Company Info"}</button>
+        </div>
+
+        {/* ── PREFERENCES ───────────────────────────────────── */}
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wider mb-2 px-1" style={{ color: "var(--text3, var(--muted))" }}>Preferences</p>
+          <div className="rounded-2xl overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            {/* Appearance */}
+            <div className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: "1px solid var(--border)" }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--bg2, #F3F4F6)" }}>
+                {dark ? <Moon size={16} style={{ color: "var(--brand)" }} /> : <Sun size={16} style={{ color: "var(--brand)" }} />}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Appearance</p>
+                <p className="text-xs" style={{ color: "var(--text3, var(--muted))" }}>{dark ? "Dark mode \u00b7 easy on the eyes" : "Light mode \u00b7 best for outdoors"}</p>
+              </div>
+              <button onClick={toggle} className="relative flex-shrink-0" style={{ width: 44, height: 24, borderRadius: 12, background: dark ? "var(--brand)" : "var(--input, #D1D5DB)", border: "none", cursor: "pointer", transition: "background .2s" }}>
+                <div style={{ position: "absolute", top: 2, width: 20, height: 20, borderRadius: "50%", background: "#FFF", boxShadow: "0 1px 3px rgba(0,0,0,.12)", transition: "left .2s", left: dark ? 22 : 2 }} />
+              </button>
+            </div>
+            {/* Payment Reminders */}
+            <ToggleRow icon={Bell} label="Payment reminders" desc="Auto-remind overdue invoices" border />
+            {/* Email Notifications */}
+            <ToggleRow icon={MailIcon} label="Email notifications" desc="Invoice views & payments" />
+          </div>
+        </div>
+
+        {/* ── SUPPORT ───────────────────────────────────────── */}
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wider mb-2 px-1" style={{ color: "var(--text3, var(--muted))" }}>Support</p>
+          <div className="rounded-2xl overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <a href="/privacy.html" target="_blank" rel="noopener" className="flex items-center gap-3 px-4 py-3.5" style={{ textDecoration: "none", borderBottom: "1px solid var(--border)" }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--bg2, #F3F4F6)" }}>
+                <Shield size={16} style={{ color: "var(--brand)" }} />
+              </div>
+              <p className="flex-1 text-sm font-semibold" style={{ color: "var(--text)" }}>Privacy policy</p>
+              <ChevronRight size={16} style={{ color: "var(--text3, #D1D5DB)" }} />
+            </a>
+            <a href="mailto:crewbookss@gmail.com" className="flex items-center gap-3 px-4 py-3.5" style={{ textDecoration: "none" }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--bg2, #F3F4F6)" }}>
+                <ExternalLink size={16} style={{ color: "var(--brand)" }} />
+              </div>
+              <p className="flex-1 text-sm font-semibold" style={{ color: "var(--text)" }}>Help & support</p>
+              <ChevronRight size={16} style={{ color: "var(--text3, #D1D5DB)" }} />
+            </a>
+          </div>
+        </div>
+
+        {/* ── UPGRADE CTA ───────────────────────────────────── */}
+        <UpgradeBanner />
+
+        {/* ── FOOTER ────────────────────────────────────────── */}
+        <div className="text-center pt-2 pb-4 space-y-3">
+          <p className="text-xs" style={{ color: "var(--text3, var(--muted))" }}>CrewBooks v1.0 · Made for contractors</p>
+          <button onClick={handleLogout} className="text-sm font-semibold" style={{ color: "#EF4444", background: "none", border: "none", cursor: "pointer" }}>
+            <span className="flex items-center justify-center gap-1.5"><LogOut size={15} /> Log out</span>
+          </button>
         </div>
       </div>
-
-      {/* Theme */}
-      <section className="mt-6">
-        <h3 className="section-title">Appearance</h3>
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {dark ? <Moon size={22} style={{ color: "var(--brand)" }} /> : <Sun size={22} style={{ color: "var(--brand)" }} />}
-              <div>
-                <p className="font-bold" style={{ color: "var(--text)" }}>{dark ? "Dark Mode" : "Light Mode"}</p>
-                <p className="text-sm" style={{ color: "var(--text2)" }}>{dark ? "Easy on the eyes" : "Best for outdoors"}</p>
-              </div>
-            </div>
-            <button onClick={toggle} className="relative w-14 h-8 rounded-full transition-colors" style={{ background: dark ? "var(--brand)" : "var(--input)" }}>
-              <div className="absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform" style={{ left: dark ? "calc(100% - 28px)" : "4px" }} />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Payments */}
-      <section className="mt-6">
-        <h3 className="section-title">Payments</h3>
-        <StripeConnectSection email={user?.email} />
-      </section>
-
-      {/* Subscription */}
-      <section className="mt-6">
-        <h3 className="section-title">Subscription</h3>
-        <SubscriptionSection />
-      </section>
-
-      {/* Integrations */}
-      <section className="mt-6">
-        <h3 className="section-title">Integrations</h3>
-        <QuickBooksSection />
-      </section>
-
-      {/* Notifications */}
-      <section className="mt-6">
-        <h3 className="section-title">Notifications</h3>
-        <div className="card space-y-4">
-          <ToggleRow icon={Bell} label="Payment Reminders" desc="Auto-remind clients about overdue invoices" />
-          <ToggleRow icon={MailIcon} label="Email Notifications" desc="Get notified when invoices are viewed" />
-        </div>
-      </section>
-
-      {/* Privacy & Help */}
-      <section className="mt-6 space-y-2 mb-8">
-        <h3 className="section-title">Support</h3>
-        <SettingsLink icon={Shield} label="Privacy Policy" href="/privacy.html" />
-        <SettingsLink icon={ExternalLink} label="Help & Support" href="mailto:crewbookss@gmail.com" />
-      </section>
     </AppShell>
   );
 }
 
-function ToggleRow({ icon: Icon, label, desc }) {
+/* ── Toggle Row ───────────────────────────────────────────────── */
+function ToggleRow({ icon: Icon, label, desc, border }) {
   const [on, setOn] = useState(true);
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <Icon size={18} style={{ color: "var(--text2)" }} />
-        <div><p className="font-semibold text-sm" style={{ color: "var(--text)" }}>{label}</p><p className="text-xs" style={{ color: "var(--muted)" }}>{desc}</p></div>
+    <div className="flex items-center gap-3 px-4 py-3.5" style={border ? { borderBottom: "1px solid var(--border)" } : undefined}>
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--bg2, #F3F4F6)" }}>
+        <Icon size={16} style={{ color: "var(--brand)" }} />
       </div>
-      <button onClick={() => setOn(!on)} className="relative w-12 h-7 rounded-full transition-colors" style={{ background: on ? "var(--brand)" : "var(--input)" }}>
-        <div className="absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform" style={{ left: on ? "calc(100% - 26px)" : "2px" }} />
+      <div className="flex-1">
+        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>{label}</p>
+        <p className="text-xs" style={{ color: "var(--text3, var(--muted))" }}>{desc}</p>
+      </div>
+      <button onClick={() => setOn(!on)} className="relative flex-shrink-0" style={{ width: 44, height: 24, borderRadius: 12, background: on ? "var(--brand)" : "var(--input, #D1D5DB)", border: "none", cursor: "pointer", transition: "background .2s" }}>
+        <div style={{ position: "absolute", top: 2, width: 20, height: 20, borderRadius: "50%", background: "#FFF", boxShadow: "0 1px 3px rgba(0,0,0,.12)", transition: "left .2s", left: on ? 22 : 2 }} />
       </button>
     </div>
-  );
-}
-
-function SettingsLink({ icon: Icon, label, href }) {
-  return (
-    <a href={href || "#"} target="_blank" rel="noopener" className="card-hover w-full text-left flex items-center justify-between" style={{ display: "flex", textDecoration: "none" }}>
-      <div className="flex items-center gap-3"><Icon size={18} style={{ color: "var(--text2)" }} /><span className="font-medium" style={{ color: "var(--text)" }}>{label}</span></div>
-      <ChevronRight size={18} style={{ color: "var(--muted)" }} />
-    </a>
   );
 }
 
@@ -143,7 +199,8 @@ function MailIcon({ size, style }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>;
 }
 
-function StripeConnectSection({ email }) {
+/* ── Stripe Row (inline in Billing section) ───────────────────── */
+function StripeRow({ email }) {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -158,7 +215,7 @@ function StripeConnectSection({ email }) {
       if (!status?.connected) await createConnectAccount(email);
       const link = await createOnboardLink();
       if (link.url) window.location.href = link.url;
-    } catch (e) { alert("Error setting up payments: " + e.message); }
+    } catch (e) { alert("Error: " + e.message); }
     setConnecting(false);
   };
 
@@ -167,135 +224,117 @@ function StripeConnectSection({ email }) {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
         const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        const appUrl = isIOS
+        window.location.href = isIOS
           ? "https://apps.apple.com/us/app/stripe-dashboard/id978516833"
           : "https://play.google.com/store/apps/details?id=com.stripe.android.dashboard";
-        window.location.href = appUrl;
         return;
       }
       const link = await getConnectDashboard();
       if (link.url) window.open(link.url, "_blank");
-    } catch (e) { alert("Error opening dashboard"); }
+    } catch { alert("Error opening dashboard"); }
   };
 
-  if (loading) return <div className="card"><div className="skeleton h-16" /></div>;
+  if (loading) return <div className="px-4 py-4"><div className="h-10 rounded-xl animate-pulse" style={{ background: "var(--bg2)" }} /></div>;
 
+  // Fully onboarded
   if (status?.onboarded) {
     return (
-      <div className="card">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(34,197,94,0.1)" }}>
-            <CheckCircle2 size={20} style={{ color: "#22C55E" }} />
-          </div>
-          <div className="flex-1">
-            <p className="font-bold" style={{ color: "var(--text)" }}>Payments Active</p>
-            <p className="text-xs" style={{ color: "var(--text2)" }}>Clients can pay invoices online</p>
-          </div>
-        </div>
-        <div className="divider" />
-        <button onClick={openDashboard} className="btn w-full text-sm font-bold" style={{ background: "#635BFF", color: "white" }}>
-          Open Stripe Dashboard →
-        </button>
-      </div>
-    );
-  }
-
-  if (status?.connected && !status?.onboarded) {
-    return (
-      <div className="card">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(234,179,8,0.1)" }}>
-            <AlertTriangle size={20} style={{ color: "#EAB308" }} />
-          </div>
-          <div className="flex-1">
-            <p className="font-bold" style={{ color: "var(--text)" }}>Finish Setup</p>
-            <p className="text-xs" style={{ color: "var(--text2)" }}>Complete Stripe verification to accept payments</p>
-          </div>
-        </div>
-        <div className="divider" />
-        <button onClick={handleSetup} disabled={connecting} className="btn w-full text-sm font-bold" style={{ background: "#635BFF", color: "white" }}>
-          {connecting ? "Loading..." : "Complete Stripe Setup →"}
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="card">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(99,91,255,0.1)" }}>
-          <CreditCard size={20} style={{ color: "#635BFF" }} />
+      <button onClick={openDashboard} className="w-full flex items-center gap-3 px-4 py-3.5 text-left" style={{ background: "transparent", border: "none", cursor: "pointer" }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(34,197,94,0.1)" }}>
+          <CreditCard size={16} style={{ color: "#22C55E" }} />
         </div>
         <div className="flex-1">
-          <p className="font-bold" style={{ color: "var(--text)" }}>Accept Online Payments</p>
-          <p className="text-xs" style={{ color: "var(--text2)" }}>Let clients pay invoices with credit card</p>
+          <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Payments</p>
+          <p className="text-xs" style={{ color: "var(--text3, var(--muted))" }}>Stripe Connect</p>
         </div>
-      </div>
-      <div className="divider" />
-      <button onClick={handleSetup} disabled={connecting} className="btn w-full text-sm font-bold" style={{ background: "#635BFF", color: "white" }}>
-        {connecting ? "Setting up..." : "Connect with Stripe →"}
+        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full" style={{ background: "rgba(34,197,94,0.1)", color: "#16A34A" }}>Active</span>
       </button>
-    </div>
+    );
+  }
+
+  // Needs to finish setup
+  if (status?.connected && !status?.onboarded) {
+    return (
+      <button onClick={handleSetup} disabled={connecting} className="w-full flex items-center gap-3 px-4 py-3.5 text-left" style={{ background: "transparent", border: "none", cursor: "pointer" }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(234,179,8,0.1)" }}>
+          <AlertTriangle size={16} style={{ color: "#EAB308" }} />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Payments</p>
+          <p className="text-xs" style={{ color: "#D97706" }}>{connecting ? "Loading..." : "Finish Stripe setup \u2192"}</p>
+        </div>
+        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full" style={{ background: "rgba(234,179,8,0.1)", color: "#D97706" }}>Pending</span>
+      </button>
+    );
+  }
+
+  // Not connected
+  return (
+    <button onClick={handleSetup} disabled={connecting} className="w-full flex items-center gap-3 px-4 py-3.5 text-left" style={{ background: "transparent", border: "none", cursor: "pointer" }}>
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(99,91,255,0.1)" }}>
+        <CreditCard size={16} style={{ color: "#635BFF" }} />
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Payments</p>
+        <p className="text-xs" style={{ color: "#635BFF" }}>{connecting ? "Setting up..." : "Connect with Stripe \u2192"}</p>
+      </div>
+      <ChevronRight size={16} style={{ color: "var(--text3, #D1D5DB)" }} />
+    </button>
   );
 }
 
-// === Subscription Section ===
-function SubscriptionSection() {
-  const { plan, isPro, loading } = usePlan();
+/* ── Subscription Row (inline in Billing section) ─────────────── */
+function SubscriptionRow() {
+  const { isPro, loading } = usePlan();
   const router = useRouter();
 
-  if (loading) return <div className="card animate-pulse h-24" />;
+  if (loading) return <div className="px-4 py-4"><div className="h-10 rounded-xl animate-pulse" style={{ background: "var(--bg2)" }} /></div>;
 
   if (isPro) {
     return (
-      <div className="card" style={{ borderColor: "#F59E0B", borderWidth: "2px" }}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #F59E0B, #EF4444)" }}>
-              <Zap size={20} color="white" />
-            </div>
-            <div>
-              <p className="font-bold text-lg" style={{ color: "var(--text)" }}>Pro Plan</p>
-              <p className="text-sm" style={{ color: "#22C55E" }}>Active</p>
-            </div>
-          </div>
-          <CheckCircle2 size={24} style={{ color: "#22C55E" }} />
+      <div className="flex items-center gap-3 px-4 py-3.5">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, #F59E0B, #EF4444)" }}>
+          <Zap size={16} color="white" />
         </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Subscription</p>
+          <p className="text-xs" style={{ color: "var(--text3, var(--muted))" }}>Pro plan · $39/mo</p>
+        </div>
+        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full" style={{ background: "rgba(34,197,94,0.1)", color: "#16A34A" }}>Active</span>
       </div>
     );
   }
 
   return (
-    <div className="card">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="font-bold text-lg" style={{ color: "var(--text)" }}>Free Plan</p>
-          <p className="text-sm" style={{ color: "var(--text2)" }}>3 active jobs • 3 invoices/month</p>
-        </div>
+    <button onClick={() => router.push("/upgrade")} className="w-full flex items-center gap-3 px-4 py-3.5 text-left" style={{ background: "transparent", border: "none", cursor: "pointer" }}>
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--bg2, #F3F4F6)" }}>
+        <Zap size={16} style={{ color: "var(--brand)" }} />
       </div>
-      <div className="divider" />
-      <button onClick={() => router.push("/upgrade")} className="w-full py-3 rounded-xl text-white font-bold"
-        style={{ background: "linear-gradient(135deg, #F59E0B, #EF4444)" }}>
-        <span className="flex items-center justify-center gap-2"><Zap size={18} />Upgrade to Pro — $39/mo</span>
-      </button>
-    </div>
+      <div className="flex-1">
+        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Subscription</p>
+        <p className="text-xs" style={{ color: "var(--text3, var(--muted))" }}>Free plan · 3 jobs, 3 invoices/mo</p>
+      </div>
+      <ChevronRight size={16} style={{ color: "var(--text3, #D1D5DB)" }} />
+    </button>
   );
 }
 
-// === QuickBooks Section ===
-function QuickBooksSection() {
+/* ── Upgrade Banner ───────────────────────────────────────────── */
+function UpgradeBanner() {
+  const { isPro } = usePlan();
+  const router = useRouter();
+  if (isPro) return null;
+
   return (
-    <div className="card">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#2CA01C" }}>
-          <span className="text-white font-bold text-sm">QB</span>
-        </div>
-        <div className="flex-1">
-          <p className="font-bold" style={{ color: "var(--text)" }}>QuickBooks Online</p>
-          <p className="text-xs" style={{ color: "var(--muted)" }}>Sync invoices \& expenses</p>
-        </div>
-        <span className="badge badge-yellow">Coming Soon</span>
+    <button onClick={() => router.push("/upgrade")} className="w-full flex items-center justify-between p-4 rounded-2xl text-left"
+      style={{ background: "var(--card)", border: "2px solid var(--brand)", cursor: "pointer" }}>
+      <div>
+        <p className="text-sm font-bold" style={{ color: "var(--text)" }}>Upgrade to Pro</p>
+        <p className="text-xs mt-0.5" style={{ color: "var(--text2)" }}>$39/mo · Unlimited jobs & invoices</p>
       </div>
-    </div>
+      <div className="px-4 py-2 rounded-xl text-sm font-bold text-white flex-shrink-0" style={{ background: "var(--brand)" }}>
+        Upgrade
+      </div>
+    </button>
   );
 }
