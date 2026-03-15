@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../contexts/AuthContext";
-import { getAssignments, getCrew, getJobs } from "../utils/api";
+import { AppShell } from "@/components/layout/AppShell";
+import { useAuth } from "@/hooks/useAuth";
+import { getAssignments, getCrew, getJobs } from "@/lib/api";
+import { Calendar, ChevronLeft, ChevronRight, MapPin, Users, Navigation, List, Clock } from "lucide-react";
 
 // ─── Date helpers ───────────────────────────────────────────────────────────
 const DAY_MS = 86400000;
 const fmt = (d, opts) => new Intl.DateTimeFormat("en-US", opts).format(d);
+const toKey = (d) => d.toISOString().split("T")[0];
 const isSameDay = (a, b) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
@@ -15,7 +18,7 @@ const isSameDay = (a, b) =>
 
 const getWeekDays = (anchor) => {
   const start = new Date(anchor);
-  start.setDate(start.getDate() - start.getDay()); // Sunday
+  start.setDate(start.getDate() - start.getDay());
   return Array.from({ length: 7 }, (_, i) => new Date(+start + i * DAY_MS));
 };
 
@@ -24,306 +27,148 @@ const getMonthDays = (year, month) => {
   const last = new Date(year, month + 1, 0);
   const startDay = first.getDay();
   const days = [];
-  // pad start
-  for (let i = startDay - 1; i >= 0; i--) {
+  for (let i = startDay - 1; i >= 0; i--)
     days.push({ date: new Date(year, month, -i), outside: true });
-  }
-  for (let d = 1; d <= last.getDate(); d++) {
+  for (let d = 1; d <= last.getDate(); d++)
     days.push({ date: new Date(year, month, d), outside: false });
-  }
-  // pad end
   const remaining = 7 - (days.length % 7);
-  if (remaining < 7) {
-    for (let i = 1; i <= remaining; i++) {
+  if (remaining < 7)
+    for (let i = 1; i <= remaining; i++)
       days.push({ date: new Date(year, month + 1, i), outside: true });
-    }
-  }
   return days;
 };
 
-// ─── Status badge config ────────────────────────────────────────────────────
+// ─── Status config ──────────────────────────────────────────────────────────
 const STATUS_STYLES = {
   scheduled: { bg: "#EEF2FF", color: "#4F46E5", label: "Scheduled" },
   in_progress: { bg: "#FFF7ED", color: "#EA580C", label: "In Progress" },
+  active: { bg: "#FFF7ED", color: "#EA580C", label: "Active" },
+  bidding: { bg: "#FFFBEB", color: "#D97706", label: "Bidding" },
   completed: { bg: "#F0FDF4", color: "#16A34A", label: "Completed" },
+  complete: { bg: "#F0FDF4", color: "#16A34A", label: "Complete" },
   paid: { bg: "#ECFDF5", color: "#059669", label: "Paid" },
   invoiced: { bg: "#EFF6FF", color: "#2563EB", label: "Invoiced" },
   default: { bg: "#F3F4F6", color: "#6B7280", label: "Open" },
 };
-
-const getStatusStyle = (status) =>
-  STATUS_STYLES[status?.toLowerCase()] || STATUS_STYLES.default;
+const getStatusStyle = (s) => STATUS_STYLES[s?.toLowerCase()] || STATUS_STYLES.default;
 
 // ─── JobCard ────────────────────────────────────────────────────────────────
 function JobCard({ assignment, job, crewMap, onClick }) {
   const status = getStatusStyle(job?.status || assignment?.status);
-  const crewNames = (assignment?.crewIds || [])
+  const crewNames = (assignment?.crewIds || assignment?.memberIds || [])
     .map((id) => crewMap[id]?.name || "Unassigned")
+    .filter(Boolean)
     .join(", ");
+  const memberName = assignment?.memberName || (assignment?.memberId && crewMap[assignment.memberId]?.name);
 
   const timeStr = assignment?.startTime
     ? fmt(new Date(assignment.startTime), { hour: "numeric", minute: "2-digit" })
-    : "No time set";
+    : null;
 
   return (
     <button
       onClick={onClick}
       style={{
-        display: "flex",
-        alignItems: "stretch",
-        width: "100%",
-        background: "#FFFFFF",
-        border: "1px solid #E5E7EB",
-        borderRadius: 12,
-        padding: 0,
-        cursor: "pointer",
-        textAlign: "left",
-        transition: "box-shadow 0.15s, border-color 0.15s, transform 0.1s",
-        overflow: "hidden",
+        display: "flex", alignItems: "stretch", width: "100%",
+        background: "var(--card, #FFF)", border: "1px solid var(--border, #E5E7EB)",
+        borderRadius: 12, padding: 0, cursor: "pointer", textAlign: "left",
+        transition: "box-shadow 0.15s, transform 0.1s", overflow: "hidden",
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)";
-        e.currentTarget.style.borderColor = "#D1D5DB";
-        e.currentTarget.style.transform = "translateY(-1px)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "none";
-        e.currentTarget.style.borderColor = "#E5E7EB";
-        e.currentTarget.style.transform = "none";
-      }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}
     >
-      {/* Color accent bar */}
-      <div
-        style={{
-          width: 4,
-          flexShrink: 0,
-          background: status.color,
-          borderRadius: "12px 0 0 12px",
-        }}
-      />
+      <div style={{ width: 4, flexShrink: 0, background: status.color, borderRadius: "12px 0 0 12px" }} />
       <div style={{ flex: 1, padding: "14px 16px" }}>
-        {/* Top row: time + status */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 6,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "#6B7280",
-              letterSpacing: "0.01em",
-            }}
-          >
-            {timeStr}
-          </span>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: status.color,
-              background: status.bg,
-              padding: "3px 10px",
-              borderRadius: 100,
-              letterSpacing: "0.02em",
-              textTransform: "uppercase",
-            }}
-          >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          {timeStr && (
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text2, #6B7280)", display: "flex", alignItems: "center", gap: 4 }}>
+              <Clock size={13} /> {timeStr}
+            </span>
+          )}
+          <span style={{
+            fontSize: 11, fontWeight: 600, color: status.color, background: status.bg,
+            padding: "3px 10px", borderRadius: 100, letterSpacing: "0.02em", textTransform: "uppercase",
+            marginLeft: "auto",
+          }}>
             {status.label}
           </span>
         </div>
 
-        {/* Job title */}
-        <div
-          style={{
-            fontSize: 15,
-            fontWeight: 700,
-            color: "#111827",
-            marginBottom: 4,
-            lineHeight: 1.3,
-          }}
-        >
-          {job?.title || assignment?.title || "Untitled Job"}
+        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text, #111827)", marginBottom: 4, lineHeight: 1.3 }}>
+          {job?.title || job?.name || assignment?.jobTitle || "Untitled Job"}
         </div>
 
-        {/* Client name */}
         {job?.clientName && (
-          <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 6 }}>
-            {job.clientName}
-          </div>
+          <div style={{ fontSize: 13, color: "var(--text2, #6B7280)", marginBottom: 6 }}>{job.clientName}</div>
         )}
 
-        {/* Address */}
-        {(job?.address || assignment?.address) && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              fontSize: 13,
-              color: "#9CA3AF",
-              marginBottom: 6,
-            }}
-          >
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+        {(job?.address || job?.location) && (
+          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--text3, #9CA3AF)", marginBottom: 6 }}>
+            <MapPin size={13} />
             <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {job?.address || assignment?.address}
+              {job?.address || job?.location}
             </span>
           </div>
         )}
 
-        {/* Crew chips */}
-        {crewNames && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              fontSize: 12,
-              color: "#9CA3AF",
-            }}
-          >
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span>{crewNames}</span>
+        {(crewNames || memberName) && (
+          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--text3, #9CA3AF)" }}>
+            <Users size={13} />
+            <span>{crewNames || memberName}</span>
           </div>
         )}
       </div>
 
-      {/* Chevron */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          padding: "0 12px",
-          color: "#D1D5DB",
-        }}
-      >
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-          <path d="M9 5l7 7-7 7" />
-        </svg>
+      <div style={{ display: "flex", alignItems: "center", padding: "0 12px", color: "var(--border, #D1D5DB)" }}>
+        <ChevronRight size={16} />
       </div>
     </button>
   );
 }
 
-// ─── Horizontal Week Strip ──────────────────────────────────────────────────
-function WeekStrip({ selectedDate, onSelectDate, assignmentsByDate }) {
+// ─── Horizontal Week Strip (mobile) ─────────────────────────────────────────
+function WeekStrip({ selectedDate, onSelectDate, dateCounts }) {
   const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
   const today = new Date();
 
-  const goPrevWeek = () => {
+  const shift = (n) => {
     const d = new Date(selectedDate);
-    d.setDate(d.getDate() - 7);
-    onSelectDate(d);
-  };
-  const goNextWeek = () => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + 7);
+    d.setDate(d.getDate() + n);
     onSelectDate(d);
   };
 
   return (
     <div>
-      {/* Month label + nav */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 12,
-          padding: "0 4px",
-        }}
-      >
-        <button onClick={goPrevWeek} style={navBtnStyle}>
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <span style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 4px" }}>
+        <button onClick={() => shift(-7)} className="cal-nav-btn"><ChevronLeft size={18} /></button>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>
           {fmt(selectedDate, { month: "long", year: "numeric" })}
         </span>
-        <button onClick={goNextWeek} style={navBtnStyle}>
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+        <button onClick={() => shift(7)} className="cal-nav-btn"><ChevronRight size={18} /></button>
       </div>
-
-      {/* Day cells */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
-          gap: 4,
-        }}
-      >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
         {weekDays.map((day) => {
           const isToday = isSameDay(day, today);
-          const isSelected = isSameDay(day, selectedDate);
-          const dateKey = day.toISOString().split("T")[0];
-          const count = (assignmentsByDate[dateKey] || []).length;
-
+          const isSel = isSameDay(day, selectedDate);
+          const key = toKey(day);
+          const count = dateCounts[key] || 0;
           return (
-            <button
-              key={dateKey}
-              onClick={() => onSelectDate(new Date(day))}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 2,
-                padding: "8px 4px 10px",
-                borderRadius: 12,
-                border: "none",
-                cursor: "pointer",
-                background: isSelected
-                  ? "#111827"
-                  : isToday
-                  ? "#F3F4F6"
-                  : "transparent",
-                transition: "background 0.15s",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: isSelected ? "#9CA3AF" : "#9CA3AF",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
-              >
+            <button key={key} onClick={() => onSelectDate(new Date(day))} style={{
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+              padding: "8px 4px 10px", borderRadius: 12, border: "none", cursor: "pointer",
+              background: isSel ? "var(--brand, #111827)" : isToday ? "var(--bg2, #F3F4F6)" : "transparent",
+              transition: "background 0.15s",
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text3, #9CA3AF)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 {fmt(day, { weekday: "short" })}
               </span>
-              <span
-                style={{
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: isSelected ? "#FFFFFF" : isToday ? "#111827" : "#374151",
-                  lineHeight: 1.2,
-                }}
-              >
+              <span style={{ fontSize: 18, fontWeight: 700, color: isSel ? "#FFF" : isToday ? "var(--text)" : "var(--text, #374151)", lineHeight: 1.2 }}>
                 {day.getDate()}
               </span>
-              {/* Dot indicator for jobs */}
-              <div
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: count > 0 ? (isSelected ? "#60A5FA" : "#4F46E5") : "transparent",
-                  marginTop: 1,
-                }}
-              />
+              <div style={{
+                width: 6, height: 6, borderRadius: "50%", marginTop: 1,
+                background: count > 0 ? (isSel ? "#60A5FA" : "var(--brand, #4F46E5)") : "transparent",
+              }} />
             </button>
           );
         })}
@@ -333,7 +178,7 @@ function WeekStrip({ selectedDate, onSelectDate, assignmentsByDate }) {
 }
 
 // ─── Full Month Calendar (desktop) ──────────────────────────────────────────
-function MonthCalendar({ selectedDate, onSelectDate, assignmentsByDate }) {
+function MonthCalendar({ selectedDate, onSelectDate, dateCounts }) {
   const [viewMonth, setViewMonth] = useState(selectedDate.getMonth());
   const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
   const today = new Date();
@@ -344,67 +189,42 @@ function MonthCalendar({ selectedDate, onSelectDate, assignmentsByDate }) {
   }, [selectedDate]);
 
   const days = useMemo(() => getMonthDays(viewYear, viewMonth), [viewYear, viewMonth]);
-  const weekHeaders = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  const goPrev = () => {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
-    else setViewMonth(viewMonth - 1);
-  };
-  const goNext = () => {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
-    else setViewMonth(viewMonth + 1);
-  };
+  const goPrev = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); } else setViewMonth(viewMonth - 1); };
+  const goNext = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); } else setViewMonth(viewMonth + 1); };
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <button onClick={goPrev} style={navBtnStyle}>
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M15 19l-7-7 7-7" /></svg>
-        </button>
-        <span style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>
+        <button onClick={goPrev} className="cal-nav-btn"><ChevronLeft size={18} /></button>
+        <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>
           {fmt(new Date(viewYear, viewMonth), { month: "long", year: "numeric" })}
         </span>
-        <button onClick={goNext} style={navBtnStyle}>
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path d="M9 5l7 7-7 7" /></svg>
-        </button>
+        <button onClick={goNext} className="cal-nav-btn"><ChevronRight size={18} /></button>
       </div>
-
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, textAlign: "center" }}>
-        {weekHeaders.map((d) => (
-          <div key={d} style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF", padding: "6px 0", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-            {d}
-          </div>
+        {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
+          <div key={d} style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", padding: "6px 0", textTransform: "uppercase", letterSpacing: "0.06em" }}>{d}</div>
         ))}
         {days.map(({ date, outside }, i) => {
           const isToday = isSameDay(date, today);
-          const isSelected = isSameDay(date, selectedDate);
-          const dateKey = date.toISOString().split("T")[0];
-          const count = (assignmentsByDate[dateKey] || []).length;
+          const isSel = isSameDay(date, selectedDate);
+          const key = toKey(date);
+          const count = dateCounts[key] || 0;
           return (
-            <button
-              key={i}
-              onClick={() => onSelectDate(new Date(date))}
-              style={{
-                padding: "8px 4px 6px",
-                borderRadius: 10,
-                border: "none",
-                cursor: "pointer",
-                opacity: outside ? 0.3 : 1,
-                background: isSelected ? "#111827" : isToday ? "#F3F4F6" : "transparent",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 3,
-                transition: "background 0.12s",
-              }}
-            >
-              <span style={{ fontSize: 14, fontWeight: isToday || isSelected ? 700 : 500, color: isSelected ? "#FFF" : "#374151" }}>
+            <button key={i} onClick={() => onSelectDate(new Date(date))} style={{
+              padding: "8px 4px 6px", borderRadius: 10, border: "none", cursor: "pointer",
+              opacity: outside ? 0.3 : 1,
+              background: isSel ? "var(--brand, #111827)" : isToday ? "var(--bg2, #F3F4F6)" : "transparent",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 3, transition: "background 0.12s",
+            }}>
+              <span style={{ fontSize: 14, fontWeight: isToday || isSel ? 700 : 500, color: isSel ? "#FFF" : "var(--text, #374151)" }}>
                 {date.getDate()}
               </span>
               {count > 0 && (
                 <div style={{ display: "flex", gap: 2 }}>
                   {Array.from({ length: Math.min(count, 3) }).map((_, j) => (
-                    <div key={j} style={{ width: 5, height: 5, borderRadius: "50%", background: isSelected ? "#60A5FA" : "#4F46E5" }} />
+                    <div key={j} style={{ width: 5, height: 5, borderRadius: "50%", background: isSel ? "#60A5FA" : "var(--brand, #4F46E5)" }} />
                   ))}
                 </div>
               )}
@@ -416,35 +236,19 @@ function MonthCalendar({ selectedDate, onSelectDate, assignmentsByDate }) {
   );
 }
 
-// ─── Shared styles ──────────────────────────────────────────────────────────
-const navBtnStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 36,
-  height: 36,
-  borderRadius: 10,
-  border: "1px solid #E5E7EB",
-  background: "#FFF",
-  cursor: "pointer",
-  color: "#374151",
-};
-
 // ─── Main Schedule Page ─────────────────────────────────────────────────────
 export default function SchedulePage() {
   const router = useRouter();
   const { user } = useAuth();
-  const [assignments, setAssignments] = useState([]);
+  const [assignmentsByDate, setAssignmentsByDate] = useState({});
   const [crew, setCrew] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState("day"); // "day" | "list"
+  const [viewMode, setViewMode] = useState("day");
   const [isMobile, setIsMobile] = useState(false);
-  const scrollRef = useRef(null);
 
-  // Responsive detection
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -452,35 +256,61 @@ export default function SchedulePage() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Data fetching
+  // Fetch crew + jobs once
   useEffect(() => {
     if (!user) return;
-    const load = async () => {
+    Promise.all([getCrew(), getJobs()])
+      .then(([c, j]) => { setCrew(c || []); setJobs(j || []); })
+      .catch((err) => console.error("Failed to load crew/jobs:", err));
+  }, [user]);
+
+  // Fetch assignments for visible date range
+  useEffect(() => {
+    if (!user) return;
+    const fetchRange = async () => {
       setLoading(true);
       setError(null);
       try {
-        const [aData, cData, jData] = await Promise.all([
-          getAssignments(user),
-          getCrew(user),
-          getJobs(user),
-        ]);
-        setAssignments(aData || []);
-        setCrew(cData || []);
-        setJobs(jData || []);
+        const dates = [];
+        if (viewMode === "day") {
+          // Fetch the full week around selected date for the calendar dots
+          const weekStart = new Date(selectedDate);
+          weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+          for (let i = 0; i < 7; i++) dates.push(new Date(+weekStart + i * DAY_MS));
+        } else {
+          // List view: fetch 14 days from selected date
+          for (let i = 0; i < 14; i++) dates.push(new Date(+selectedDate + i * DAY_MS));
+        }
+
+        const results = await Promise.all(
+          dates.map(async (d) => {
+            const key = toKey(d);
+            try {
+              const data = await getAssignments(key);
+              return { key, data: Array.isArray(data) ? data : [] };
+            } catch {
+              return { key, data: [] };
+            }
+          })
+        );
+
+        const grouped = {};
+        results.forEach(({ key, data }) => { grouped[key] = data; });
+        setAssignmentsByDate((prev) => ({ ...prev, ...grouped }));
       } catch (err) {
         console.error("Schedule fetch error:", err);
-        setError("Failed to load schedule data.");
+        setError("Failed to load schedule.");
       } finally {
         setLoading(false);
       }
     };
-    load();
-  }, [user]);
+    fetchRange();
+  }, [user, selectedDate, viewMode]);
 
-  // Build lookup maps
+  // Lookup maps
   const crewMap = useMemo(() => {
     const m = {};
-    crew.forEach((c) => (m[c.id || c.crewId] = c));
+    crew.forEach((c) => (m[c.id || c.crewId || c.memberId] = c));
     return m;
   }, [crew]);
 
@@ -490,371 +320,227 @@ export default function SchedulePage() {
     return m;
   }, [jobs]);
 
-  // Group assignments by date key
-  const assignmentsByDate = useMemo(() => {
-    const groups = {};
-    assignments.forEach((a) => {
-      const d = a.date || a.startTime || a.scheduledDate;
-      if (!d) return;
-      const key = new Date(d).toISOString().split("T")[0];
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(a);
+  // Date counts for calendar dots
+  const dateCounts = useMemo(() => {
+    const counts = {};
+    Object.entries(assignmentsByDate).forEach(([key, arr]) => {
+      counts[key] = arr.length;
     });
-    // Sort each day's assignments by time
-    Object.values(groups).forEach((arr) =>
-      arr.sort((a, b) => {
-        const tA = a.startTime ? new Date(a.startTime).getTime() : 0;
-        const tB = b.startTime ? new Date(b.startTime).getTime() : 0;
-        return tA - tB;
-      })
-    );
-    return groups;
-  }, [assignments]);
+    return counts;
+  }, [assignmentsByDate]);
 
   // Cards for current view
-  const visibleAssignments = useMemo(() => {
-    if (viewMode === "day") {
-      const key = selectedDate.toISOString().split("T")[0];
-      return assignmentsByDate[key] || [];
-    }
-    // List view: show next 14 days from selected date
-    const result = [];
+  const dayAssignments = useMemo(() => {
+    const key = toKey(selectedDate);
+    const arr = assignmentsByDate[key] || [];
+    return [...arr].sort((a, b) => {
+      const tA = a.startTime ? new Date(a.startTime).getTime() : 0;
+      const tB = b.startTime ? new Date(b.startTime).getTime() : 0;
+      return tA - tB;
+    });
+  }, [selectedDate, assignmentsByDate]);
+
+  const listGroups = useMemo(() => {
+    if (viewMode !== "list") return [];
+    const groups = [];
     for (let i = 0; i < 14; i++) {
       const d = new Date(+selectedDate + i * DAY_MS);
-      const key = d.toISOString().split("T")[0];
-      const dayAssignments = assignmentsByDate[key] || [];
-      if (dayAssignments.length > 0) {
-        result.push({ dateLabel: d, items: dayAssignments });
+      const key = toKey(d);
+      const items = assignmentsByDate[key] || [];
+      if (items.length > 0) {
+        groups.push({
+          dateLabel: d,
+          items: [...items].sort((a, b) => {
+            const tA = a.startTime ? new Date(a.startTime).getTime() : 0;
+            const tB = b.startTime ? new Date(b.startTime).getTime() : 0;
+            return tA - tB;
+          }),
+        });
       }
     }
-    return result;
+    return groups;
   }, [viewMode, selectedDate, assignmentsByDate]);
-
-  const goToToday = () => setSelectedDate(new Date());
 
   const handleCardClick = (assignment) => {
     const jobId = assignment.jobId || assignment.id;
     if (jobId) router.push(`/jobs/${jobId}`);
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────────
-  if (!user) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "60vh", color: "#6B7280" }}>
-        Please log in to view your schedule.
-      </div>
-    );
-  }
+  if (!user) return null;
 
   return (
-    <div
-      style={{
-        maxWidth: 1100,
-        margin: "0 auto",
-        padding: isMobile ? "16px" : "24px 32px",
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-      }}
-    >
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 20,
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#111827", margin: 0, letterSpacing: "-0.02em" }}>
-            Schedule
-          </h1>
-          <p style={{ fontSize: 13, color: "#9CA3AF", margin: "4px 0 0" }}>
-            {fmt(selectedDate, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-          </p>
-        </div>
+    <AppShell>
+      <style>{`
+        .cal-nav-btn {
+          display: flex; align-items: center; justify-content: center;
+          width: 36px; height: 36px; border-radius: 10px;
+          border: 1px solid var(--border, #E5E7EB); background: var(--card, #FFF);
+          cursor: pointer; color: var(--text, #374151);
+        }
+        .cal-nav-btn:hover { background: var(--bg2, #F3F4F6); }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+      `}</style>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {/* Today button */}
-          <button
-            onClick={goToToday}
-            style={{
-              padding: "8px 16px",
-              fontSize: 13,
-              fontWeight: 600,
-              borderRadius: 10,
-              border: "1px solid #E5E7EB",
-              background: "#FFF",
-              color: "#374151",
-              cursor: "pointer",
-              transition: "border-color 0.15s",
-            }}
-          >
-            Today
-          </button>
-
-          {/* Day/List toggle */}
-          <div
-            style={{
-              display: "flex",
-              background: "#F3F4F6",
-              borderRadius: 10,
-              padding: 3,
-            }}
-          >
-            {["day", "list"].map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                style={{
-                  padding: "7px 16px",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  borderRadius: 8,
-                  border: "none",
-                  cursor: "pointer",
-                  background: viewMode === mode ? "#FFFFFF" : "transparent",
-                  color: viewMode === mode ? "#111827" : "#6B7280",
-                  boxShadow: viewMode === mode ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-                  transition: "all 0.15s",
-                  textTransform: "capitalize",
-                }}
-              >
-                {mode === "day" ? "Day" : "List"}
-              </button>
-            ))}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: isMobile ? "16px" : "24px 32px" }}>
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0, letterSpacing: "-0.02em" }}>Schedule</h1>
+            <p style={{ fontSize: 13, color: "var(--text3, #9CA3AF)", margin: "4px 0 0" }}>
+              {fmt(selectedDate, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+            </p>
           </div>
 
-          {/* Route Optimization placeholder */}
-          <button
-            onClick={() => alert("Route optimization coming soon!")}
-            title="Optimize route"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "8px 14px",
-              fontSize: 13,
-              fontWeight: 600,
-              borderRadius: 10,
-              border: "1px solid #E5E7EB",
-              background: "#FFF",
-              color: "#374151",
-              cursor: "pointer",
-              transition: "border-color 0.15s, background 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#F9FAFB";
-              e.currentTarget.style.borderColor = "#D1D5DB";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#FFF";
-              e.currentTarget.style.borderColor = "#E5E7EB";
-            }}
-          >
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-            {!isMobile && <span>Optimize Route</span>}
-          </button>
-        </div>
-      </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {/* Today */}
+            <button onClick={() => setSelectedDate(new Date())} style={{
+              padding: "8px 16px", fontSize: 13, fontWeight: 600, borderRadius: 10,
+              border: "1px solid var(--border)", background: "var(--card)", color: "var(--text)", cursor: "pointer",
+            }}>Today</button>
 
-      {/* ── Layout: Calendar + Cards ───────────────────────────────────────── */}
-      <div
-        style={{
-          display: isMobile ? "flex" : "grid",
-          flexDirection: "column",
-          gridTemplateColumns: isMobile ? "1fr" : "320px 1fr",
-          gap: isMobile ? 20 : 28,
-          alignItems: "start",
-        }}
-      >
-        {/* Calendar panel */}
-        <div
-          style={{
-            background: "#FFFFFF",
-            borderRadius: 16,
-            border: "1px solid #E5E7EB",
-            padding: isMobile ? 16 : 20,
-            position: isMobile ? "relative" : "sticky",
-            top: isMobile ? undefined : 24,
-          }}
-        >
-          {isMobile ? (
-            <WeekStrip
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              assignmentsByDate={assignmentsByDate}
-            />
-          ) : (
-            <MonthCalendar
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              assignmentsByDate={assignmentsByDate}
-            />
-          )}
-        </div>
+            {/* Day/List toggle */}
+            <div style={{ display: "flex", background: "var(--bg2, #F3F4F6)", borderRadius: 10, padding: 3 }}>
+              {[
+                { key: "day", icon: <Calendar size={14} />, label: "Day" },
+                { key: "list", icon: <List size={14} />, label: "List" },
+              ].map(({ key, icon, label }) => (
+                <button key={key} onClick={() => setViewMode(key)} style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "7px 14px", fontSize: 13, fontWeight: 600, borderRadius: 8, border: "none", cursor: "pointer",
+                  background: viewMode === key ? "var(--card, #FFF)" : "transparent",
+                  color: viewMode === key ? "var(--text)" : "var(--text2, #6B7280)",
+                  boxShadow: viewMode === key ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+                  transition: "all 0.15s",
+                }}>
+                  {icon} {label}
+                </button>
+              ))}
+            </div>
 
-        {/* Cards panel */}
-        <div ref={scrollRef} style={{ minHeight: 200 }}>
-          {loading ? (
-            <LoadingSkeleton />
-          ) : error ? (
-            <div
+            {/* Route Optimization placeholder */}
+            <button
+              onClick={() => alert("Route optimization coming soon!")}
+              title="Optimize route"
               style={{
-                padding: 32,
-                textAlign: "center",
-                color: "#EF4444",
-                background: "#FEF2F2",
-                borderRadius: 12,
-                fontSize: 14,
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "8px 14px", fontSize: 13, fontWeight: 600, borderRadius: 10,
+                border: "1px solid var(--border)", background: "var(--card)", color: "var(--text)", cursor: "pointer",
               }}
             >
-              {error}
-            </div>
-          ) : viewMode === "day" ? (
-            /* ── Day View ──────────────────────────────────────────────── */
-            visibleAssignments.length === 0 ? (
-              <EmptyState
-                message={`No jobs scheduled for ${fmt(selectedDate, { month: "short", day: "numeric" })}`}
-              />
+              <Navigation size={15} />
+              {!isMobile && <span>Optimize Route</span>}
+            </button>
+          </div>
+        </div>
+
+        {/* Layout: Calendar + Cards */}
+        <div style={{
+          display: isMobile ? "flex" : "grid", flexDirection: "column",
+          gridTemplateColumns: isMobile ? "1fr" : "320px 1fr",
+          gap: isMobile ? 20 : 28, alignItems: "start",
+        }}>
+          {/* Calendar panel */}
+          <div style={{
+            background: "var(--card, #FFF)", borderRadius: 16,
+            border: "1px solid var(--border, #E5E7EB)", padding: isMobile ? 16 : 20,
+            position: isMobile ? "relative" : "sticky", top: isMobile ? undefined : 24,
+          }}>
+            {isMobile ? (
+              <WeekStrip selectedDate={selectedDate} onSelectDate={setSelectedDate} dateCounts={dateCounts} />
             ) : (
+              <MonthCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} dateCounts={dateCounts} />
+            )}
+          </div>
+
+          {/* Cards panel */}
+          <div style={{ minHeight: 200 }}>
+            {loading ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "#9CA3AF",
-                    padding: "0 2px 4px",
-                    letterSpacing: "0.02em",
-                  }}
-                >
-                  {visibleAssignments.length} job{visibleAssignments.length !== 1 ? "s" : ""}
-                </div>
-                {visibleAssignments.map((a, i) => (
-                  <JobCard
-                    key={a.id || a.assignmentId || i}
-                    assignment={a}
-                    job={jobMap[a.jobId] || {}}
-                    crewMap={crewMap}
-                    onClick={() => handleCardClick(a)}
-                  />
+                {[1,2,3].map((i) => (
+                  <div key={i} style={{
+                    height: 96, borderRadius: 12,
+                    background: "linear-gradient(90deg, var(--bg2,#F3F4F6) 25%, var(--border,#E5E7EB) 50%, var(--bg2,#F3F4F6) 75%)",
+                    backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite",
+                  }} />
                 ))}
               </div>
-            )
-          ) : (
-            /* ── List View (next 14 days) ──────────────────────────────── */
-            visibleAssignments.length === 0 ? (
-              <EmptyState message="No upcoming jobs in the next 14 days" />
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                {visibleAssignments.map((group, gi) => (
-                  <div key={gi}>
-                    {/* Date header */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        marginBottom: 10,
-                        padding: "0 2px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: isSameDay(group.dateLabel, new Date()) ? "#4F46E5" : "#111827",
-                        }}
-                      >
-                        {isSameDay(group.dateLabel, new Date())
-                          ? "Today"
-                          : fmt(group.dateLabel, { weekday: "short", month: "short", day: "numeric" })}
-                      </span>
-                      <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
-                      <span style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 600 }}>
-                        {group.items.length} job{group.items.length !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {group.items.map((a, i) => (
-                        <JobCard
-                          key={a.id || a.assignmentId || i}
-                          assignment={a}
-                          job={jobMap[a.jobId] || {}}
-                          crewMap={crewMap}
-                          onClick={() => handleCardClick(a)}
-                        />
-                      ))}
-                    </div>
+            ) : error ? (
+              <div style={{ padding: 32, textAlign: "center", color: "#EF4444", background: "#FEF2F2", borderRadius: 12, fontSize: 14 }}>
+                {error}
+              </div>
+            ) : viewMode === "day" ? (
+              dayAssignments.length === 0 ? (
+                <EmptyState message={`No jobs scheduled for ${fmt(selectedDate, { month: "short", day: "numeric" })}`} />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text3, #9CA3AF)", padding: "0 2px 4px", letterSpacing: "0.02em" }}>
+                    {dayAssignments.length} job{dayAssignments.length !== 1 ? "s" : ""}
                   </div>
-                ))}
-              </div>
-            )
-          )}
+                  {dayAssignments.map((a, i) => (
+                    <JobCard
+                      key={a.id || a.assignmentId || a.memberId || i}
+                      assignment={a}
+                      job={jobMap[a.jobId] || {}}
+                      crewMap={crewMap}
+                      onClick={() => handleCardClick(a)}
+                    />
+                  ))}
+                </div>
+              )
+            ) : (
+              listGroups.length === 0 ? (
+                <EmptyState message="No upcoming jobs in the next 14 days" />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  {listGroups.map((group, gi) => (
+                    <div key={gi}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, padding: "0 2px" }}>
+                        <span style={{
+                          fontSize: 14, fontWeight: 700,
+                          color: isSameDay(group.dateLabel, new Date()) ? "var(--brand, #4F46E5)" : "var(--text)",
+                        }}>
+                          {isSameDay(group.dateLabel, new Date()) ? "Today" : fmt(group.dateLabel, { weekday: "short", month: "short", day: "numeric" })}
+                        </span>
+                        <div style={{ flex: 1, height: 1, background: "var(--border, #E5E7EB)" }} />
+                        <span style={{ fontSize: 12, color: "var(--text3, #9CA3AF)", fontWeight: 600 }}>
+                          {group.items.length} job{group.items.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {group.items.map((a, i) => (
+                          <JobCard
+                            key={a.id || a.assignmentId || a.memberId || i}
+                            assignment={a}
+                            job={jobMap[a.jobId] || {}}
+                            crewMap={crewMap}
+                            onClick={() => handleCardClick(a)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }
 
 // ─── Empty state ────────────────────────────────────────────────────────────
 function EmptyState({ message }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "60px 20px",
-        textAlign: "center",
-      }}
-    >
-      <div
-        style={{
-          width: 56,
-          height: 56,
-          borderRadius: 16,
-          background: "#F3F4F6",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: 16,
-        }}
-      >
-        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#9CA3AF" strokeWidth="1.5">
-          <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 20px", textAlign: "center" }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: 16, background: "var(--bg2, #F3F4F6)",
+        display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16,
+      }}>
+        <Calendar size={24} color="var(--text3, #9CA3AF)" />
       </div>
-      <p style={{ fontSize: 15, fontWeight: 600, color: "#374151", margin: 0 }}>{message}</p>
-      <p style={{ fontSize: 13, color: "#9CA3AF", marginTop: 6 }}>
-        Jobs will appear here once scheduled.
-      </p>
-    </div>
-  );
-}
-
-// ─── Loading skeleton ───────────────────────────────────────────────────────
-function LoadingSkeleton() {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {[1, 2, 3].map((i) => (
-        <div
-          key={i}
-          style={{
-            height: 96,
-            borderRadius: 12,
-            background: "linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%)",
-            backgroundSize: "200% 100%",
-            animation: "shimmer 1.5s infinite",
-          }}
-        />
-      ))}
-      <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+      <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text, #374151)", margin: 0 }}>{message}</p>
+      <p style={{ fontSize: 13, color: "var(--text3, #9CA3AF)", marginTop: 6 }}>Jobs will appear here once scheduled.</p>
     </div>
   );
 }
