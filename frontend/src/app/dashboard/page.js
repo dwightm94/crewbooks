@@ -17,39 +17,67 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [showUpgrade, setShowUpgrade] = useState(null);
-  const [view, setView] = useState("day");
-  const [seconds, setSeconds] = useState(0);
-  const [activeJob, setActiveJob] = useState(null);
+  const [view, setView] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("cb_active_job");
+      if (saved) return "job";
+    }
+    return "day";
+  });
+  const [seconds, setSeconds] = useState(() => {
+    if (typeof window !== "undefined") {
+      const start = localStorage.getItem("cb_job_start");
+      if (start) return Math.floor((Date.now() - parseInt(start)) / 1000);
+    }
+    return 0;
+  });
+  const [activeJob, setActiveJob] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("cb_active_job");
+      if (saved) try { return JSON.parse(saved); } catch {}
+    }
+    return null;
+  });
   const timerRef = useRef(null);
   const router = useRouter();
   const { canDo } = usePlan();
-
   useEffect(() => {
     getDashboard()
       .then(setData)
       .catch(e => { console.error(e); setErr(e.message); })
       .finally(() => setLoading(false));
   }, []);
-
+  useEffect(() => {
+    if (view === "job" && activeJob) {
+      if (!localStorage.getItem("cb_job_start")) {
+        localStorage.setItem("cb_job_start", Date.now().toString());
+      }
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        const start = parseInt(localStorage.getItem("cb_job_start") || Date.now());
+        setSeconds(Math.floor((Date.now() - start) / 1000));
+      }, 1000);
+      return () => clearInterval(timerRef.current);
+    }
+  }, [view, activeJob]);
   const handleNewJob = () => {
     const check = canDo("create_job");
     if (!check.allowed) { setShowUpgrade(check.message); return; }
     router.push("/jobs/new");
   };
-
   const startJob = (job) => {
+    localStorage.setItem("cb_active_job", JSON.stringify(job));
+    localStorage.setItem("cb_job_start", Date.now().toString());
     setActiveJob(job);
     setView("job");
     setSeconds(0);
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
   };
-
   const completeJob = () => {
     clearInterval(timerRef.current);
+    localStorage.removeItem("cb_active_job");
+    localStorage.removeItem("cb_job_start");
     setView("done");
   };
-
   const backToDay = () => { setView("day"); setActiveJob(null); };
 
   const fmt = (s) => {
@@ -232,29 +260,45 @@ function ActiveJob({ job, secs, fmt, onComplete, router }) {
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        {[{icon:Phone,label:"Call"},{icon:MessageSquare,label:"Text"},{icon:Navigation,label:"Navigate"}].map(({icon:Icon,label})=>(
-          <button key={label} className="card flex items-center justify-center gap-2" style={{padding:"12px 8px"}}>
-            <Icon size={16} style={{color:"var(--text2)"}}/><span className="text-xs font-bold" style={{color:"var(--text)"}}>{label}</span>
-          </button>
+      <div className="grid grid-cols-3 gap-2">
+        <a href={job.clientPhone ? "tel:"+job.clientPhone : "#"} className="card flex items-center justify-center gap-2" style={{padding:"12px 8px",textDecoration:"none"}}>
+          <Phone size={16} style={{color:"var(--text2)"}}/><span className="text-xs font-bold" style={{color:"var(--text)"}}>Call</span>
+        </a>
+        <a href={job.clientPhone ? "sms:"+job.clientPhone : "#"} className="card flex items-center justify-center gap-2" style={{padding:"12px 8px",textDecoration:"none"}}>
+          <MessageSquare size={16} style={{color:"var(--text2)"}}/><span className="text-xs font-bold" style={{color:"var(--text)"}}>Text</span>
+        </a>
+        <a href={job.address ? "https://maps.google.com/?q="+encodeURIComponent(job.address) : "#"} target="_blank" className="card flex items-center justify-center gap-2" style={{padding:"12px 8px",textDecoration:"none"}}>
+          <Navigation size={16} style={{color:"var(--text2)"}}/><span className="text-xs font-bold" style={{color:"var(--text)"}}>Navigate</span>
+        </a>
+      </div>
         ))}
       </div>
-
       <div className="grid grid-cols-2 gap-2">
-        {[
-          {icon:Camera,label:"Photo",sub:"Log progress",color:"var(--brand)",bg:"var(--brand-light)"},
-          {icon:Clock,label:"Log Time",sub:"Track hours",color:"var(--green)",bg:"var(--green-bg)"},
-          {icon:FileText,label:"Note",sub:"Add details",color:"var(--blue)",bg:"var(--blue-bg)"},
-          {icon:AlertCircle,label:"Issue",sub:"Flag problem",color:"var(--red)",bg:"var(--red-bg)"},
-        ].map(({icon:Icon,label,sub,color,bg})=>(
-          <button key={label} className="card-hover text-left">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:bg}}><Icon size={20} style={{color}}/></div>
-              <div><p className="font-bold text-sm" style={{color:"var(--text)"}}>{label}</p><p className="text-xs" style={{color:"var(--muted)"}}>{sub}</p></div>
-            </div>
-          </button>
-        ))}
+        <button onClick={() => router.push("/jobs/"+job.jobId+"#photos")} className="card-hover text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--brand-light)"}}><Camera size={20} style={{color:"var(--brand)"}}/></div>
+            <div><p className="font-bold text-sm" style={{color:"var(--text)"}}>Photo</p><p className="text-xs" style={{color:"var(--muted)"}}>Log progress</p></div>
+          </div>
+        </button>
+        <button onClick={() => router.push("/jobs/"+job.jobId)} className="card-hover text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--green-bg)"}}><Clock size={20} style={{color:"var(--green)"}}/></div>
+            <div><p className="font-bold text-sm" style={{color:"var(--text)"}}>Log Time</p><p className="text-xs" style={{color:"var(--muted)"}}>Track hours</p></div>
+          </div>
+        </button>
+        <button onClick={() => router.push("/jobs/"+job.jobId)} className="card-hover text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--blue-bg)"}}><FileText size={20} style={{color:"var(--blue)"}}/></div>
+            <div><p className="font-bold text-sm" style={{color:"var(--text)"}}>Note</p><p className="text-xs" style={{color:"var(--muted)"}}>Add details</p></div>
+          </div>
+        </button>
+        <button onClick={() => router.push("/jobs/"+job.jobId)} className="card-hover text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--red-bg)"}}><AlertCircle size={20} style={{color:"var(--red)"}}/></div>
+            <div><p className="font-bold text-sm" style={{color:"var(--text)"}}>Issue</p><p className="text-xs" style={{color:"var(--muted)"}}>Flag problem</p></div>
+          </div>
+        </button>
       </div>
-
       <button onClick={onComplete} className="btn w-full text-base font-bold" style={{background:"var(--green)",color:"#fff",boxShadow:"0 3px 12px rgba(47,142,62,0.2)"}}>
         <CheckCircle size={20}/> Mark Job Complete
       </button>
