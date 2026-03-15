@@ -13,7 +13,7 @@ const SECTIONS = [
   {
     label: "Work",
     items: [
-      { href: "/invoices", icon: FileText, label: "Invoices", desc: "Create & send invoices" },
+      { href: "/billing", icon: FileText, label: "Invoices", desc: "Create & send invoices" },
       { href: "/crew", icon: Users, label: "Crew", desc: "Manage your team" },
       { href: "/estimates", icon: Calculator, label: "Estimates / Bids", desc: "Quotes & proposals" },
       { href: "/clients", icon: Receipt, label: "Clients", desc: "Client directory" },
@@ -24,7 +24,7 @@ const SECTIONS = [
     items: [
       { href: "/reports", icon: BarChart3, label: "Reports", desc: "Revenue & job analytics" },
       { href: "/compliance", icon: ShieldCheck, label: "Compliance", desc: "Licenses & certifications" },
-      { href: "/billing", icon: CreditCard, label: "Billing & Payments", desc: "Subscriptions & plan" },
+      { href: "/money", icon: CreditCard, label: "Payments", desc: "Outstanding & collected" },
     ],
   },
   {
