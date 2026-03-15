@@ -260,7 +260,7 @@ export default function SchedulePage() {
   useEffect(() => {
     if (!user) return;
     Promise.all([getCrew(), getJobs()])
-      .then(([c, j]) => { setCrew(c || []); setJobs(j || []); })
+      .then(([c, j]) => { setCrew(Array.isArray(c) ? c : (c?.members || [])); setJobs(Array.isArray(j) ? j : (j?.jobs || [])); })
       .catch((err) => console.error("Failed to load crew/jobs:", err));
   }, [user]);
 
@@ -286,8 +286,9 @@ export default function SchedulePage() {
           dates.map(async (d) => {
             const key = toKey(d);
             try {
-              const data = await getAssignments(key);
-              return { key, data: Array.isArray(data) ? data : [] };
+              const raw = await getAssignments(key);
+              const data = Array.isArray(raw) ? raw : (raw?.assignments || []);
+              return { key, data };
             } catch {
               return { key, data: [] };
             }
