@@ -284,62 +284,18 @@ function SubscriptionSection() {
 
 // === QuickBooks Section ===
 function QuickBooksSection() {
-  const [status, setStatus] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-
-  useEffect(() => {
-    getQBStatus().then(r => { setStatus(r); setLoading(false); }).catch(() => setLoading(false));
-  }, []);
-
-  const handleConnect = async () => {
-    const res = await connectQuickBooks();
-    if (!res?.url) return;
-    window.open(res.url, "qb_connect", "width=600,height=700,scrollbars=yes");
-    const onMessage = (e) => {
-      if (e.data?.type === "QB_CONNECTED") {
-        window.removeEventListener("message", onMessage);
-        getQBStatus().then(r => setStatus(r)).catch(() => {});
-      }
-    };
-    window.addEventListener("message", onMessage);
-  };
-
-  const handleSync = async () => {
-    setSyncing(true);
-    await syncQuickBooks("all");
-    setSyncing(false);
-    alert("Sync complete!");
-  };
-
-  const handleDisconnect = async () => {
-    if (!confirm("Disconnect QuickBooks?")) return;
-    await disconnectQuickBooks();
-    setStatus({ ...status, connected: false });
-  };
-
   return (
     <div className="card">
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#2CA01C" }}>
           <span className="text-white font-bold text-sm">QB</span>
         </div>
-        <div>
+        <div className="flex-1">
           <p className="font-bold" style={{ color: "var(--text)" }}>QuickBooks Online</p>
-          <p className="text-xs" style={{ color: "var(--muted)" }}>Sync invoices & expenses</p>
+          <p className="text-xs" style={{ color: "var(--muted)" }}>Sync invoices \& expenses</p>
         </div>
+        <span className="badge badge-yellow">Coming Soon</span>
       </div>
-      {loading ? (
-        <div className="w-full py-3 rounded-xl text-center text-sm" style={{ background: "var(--input)", color: "var(--muted)" }}>Loading...</div>
-      ) : status?.connected ? (
-        <div className="space-y-2">
-          <div className="text-xs text-center" style={{ color: "var(--green)" }}>✓ Connected{status.lastSync ? ` · Last sync: ${new Date(status.lastSync).toLocaleDateString()}` : ""}</div>
-          <button onClick={handleSync} disabled={syncing} className="btn btn-brand w-full">{syncing ? "Syncing..." : "Sync Now"}</button>
-          <button onClick={handleDisconnect} className="btn btn-outline w-full">Disconnect</button>
-        </div>
-      ) : (
-        <button onClick={handleConnect} className="btn w-full font-bold" style={{ background: "#2CA01C", color: "white" }}>Connect QuickBooks</button>
-      )}
     </div>
   );
 }
