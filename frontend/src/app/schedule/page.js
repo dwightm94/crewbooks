@@ -9,8 +9,8 @@ import { Calendar, ChevronLeft, ChevronRight, MapPin, Users, Navigation, List, C
 
 // ─── Date helpers ───────────────────────────────────────────────────────────
 const DAY_MS = 86400000;
-const fmt = (d, opts) => new Intl.DateTimeFormat("en-US", opts).format(d);
-const toKey = (d) => d.toISOString().split("T")[0];
+const fmt = (d, opts) => { try { return new Intl.DateTimeFormat("en-US", opts).format(d); } catch { return ""; } };
+const toKey = (d) => { try { return d.toISOString().split("T")[0]; } catch { return "1970-01-01"; } };
 const isSameDay = (a, b) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
