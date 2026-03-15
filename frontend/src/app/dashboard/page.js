@@ -258,7 +258,7 @@ function ActiveJob({ job, secs, fmt, onComplete, router }) {
           </div>
         </div>
       </div>
-
+      <div className="grid grid-cols-3 gap-2">
         <a href={job.clientPhone ? "tel:"+job.clientPhone : "#"} className="card flex items-center justify-center gap-2" style={{padding:"12px 8px",textDecoration:"none"}}>
           <Phone size={16} style={{color:"var(--text2)"}}/><span className="text-xs font-bold" style={{color:"var(--text)"}}>Call</span>
         </a>
@@ -302,7 +302,6 @@ function ActiveJob({ job, secs, fmt, onComplete, router }) {
     </div>
   );
 }
-
 function JobDone({ job, secs, data, onBack, router }) {
   const mins = Math.floor(secs/60);
   const hrs = Math.floor(secs/3600);
