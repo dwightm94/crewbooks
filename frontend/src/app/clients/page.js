@@ -270,7 +270,7 @@ export default function ClientsPage() {
             <div style={{ padding:"18px 20px", overflowY:"auto", flex:1 }}>
               <div style={{ marginBottom:14 }}>
                 <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>Client Name <span style={{ color:"var(--red)" }}>*</span></label>
-                <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. John Smith" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+                <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. John Smith" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13, border:"1.5px solid var(--border)", background:"var(--input)", outline:"none" }} />
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:10, margin:"4px 0 14px" }}>
                 <div style={{ flex:1, height:1, background:"var(--border)" }} /><span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase", color:"var(--muted)" }}>Contact</span><div style={{ flex:1, height:1, background:"var(--border)" }} />
@@ -278,11 +278,11 @@ export default function ClientsPage() {
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
                 <div>
                   <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>Phone</label>
-                  <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="(555) 000-0000" type="tel" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+                  <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="(555) 000-0000" type="tel" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13, border:"1.5px solid var(--border)", background:"var(--input)", outline:"none" }} />
                 </div>
                 <div>
                   <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>Email</label>
-                  <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@example.com" type="email" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+                  <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@example.com" type="email" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13, border:"1.5px solid var(--border)", background:"var(--input)", outline:"none" }} />
                 </div>
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:10, margin:"4px 0 14px" }}>
@@ -290,20 +290,20 @@ export default function ClientsPage() {
               </div>
               <div style={{ marginBottom:10 }}>
                 <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>Street</label>
-                <input value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="123 Main St" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+                <input value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="123 Main St" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13, border:"1.5px solid var(--border)", background:"var(--input)", outline:"none" }} />
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"1.6fr 0.9fr 1fr", gap:8, marginBottom:14 }}>
                 <div>
                   <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>City</label>
-                  <input value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder="City" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+                  <input value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder="City" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13, border:"1.5px solid var(--border)", background:"var(--input)", outline:"none" }} />
                 </div>
                 <div>
                   <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>State</label>
-                  <input value={form.state} onChange={e => setForm({...form, state: e.target.value})} placeholder="NJ" maxLength={2} className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+                  <input value={form.state} onChange={e => setForm({...form, state: e.target.value})} placeholder="NJ" maxLength={2} className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13, border:"1.5px solid var(--border)", background:"var(--input)", outline:"none" }} />
                 </div>
                 <div>
                   <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>Zip</label>
-                  <input value={form.zip} onChange={e => setForm({...form, zip: e.target.value})} placeholder="07001" maxLength={10} className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+                  <input value={form.zip} onChange={e => setForm({...form, zip: e.target.value})} placeholder="07001" maxLength={10} className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13, border:"1.5px solid var(--border)", background:"var(--input)", outline:"none" }} />
                 </div>
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:10, margin:"4px 0 14px" }}>
@@ -311,7 +311,7 @@ export default function ClientsPage() {
               </div>
               <div>
                 <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>Notes</label>
-                <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="e.g. Slow payer, referred by John, prefers texts…" rows={3} className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13, resize:"none", lineHeight:1.55 }} />
+                <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="e.g. Slow payer, referred by John, prefers texts…" rows={3} className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13, resize:"none", lineHeight:1.55, border:"1.5px solid var(--border)", background:"var(--input)", outline:"none" }} />
               </div>
             </div>
             <div style={{ padding:"14px 20px 32px", borderTop:"1px solid var(--border)", display:"flex", gap:10, flexShrink:0 }}>
