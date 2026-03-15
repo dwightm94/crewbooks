@@ -386,6 +386,7 @@ export function AppShell({ children, title, subtitle, back, action }) {
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
               
               <NotifBellInline />
+              <button onClick={handleLogout} className="p-2 rounded-xl" style={{color:"var(--text2)"}} title="Sign Out"><LogOut size={20}/></button>
             </div>
           </header>
 
