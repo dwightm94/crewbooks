@@ -16,7 +16,7 @@ const MOBILE_TABS = [
   { href: "/schedule", label: "Schedule", icon: Calendar },
   { href: "/jobs", label: "Jobs", icon: Hammer },
   { href: "/clients", label: "Clients", icon: Users },
-  { href: "/more", label: "More", icon: Menu },
+  { href: "/billing", label: "Invoices", icon: Receipt },
 ];
 
 const SIDEBAR_NAV = [
