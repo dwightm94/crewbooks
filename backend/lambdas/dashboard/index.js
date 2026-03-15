@@ -59,7 +59,7 @@ exports.handler = async (event) => {
 
     const recentJobs = jobs.sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""))
       .slice(0, 5).map(j => ({
-        jobId: j.jobId, jobName: j.jobName, clientName: j.clientName, status: j.status,
+        jobId: j.jobId, jobName: j.jobName, clientName: j.clientName, clientPhone: j.clientPhone, clientEmail: j.clientEmail, address: j.address, status: j.status,
         bidAmount: j.bidAmount, actualCost: j.actualCost, totalExpenses: j.totalExpenses || j.actualCost || 0,
         updatedAt: j.updatedAt,
         margin: j.bidAmount ? ((j.bidAmount - (j.actualCost || 0)) / j.bidAmount * 100).toFixed(1) : null,
