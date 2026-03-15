@@ -64,14 +64,7 @@ export default function MorePage() {
               if (isMobile) {
                 const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
                 if (isIOS) {
-                  // Try deep link first, fall back to App Store
-                  const appStore = "https://apps.apple.com/us/app/stripe-dashboard/id978516833";
-                  const deepLink = "stripedashboard://";
-                  const start = Date.now();
-                  window.location.href = deepLink;
-                  setTimeout(() => {
-                    if (Date.now() - start < 2000) window.location.href = appStore;
-                  }, 600);
+                  window.location.href = "https://apps.apple.com/us/app/stripe-dashboard/id978516833";
                 } else {
                   window.location.href = "https://play.google.com/store/apps/details?id=com.stripe.android.dashboard";
                 }
