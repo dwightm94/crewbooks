@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
@@ -376,36 +377,174 @@ function JobDone({ job, secs, data, onBack, router }) {
 function DesktopDashboard({ data, router, onNewJob }) {
   const { totalOwed=0, totalOverdue=0, totalEarned=0, paidThisMonth=0, counts={}, overdueInvoices=[], recentJobs:rawJobs=[], profitability={} } = data;
   const recentJobs = rawJobs.filter(j => j.jobName);
+  const [stripeStatus, setStripeStatus] = React.useState(null);
+  const [stripeDismissed, setStripeDismissed] = React.useState(false);
+  const [stripeConnecting, setStripeConnecting] = React.useState(false);
+
+  React.useEffect(() => {
+    import("@/lib/api").then(({ getConnectStatus }) => {
+      getConnectStatus().then(setStripeStatus).catch(() => setStripeStatus({ connected: false }));
+    });
+    const dismissed = sessionStorage.getItem("cb_stripe_banner_dismissed");
+    if (dismissed) setStripeDismissed(true);
+  }, []);
+
+  const handleConnectStripe = async () => {
+    setStripeConnecting(true);
+    try {
+      const { createConnectAccount, createOnboardLink } = await import("@/lib/api");
+      const stored = localStorage.getItem("crewbooks_tokens");
+      const tokens = stored ? JSON.parse(stored) : {};
+      const email = tokens?.email || "";
+      if (!stripeStatus?.connected) await createConnectAccount(email);
+      const link = await createOnboardLink();
+      if (link.url) window.location.href = link.url;
+    } catch(e) { alert("Error: " + e.message); }
+    setStripeConnecting(false);
+  };
+
+  const showStripeBanner = !stripeDismissed && stripeStatus !== null && !(stripeStatus?.connected && stripeStatus?.onboarded);
+
   return (
     <div className="mt-4 space-y-5">
-      <div className="rounded-3xl p-6 text-center" style={{background:"linear-gradient(135deg, var(--brand), var(--brand-hover))"}}>
-        <p className="text-sm font-bold uppercase tracking-wider text-white/80">You're Owed</p>
-        <p className="text-5xl font-extrabold text-white mt-1 tracking-tight">{money(totalOwed)}</p>
-        {totalOverdue > 0 && (
-          <div className="flex items-center justify-center gap-1.5 mt-3 bg-white/20 rounded-full px-4 py-1.5 mx-auto w-fit">
-            <AlertTriangle size={16} className="text-white"/>
-            <span className="text-sm font-bold text-white">{money(totalOverdue)} overdue</span>
+
+      {/* ── Stripe Connect Banner ── */}
+      {showStripeBanner && (
+        <div className="flex items-center gap-4 px-5 py-4 rounded-2xl" style={{background:"linear-gradient(135deg,#1C1C1E 0%,#2C2C2E 100%)",boxShadow:"0 4px 20px rgba(0,0,0,0.12)"}}>
+          <div className="flex items-center justify-center flex-shrink-0" style={{width:44,height:44,borderRadius:12,background:"var(--brand)"}}>
+            <DollarSign size={22} color="#0F172A" strokeWidth={2.5}/>
           </div>
-        )}
-      </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-white text-sm">
+              {stripeStatus?.connected ? "Finish Stripe setup to start accepting payments" : "Connect Stripe to start accepting payments"}
+            </p>
+            <p className="text-xs mt-0.5" style={{color:"rgba(255,255,255,0.5)"}}>Send invoices, collect card payments, and get paid directly through CrewBooks.</p>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={handleConnectStripe}
+              disabled={stripeConnecting}
+              className="px-4 py-2 rounded-xl text-sm font-bold"
+              style={{background:"var(--brand)",color:"#0F172A",border:"none",cursor:"pointer",whiteSpace:"nowrap"}}
+            >
+              {stripeConnecting ? "Loading..." : stripeStatus?.connected ? "Finish Setup →" : "Connect Stripe →"}
+            </button>
+            <button
+              onClick={() => { setStripeDismissed(true); sessionStorage.setItem("cb_stripe_banner_dismissed","1"); }}
+              style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.35)",fontSize:12,whiteSpace:"nowrap"}}
+            >
+              Skip for now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Stats Row ── */}
       <div className="grid grid-cols-4 gap-3">
         <div className="card flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--brand-light)"}}><DollarSign size={20} style={{color:"var(--brand)"}}/></div>
+          <div><p className="text-xs font-semibold" style={{color:"var(--muted)"}}>Outstanding</p><p className="text-xl font-extrabold" style={{color:"var(--brand)"}}>{moneyCompact(totalOwed)}</p></div>
+        </div>
+        <div className="card flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--green-bg)"}}><TrendingUp size={20} style={{color:"var(--green)"}}/></div>
-          <div><p className="text-xs font-semibold" style={{color:"var(--muted)"}}>This Month</p><p className="text-xl font-extrabold" style={{color:"var(--green)"}}>{moneyCompact(paidThisMonth)}</p></div>
+          <div><p className="text-xs font-semibold" style={{color:"var(--muted)"}}>Revenue (MTD)</p><p className="text-xl font-extrabold" style={{color:"var(--green)"}}>{moneyCompact(paidThisMonth)}</p></div>
         </div>
         <div className="card flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--blue-bg)"}}><Briefcase size={20} style={{color:"var(--blue)"}}/></div>
           <div><p className="text-xs font-semibold" style={{color:"var(--muted)"}}>Active Jobs</p><p className="text-xl font-extrabold" style={{color:"var(--blue)"}}>{counts.active||0}</p></div>
         </div>
         <div className="card flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--purple-bg)"}}><DollarSign size={20} style={{color:"var(--purple)"}}/></div>
-          <div><p className="text-xs font-semibold" style={{color:"var(--muted)"}}>Total Earned</p><p className="text-xl font-extrabold" style={{color:"var(--purple)"}}>{moneyCompact(totalEarned)}</p></div>
-        </div>
-        <div className="card flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--brand-light)"}}><TrendingUp size={20} style={{color:"var(--brand)"}}/></div>
-          <div><p className="text-xs font-semibold" style={{color:"var(--muted)"}}>Avg Margin</p><p className="text-xl font-extrabold" style={{color:"var(--brand)"}}>{profitability?.avgMargin||profitability?.marginPercent||0}%</p></div>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--purple-bg)"}}><Users size={20} style={{color:"var(--purple)"}}/></div>
+          <div><p className="text-xs font-semibold" style={{color:"var(--muted)"}}>Avg Margin</p><p className="text-xl font-extrabold" style={{color:"var(--purple)"}}>{profitability?.avgMargin||profitability?.marginPercent||0}%</p></div>
         </div>
       </div>
+
+      {/* ── Two Column ── */}
+      <div className="grid gap-4" style={{gridTemplateColumns:"1.4fr 1fr"}}>
+
+        {/* Recent Jobs */}
+        <div className="card overflow-hidden" style={{padding:0}}>
+          <div className="flex items-center justify-between px-5 py-4" style={{borderBottom:"1px solid var(--border)"}}>
+            <p className="font-bold text-sm" style={{color:"var(--text)"}}>Recent Jobs</p>
+            <button onClick={() => router.push("/jobs")} className="text-sm font-bold" style={{color:"var(--brand)",background:"none",border:"none",cursor:"pointer"}}>View all →</button>
+          </div>
+          {recentJobs.length === 0 ? (
+            <div className="px-5 py-8 text-center">
+              <p className="text-sm" style={{color:"var(--muted)"}}>No jobs yet</p>
+            </div>
+          ) : (
+            recentJobs.slice(0,5).map((job,i) => {
+              const m = margin(job.bidAmount, job.totalExpenses);
+              return (
+                <button key={job.jobId} onClick={() => router.push("/jobs/"+job.jobId)}
+                  className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-[var(--bg2)] transition-colors"
+                  style={{borderBottom:i<Math.min(recentJobs.length,5)-1?"1px solid var(--border)":"none",background:"transparent",border_bottom_only:true,cursor:"pointer"}}>
+                  <div className="w-1 h-9 rounded-full flex-shrink-0" style={{background:job.status==="active"||job.status==="in_progress"?"var(--brand)":job.status==="complete"?"var(--green)":"var(--blue)"}}/>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate" style={{color:"var(--text)"}}>{job.jobName}</p>
+                    <p className="text-xs truncate" style={{color:"var(--text2)"}}>{job.clientName}</p>
+                  </div>
+                  <span className={statusBadge(job.status)+" text-[11px] flex-shrink-0"}>{statusLabel(job.status)}</span>
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-bold text-sm" style={{color:"var(--text)"}}>{money(job.bidAmount)}</p>
+                    {job.totalExpenses > 0 && <p className="text-[11px] font-bold" style={{color:marginColor(m.percent)}}>{m.percent}%</p>}
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="card overflow-hidden" style={{padding:0}}>
+          <div className="px-5 py-4" style={{borderBottom:"1px solid var(--border)"}}>
+            <p className="font-bold text-sm" style={{color:"var(--text)"}}>Quick Actions</p>
+          </div>
+          <div className="p-3 space-y-2">
+            {[
+              { label:"New Job", sub:"Start tracking a job", icon:Briefcase, href:"/jobs/new", onClick: onNewJob },
+              { label:"Create Invoice", sub:"Bill a client", icon:FileText, href:"/invoices" },
+              { label:"New Estimate", sub:"Send a quote or bid", icon:Send, href:"/estimates/new" },
+              { label:"Add Crew Member", sub:"Invite someone", icon:Users, href:"/crew/new" },
+            ].map(({ label, sub, icon:Icon, href, onClick }) => (
+              <button key={label}
+                onClick={onClick || (() => router.push(href))}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-colors hover:bg-[var(--bg2)]"
+                style={{background:"transparent",border:"1px solid var(--border)",cursor:"pointer"}}>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:"var(--brand-light)"}}>
+                  <Icon size={16} style={{color:"var(--brand)"}}/>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{color:"var(--text)"}}>{label}</p>
+                  <p className="text-xs" style={{color:"var(--muted)"}}>{sub}</p>
+                </div>
+                <ArrowRight size={14} style={{color:"var(--muted)",flexShrink:0}}/>
+              </button>
+            ))}
+
+            {/* Connect Stripe quick action — only when not connected */}
+            {stripeStatus !== null && !(stripeStatus?.connected && stripeStatus?.onboarded) && (
+              <button
+                onClick={handleConnectStripe}
+                disabled={stripeConnecting}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-colors"
+                style={{background:"var(--brand-light)",border:"1px solid rgba(245,158,11,0.3)",cursor:"pointer"}}>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:"var(--brand)"}}>
+                  <DollarSign size={16} color="#0F172A"/>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{color:"var(--brand)"}}>Connect Stripe</p>
+                  <p className="text-xs" style={{color:"var(--muted)"}}>Enable payment collection</p>
+                </div>
+                <ArrowRight size={14} style={{color:"var(--brand)",flexShrink:0}}/>
+              </button>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* ── Overdue (if any) ── */}
       {overdueInvoices.length > 0 && (
         <section>
           <h2 className="section-title flex items-center gap-2"><AlertTriangle size={14} style={{color:"var(--red)"}}/>Overdue Payments</h2>
@@ -430,34 +569,7 @@ function DesktopDashboard({ data, router, onNewJob }) {
           </div>
         </section>
       )}
-      {recentJobs.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between">
-            <h2 className="section-title">Recent Jobs</h2>
-            <button onClick={() => router.push("/jobs")} className="text-sm font-bold flex items-center gap-1" style={{color:"var(--brand)"}}>See All <ArrowRight size={14}/></button>
-          </div>
-          <div className="space-y-2">
-            {recentJobs.map(job => {
-              const m = margin(job.bidAmount, job.totalExpenses);
-              return (
-                <button key={job.jobId} onClick={() => router.push("/jobs/"+job.jobId)} className="card-hover w-full text-left">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-bold" style={{color:"var(--text)"}}>{job.jobName}</p>
-                      <p className="text-sm" style={{color:"var(--text2)"}}>{job.clientName}</p>
-                      <span className={statusBadge(job.status)+" mt-2"}>{statusLabel(job.status)}</span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-extrabold" style={{color:"var(--text)"}}>{money(job.bidAmount)}</p>
-                      {job.totalExpenses > 0 && <p className="text-xs font-bold" style={{color:marginColor(m.percent)}}>{m.percent}% margin</p>}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      )}
+
     </div>
   );
 }
