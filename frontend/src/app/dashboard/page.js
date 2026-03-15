@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [showUpgrade, setShowUpgrade] = useState(null);
+  const isMobile = useIsMobile();
   const [view, setView] = useState("day");
   const [seconds, setSeconds] = useState(() => {
     if (typeof window !== "undefined") {
