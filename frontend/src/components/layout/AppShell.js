@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   LayoutDashboard, Hammer, Users, Calendar, Receipt, Settings,
   ChevronLeft, Bell, LogOut, Shield, BarChart3, Plus, Search, Menu,
-  UserCircle, CheckCircle, Menu, X
+  UserCircle, CheckCircle, X
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
