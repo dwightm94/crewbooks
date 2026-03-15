@@ -314,7 +314,7 @@ export default function ClientsPage() {
                 <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="e.g. Slow payer, referred by John, prefers texts…" rows={3} className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13, resize:"none", lineHeight:1.55, border:"1.5px solid var(--border)", background:"var(--input)", outline:"none" }} />
               </div>
             </div>
-            <div style={{ padding:"14px 20px 32px", borderTop:"1px solid var(--border)", display:"flex", gap:10, flexShrink:0 }}>
+            <div style={{ padding:"14px 20px calc(32px + env(safe-area-inset-bottom, 16px))", borderTop:"1px solid var(--border)", display:"flex", gap:10, flexShrink:0 }}>
               <button onClick={() => setShowForm(false)} style={{ flex:1, padding:15, borderRadius:14, background:"var(--input)", border:"1.5px solid var(--border)", fontSize:14, fontWeight:700, color:"var(--text2)", cursor:"pointer", fontFamily:"inherit" }}>Cancel</button>
               <button onClick={save} disabled={saving} style={{ flex:2, padding:15, borderRadius:14, background: saving ? "var(--muted)" : "linear-gradient(135deg, var(--brand), #C47D0A)", border:"none", fontSize:14, fontWeight:700, color:"#fff", cursor: saving ? "not-allowed" : "pointer", fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:7, boxShadow: saving ? "none" : "0 4px 16px rgba(245,166,35,0.4)" }}>
                 <UserPlus size={16} strokeWidth={2} />
