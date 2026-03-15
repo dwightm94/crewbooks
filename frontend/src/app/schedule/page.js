@@ -5,171 +5,153 @@ import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { getAssignments, getCrew, getJobs } from "@/lib/api";
-import { Calendar, ChevronLeft, ChevronRight, MapPin, Users, Navigation, List, Clock } from "lucide-react";
+import {
+  Calendar, ChevronLeft, ChevronRight, MapPin, Users, Navigation,
+  List, Clock, Phone, MessageSquare, ExternalLink, Briefcase
+} from "lucide-react";
 
-// ─── Date helpers ───────────────────────────────────────────────────────────
+/* ── helpers ──────────────────────────────────────────────────────── */
 const DAY_MS = 86400000;
-const fmt = (d, opts) => { try { return new Intl.DateTimeFormat("en-US", opts).format(d); } catch { return ""; } };
-const toKey = (d) => { try { return d.toISOString().split("T")[0]; } catch { return "1970-01-01"; } };
-const isSameDay = (a, b) =>
-  a.getFullYear() === b.getFullYear() &&
-  a.getMonth() === b.getMonth() &&
-  a.getDate() === b.getDate();
-
-const getWeekDays = (anchor) => {
-  const start = new Date(anchor);
-  start.setDate(start.getDate() - start.getDay());
-  return Array.from({ length: 7 }, (_, i) => new Date(+start + i * DAY_MS));
+const safeFmt = (d, opts) => {
+  try { return new Intl.DateTimeFormat("en-US", opts).format(d); }
+  catch { return ""; }
 };
-
-const getMonthDays = (year, month) => {
-  const first = new Date(year, month, 1);
-  const last = new Date(year, month + 1, 0);
-  const startDay = first.getDay();
-  const days = [];
-  for (let i = startDay - 1; i >= 0; i--)
-    days.push({ date: new Date(year, month, -i), outside: true });
-  for (let d = 1; d <= last.getDate(); d++)
-    days.push({ date: new Date(year, month, d), outside: false });
-  const remaining = 7 - (days.length % 7);
-  if (remaining < 7)
-    for (let i = 1; i <= remaining; i++)
-      days.push({ date: new Date(year, month + 1, i), outside: true });
+const safeKey = (d) => {
+  try { return d.toISOString().split("T")[0]; }
+  catch { return "1970-01-01"; }
+};
+const isSameDay = (a, b) => {
+  try { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+  catch { return false; }
+};
+const isValidDate = (d) => d instanceof Date && !isNaN(d.getTime());
+const getWeekDays = (anchor) => {
+  const s = new Date(anchor); s.setDate(s.getDate() - s.getDay());
+  return Array.from({ length: 7 }, (_, i) => new Date(+s + i * DAY_MS));
+};
+const getMonthDays = (y, m) => {
+  const f = new Date(y, m, 1), l = new Date(y, m + 1, 0), days = [];
+  for (let i = f.getDay() - 1; i >= 0; i--) days.push({ date: new Date(y, m, -i), out: true });
+  for (let d = 1; d <= l.getDate(); d++) days.push({ date: new Date(y, m, d), out: false });
+  const r = 7 - (days.length % 7); if (r < 7) for (let i = 1; i <= r; i++) days.push({ date: new Date(y, m + 1, i), out: true });
   return days;
 };
 
-// ─── Status config ──────────────────────────────────────────────────────────
-const STATUS_STYLES = {
-  scheduled: { bg: "#EEF2FF", color: "#4F46E5", label: "Scheduled" },
-  in_progress: { bg: "#FFF7ED", color: "#EA580C", label: "In Progress" },
-  active: { bg: "#FFF7ED", color: "#EA580C", label: "Active" },
-  bidding: { bg: "#FFFBEB", color: "#D97706", label: "Bidding" },
-  completed: { bg: "#F0FDF4", color: "#16A34A", label: "Completed" },
-  complete: { bg: "#F0FDF4", color: "#16A34A", label: "Complete" },
-  paid: { bg: "#ECFDF5", color: "#059669", label: "Paid" },
-  invoiced: { bg: "#EFF6FF", color: "#2563EB", label: "Invoiced" },
-  default: { bg: "#F3F4F6", color: "#6B7280", label: "Open" },
+/* ── time grid hours (Jobber-style) ───────────────────────────────── */
+const HOURS = Array.from({ length: 14 }, (_, i) => i + 6); // 6am–7pm
+
+/* ── status config ────────────────────────────────────────────────── */
+const STATUS = {
+  scheduled: { bg: "#EEF2FF", fg: "#4F46E5", label: "Scheduled" },
+  in_progress: { bg: "#FFF7ED", fg: "#EA580C", label: "In Progress" },
+  active: { bg: "#FFF7ED", fg: "#EA580C", label: "Active" },
+  bidding: { bg: "#FFFBEB", fg: "#D97706", label: "Bidding" },
+  completed: { bg: "#F0FDF4", fg: "#16A34A", label: "Complete" },
+  complete: { bg: "#F0FDF4", fg: "#16A34A", label: "Complete" },
+  paid: { bg: "#ECFDF5", fg: "#059669", label: "Paid" },
+  invoiced: { bg: "#EFF6FF", fg: "#2563EB", label: "Invoiced" },
 };
-const getStatusStyle = (s) => STATUS_STYLES[s?.toLowerCase()] || STATUS_STYLES.default;
+const st = (s) => STATUS[s?.toLowerCase()] || { bg: "#F3F4F6", fg: "#6B7280", label: s || "Open" };
 
-// ─── JobCard ────────────────────────────────────────────────────────────────
-function JobCard({ assignment, job, crewMap, onClick }) {
-  const status = getStatusStyle(job?.status || assignment?.status);
-  const crewNames = (assignment?.crewIds || assignment?.memberIds || [])
-    .map((id) => crewMap[id]?.name || "Unassigned")
-    .filter(Boolean)
-    .join(", ");
+/* ══════════════════════════════════════════════════════════════════ */
+/*  JOB CARD — Jobber-style with accent bar + tap to navigate       */
+/* ══════════════════════════════════════════════════════════════════ */
+function JobCard({ assignment, job, crewMap, onClick, compact }) {
+  const s = st(job?.status || assignment?.status);
+  const crew = (assignment?.crewIds || assignment?.memberIds || [])
+    .map((id) => crewMap[id]?.name).filter(Boolean).join(", ");
   const memberName = assignment?.memberName || (assignment?.memberId && crewMap[assignment.memberId]?.name);
-
-  const timeStr = assignment?.startTime
-    ? fmt(new Date(assignment.startTime), { hour: "numeric", minute: "2-digit" })
-    : null;
+  const displayCrew = crew || memberName || "";
+  const time = assignment?.startTime ? safeFmt(new Date(assignment.startTime), { hour: "numeric", minute: "2-digit" }) : null;
+  const title = job?.title || job?.name || assignment?.jobTitle || assignment?.title || "Untitled Job";
+  const addr = job?.address || job?.location || "";
 
   return (
-    <button
-      onClick={onClick}
-      style={{
-        display: "flex", alignItems: "stretch", width: "100%",
-        background: "var(--card, #FFF)", border: "1px solid var(--border, #E5E7EB)",
-        borderRadius: 12, padding: 0, cursor: "pointer", textAlign: "left",
-        transition: "box-shadow 0.15s, transform 0.1s", overflow: "hidden",
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}
-    >
-      <div style={{ width: 4, flexShrink: 0, background: status.color, borderRadius: "12px 0 0 12px" }} />
-      <div style={{ flex: 1, padding: "14px 16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          {timeStr && (
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text2, #6B7280)", display: "flex", alignItems: "center", gap: 4 }}>
-              <Clock size={13} /> {timeStr}
-            </span>
-          )}
-          <span style={{
-            fontSize: 11, fontWeight: 600, color: status.color, background: status.bg,
-            padding: "3px 10px", borderRadius: 100, letterSpacing: "0.02em", textTransform: "uppercase",
-            marginLeft: "auto",
-          }}>
-            {status.label}
-          </span>
+    <button onClick={onClick} className="w-full text-left group" style={{ display: "flex", borderRadius: 14, overflow: "hidden", background: "var(--card)", border: "1px solid var(--border)", transition: "box-shadow .15s, transform .1s" }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,.07)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}>
+      {/* accent */}
+      <div style={{ width: 5, flexShrink: 0, background: s.fg }} />
+      <div style={{ flex: 1, padding: compact ? "10px 14px" : "14px 18px" }}>
+        {/* top row */}
+        <div className="flex items-center justify-between mb-1">
+          {time && <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: "var(--text2)" }}><Clock size={12} />{time}</span>}
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ml-auto" style={{ background: s.bg, color: s.fg }}>{s.label}</span>
         </div>
-
-        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text, #111827)", marginBottom: 4, lineHeight: 1.3 }}>
-          {job?.title || job?.name || assignment?.jobTitle || "Untitled Job"}
-        </div>
-
-        {job?.clientName && (
-          <div style={{ fontSize: 13, color: "var(--text2, #6B7280)", marginBottom: 6 }}>{job.clientName}</div>
-        )}
-
-        {(job?.address || job?.location) && (
-          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--text3, #9CA3AF)", marginBottom: 6 }}>
-            <MapPin size={13} />
-            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {job?.address || job?.location}
-            </span>
+        {/* title */}
+        <p className={`font-bold leading-tight ${compact ? "text-sm" : "text-[15px]"}`} style={{ color: "var(--text)" }}>{title}</p>
+        {/* client */}
+        {job?.clientName && <p className="text-xs mt-0.5" style={{ color: "var(--text2)" }}>{job.clientName}</p>}
+        {/* address */}
+        {addr && (
+          <div className="flex items-center gap-1 mt-1.5">
+            <MapPin size={12} style={{ color: "var(--text3)", flexShrink: 0 }} />
+            <p className="text-xs truncate" style={{ color: "var(--text3)" }}>{addr}</p>
           </div>
         )}
-
-        {(crewNames || memberName) && (
-          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--text3, #9CA3AF)" }}>
-            <Users size={13} />
-            <span>{crewNames || memberName}</span>
+        {/* crew */}
+        {displayCrew && (
+          <div className="flex items-center gap-1 mt-1">
+            <Users size={12} style={{ color: "var(--text3)", flexShrink: 0 }} />
+            <p className="text-xs" style={{ color: "var(--text3)" }}>{displayCrew}</p>
           </div>
         )}
       </div>
-
-      <div style={{ display: "flex", alignItems: "center", padding: "0 12px", color: "var(--border, #D1D5DB)" }}>
-        <ChevronRight size={16} />
+      <div className="flex items-center pr-3" style={{ color: "var(--text3)" }}>
+        <ChevronRight size={18} className="opacity-40 group-hover:opacity-100 transition-opacity" />
       </div>
     </button>
   );
 }
 
-// ─── Horizontal Week Strip (mobile) ─────────────────────────────────────────
-function WeekStrip({ selectedDate, onSelectDate, dateCounts }) {
-  const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
-  const today = new Date();
-
-  const shift = (n) => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + n);
-    onSelectDate(d);
-  };
+/* ══════════════════════════════════════════════════════════════════ */
+/*  DESKTOP: DAY VIEW — Jobber-style time grid                      */
+/* ══════════════════════════════════════════════════════════════════ */
+function DayTimeGrid({ assignments, jobMap, crewMap, onCardClick }) {
+  // place assignments into hour slots
+  const slots = useMemo(() => {
+    const m = {};
+    HOURS.forEach(h => (m[h] = []));
+    const unscheduled = [];
+    (assignments || []).forEach(a => {
+      if (a.startTime) {
+        const d = new Date(a.startTime);
+        if (isValidDate(d)) { const h = d.getHours(); if (m[h]) m[h].push(a); else if (h < 6) { if (!m[6]) m[6] = []; m[6].push(a); } else unscheduled.push(a); return; }
+      }
+      unscheduled.push(a);
+    });
+    return { hourly: m, unscheduled };
+  }, [assignments]);
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, padding: "0 4px" }}>
-        <button onClick={() => shift(-7)} className="cal-nav-btn"><ChevronLeft size={18} /></button>
-        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)" }}>
-          {fmt(selectedDate, { month: "long", year: "numeric" })}
-        </span>
-        <button onClick={() => shift(7)} className="cal-nav-btn"><ChevronRight size={18} /></button>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
-        {weekDays.map((day) => {
-          const isToday = isSameDay(day, today);
-          const isSel = isSameDay(day, selectedDate);
-          const key = toKey(day);
-          const count = dateCounts[key] || 0;
+      {/* Unscheduled */}
+      {slots.unscheduled.length > 0 && (
+        <div className="mb-4">
+          <p className="text-xs font-bold uppercase tracking-wider mb-2 px-1" style={{ color: "var(--text3)" }}>Unscheduled</p>
+          <div className="space-y-2">
+            {slots.unscheduled.map((a, i) => (
+              <JobCard key={a.id || a.assignmentId || i} assignment={a} job={jobMap[a.jobId] || {}} crewMap={crewMap} onClick={() => onCardClick(a)} compact />
+            ))}
+          </div>
+        </div>
+      )}
+      {/* Time grid */}
+      <div className="relative">
+        {HOURS.map(h => {
+          const items = slots.hourly[h] || [];
+          const label = safeFmt(new Date(2020, 0, 1, h), { hour: "numeric" });
           return (
-            <button key={key} onClick={() => onSelectDate(new Date(day))} style={{
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-              padding: "8px 4px 10px", borderRadius: 12, border: "none", cursor: "pointer",
-              background: isSel ? "var(--brand, #111827)" : isToday ? "var(--bg2, #F3F4F6)" : "transparent",
-              transition: "background 0.15s",
-            }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text3, #9CA3AF)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                {fmt(day, { weekday: "short" })}
-              </span>
-              <span style={{ fontSize: 18, fontWeight: 700, color: isSel ? "#FFF" : isToday ? "var(--text)" : "var(--text, #374151)", lineHeight: 1.2 }}>
-                {day.getDate()}
-              </span>
-              <div style={{
-                width: 6, height: 6, borderRadius: "50%", marginTop: 1,
-                background: count > 0 ? (isSel ? "#60A5FA" : "var(--brand, #4F46E5)") : "transparent",
-              }} />
-            </button>
+            <div key={h} className="flex" style={{ minHeight: items.length > 0 ? "auto" : 48, borderTop: "1px solid var(--border)" }}>
+              <div className="flex-shrink-0 pr-3 pt-1.5 text-right" style={{ width: 56 }}>
+                <span className="text-[11px] font-semibold" style={{ color: "var(--text3)" }}>{label}</span>
+              </div>
+              <div className="flex-1 py-1.5 space-y-1.5">
+                {items.map((a, i) => (
+                  <JobCard key={a.id || a.assignmentId || i} assignment={a} job={jobMap[a.jobId] || {}} crewMap={crewMap} onClick={() => onCardClick(a)} compact />
+                ))}
+              </div>
+            </div>
           );
         })}
       </div>
@@ -177,57 +159,98 @@ function WeekStrip({ selectedDate, onSelectDate, dateCounts }) {
   );
 }
 
-// ─── Full Month Calendar (desktop) ──────────────────────────────────────────
-function MonthCalendar({ selectedDate, onSelectDate, dateCounts }) {
-  const [viewMonth, setViewMonth] = useState(selectedDate.getMonth());
-  const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
+/* ══════════════════════════════════════════════════════════════════ */
+/*  LIST VIEW — Jobber-style chronological cards grouped by date    */
+/* ══════════════════════════════════════════════════════════════════ */
+function ListView({ assignmentsByDate, jobMap, crewMap, startDate, onCardClick }) {
   const today = new Date();
+  const groups = useMemo(() => {
+    const g = [];
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(+startDate + i * DAY_MS);
+      const key = safeKey(d);
+      const items = assignmentsByDate[key] || [];
+      g.push({ date: d, key, items: [...items].sort((a, b) => {
+        const tA = a.startTime ? new Date(a.startTime).getTime() : Infinity;
+        const tB = b.startTime ? new Date(b.startTime).getTime() : Infinity;
+        return tA - tB;
+      })});
+    }
+    return g;
+  }, [assignmentsByDate, startDate]);
 
-  useEffect(() => {
-    setViewMonth(selectedDate.getMonth());
-    setViewYear(selectedDate.getFullYear());
-  }, [selectedDate]);
-
-  const days = useMemo(() => getMonthDays(viewYear, viewMonth), [viewYear, viewMonth]);
-
-  const goPrev = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); } else setViewMonth(viewMonth - 1); };
-  const goNext = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); } else setViewMonth(viewMonth + 1); };
+  const totalJobs = groups.reduce((s, g) => s + g.items.length, 0);
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <button onClick={goPrev} className="cal-nav-btn"><ChevronLeft size={18} /></button>
-        <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>
-          {fmt(new Date(viewYear, viewMonth), { month: "long", year: "numeric" })}
-        </span>
-        <button onClick={goNext} className="cal-nav-btn"><ChevronRight size={18} /></button>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, textAlign: "center" }}>
-        {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
-          <div key={d} style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", padding: "6px 0", textTransform: "uppercase", letterSpacing: "0.06em" }}>{d}</div>
-        ))}
-        {days.map(({ date, outside }, i) => {
-          const isToday = isSameDay(date, today);
-          const isSel = isSameDay(date, selectedDate);
-          const key = toKey(date);
-          const count = dateCounts[key] || 0;
+      <p className="text-xs font-semibold mb-3 px-1" style={{ color: "var(--text3)" }}>
+        {totalJobs} job{totalJobs !== 1 ? "s" : ""} over next 14 days
+      </p>
+      <div className="space-y-5">
+        {groups.map(g => {
+          const isToday = isSameDay(g.date, today);
+          const isPast = g.date < today && !isToday;
           return (
-            <button key={i} onClick={() => onSelectDate(new Date(date))} style={{
-              padding: "8px 4px 6px", borderRadius: 10, border: "none", cursor: "pointer",
-              opacity: outside ? 0.3 : 1,
-              background: isSel ? "var(--brand, #111827)" : isToday ? "var(--bg2, #F3F4F6)" : "transparent",
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 3, transition: "background 0.12s",
-            }}>
-              <span style={{ fontSize: 14, fontWeight: isToday || isSel ? 700 : 500, color: isSel ? "#FFF" : "var(--text, #374151)" }}>
-                {date.getDate()}
-              </span>
-              {count > 0 && (
-                <div style={{ display: "flex", gap: 2 }}>
-                  {Array.from({ length: Math.min(count, 3) }).map((_, j) => (
-                    <div key={j} style={{ width: 5, height: 5, borderRadius: "50%", background: isSel ? "#60A5FA" : "var(--brand, #4F46E5)" }} />
+            <div key={g.key}>
+              {/* date header */}
+              <div className="flex items-center gap-3 mb-2 px-1">
+                <div className={`flex items-center gap-2 ${isToday ? "font-bold" : ""}`} style={{ color: isToday ? "var(--brand)" : isPast ? "var(--text3)" : "var(--text)" }}>
+                  {isToday && <div className="w-2 h-2 rounded-full" style={{ background: "var(--brand)" }} />}
+                  <span className="text-sm">{isToday ? "Today" : safeFmt(g.date, { weekday: "short", month: "short", day: "numeric" })}</span>
+                </div>
+                <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
+                <span className="text-[11px] font-semibold" style={{ color: "var(--text3)" }}>
+                  {g.items.length > 0 ? `${g.items.length} job${g.items.length !== 1 ? "s" : ""}` : "—"}
+                </span>
+              </div>
+              {/* cards */}
+              {g.items.length > 0 ? (
+                <div className="space-y-2">
+                  {g.items.map((a, i) => (
+                    <JobCard key={a.id || a.assignmentId || i} assignment={a} job={jobMap[a.jobId] || {}} crewMap={crewMap} onClick={() => onCardClick(a)} />
                   ))}
                 </div>
+              ) : (
+                <div className="py-2 px-3 rounded-xl text-xs" style={{ color: "var(--text3)", background: "var(--bg2)", opacity: isPast ? 0.5 : 0.8 }}>
+                  No jobs scheduled
+                </div>
               )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════ */
+/*  MOBILE WEEK STRIP                                               */
+/* ══════════════════════════════════════════════════════════════════ */
+function WeekStrip({ selectedDate, onSelect, dateCounts }) {
+  const week = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
+  const today = new Date();
+  const shift = (n) => { const d = new Date(selectedDate); d.setDate(d.getDate() + n); onSelect(d); };
+
+  return (
+    <div className="px-1">
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={() => shift(-7)} className="p-1.5 rounded-lg active:scale-90" style={{ color: "var(--text2)" }}><ChevronLeft size={20} /></button>
+        <span className="text-sm font-bold" style={{ color: "var(--text)" }}>{safeFmt(selectedDate, { month: "long", year: "numeric" })}</span>
+        <button onClick={() => shift(7)} className="p-1.5 rounded-lg active:scale-90" style={{ color: "var(--text2)" }}><ChevronRight size={20} /></button>
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {week.map(day => {
+          const key = safeKey(day);
+          const sel = isSameDay(day, selectedDate);
+          const td = isSameDay(day, today);
+          const cnt = dateCounts[key] || 0;
+          return (
+            <button key={key} onClick={() => onSelect(new Date(day))}
+              className="flex flex-col items-center py-2 rounded-xl transition-colors active:scale-95"
+              style={{ background: sel ? "var(--brand)" : td ? "var(--bg2)" : "transparent" }}>
+              <span className="text-[10px] font-bold uppercase" style={{ color: sel ? "rgba(255,255,255,.7)" : "var(--text3)" }}>{safeFmt(day, { weekday: "narrow" })}</span>
+              <span className="text-lg font-bold leading-none mt-0.5" style={{ color: sel ? "#FFF" : td ? "var(--text)" : "var(--text2)" }}>{day.getDate()}</span>
+              <div className="mt-1 w-1.5 h-1.5 rounded-full" style={{ background: cnt > 0 ? (sel ? "rgba(255,255,255,.8)" : "var(--brand)") : "transparent" }} />
             </button>
           );
         })}
@@ -236,7 +259,55 @@ function MonthCalendar({ selectedDate, onSelectDate, dateCounts }) {
   );
 }
 
-// ─── Main Schedule Page ─────────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════════════ */
+/*  DESKTOP MONTH CALENDAR                                          */
+/* ══════════════════════════════════════════════════════════════════ */
+function MonthCal({ selectedDate, onSelect, dateCounts }) {
+  const [vm, setVm] = useState(selectedDate.getMonth());
+  const [vy, setVy] = useState(selectedDate.getFullYear());
+  const today = new Date();
+  useEffect(() => { setVm(selectedDate.getMonth()); setVy(selectedDate.getFullYear()); }, [selectedDate]);
+  const days = useMemo(() => getMonthDays(vy, vm), [vy, vm]);
+  const prev = () => { if (vm === 0) { setVm(11); setVy(vy - 1); } else setVm(vm - 1); };
+  const next = () => { if (vm === 11) { setVm(0); setVy(vy + 1); } else setVm(vm + 1); };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={prev} className="p-1.5 rounded-lg hover:bg-black/5" style={{ color: "var(--text2)" }}><ChevronLeft size={18} /></button>
+        <span className="text-sm font-bold" style={{ color: "var(--text)" }}>{safeFmt(new Date(vy, vm), { month: "long", year: "numeric" })}</span>
+        <button onClick={next} className="p-1.5 rounded-lg hover:bg-black/5" style={{ color: "var(--text2)" }}><ChevronRight size={18} /></button>
+      </div>
+      <div className="grid grid-cols-7 gap-0.5 text-center">
+        {["S","M","T","W","T","F","S"].map((d, i) => (
+          <div key={i} className="text-[10px] font-bold uppercase py-1.5" style={{ color: "var(--text3)" }}>{d}</div>
+        ))}
+        {days.map(({ date, out }, i) => {
+          const key = safeKey(date);
+          const sel = isSameDay(date, selectedDate);
+          const td = isSameDay(date, today);
+          const cnt = dateCounts[key] || 0;
+          return (
+            <button key={i} onClick={() => onSelect(new Date(date))}
+              className="flex flex-col items-center py-1.5 rounded-lg transition-colors hover:bg-black/5"
+              style={{ opacity: out ? 0.25 : 1, background: sel ? "var(--brand)" : td ? "var(--bg2)" : "transparent" }}>
+              <span className="text-xs font-semibold" style={{ color: sel ? "#FFF" : "var(--text)" }}>{date.getDate()}</span>
+              {cnt > 0 && <div className="flex gap-0.5 mt-0.5">
+                {Array.from({ length: Math.min(cnt, 3) }).map((_, j) => (
+                  <div key={j} className="w-1 h-1 rounded-full" style={{ background: sel ? "rgba(255,255,255,.8)" : "var(--brand)" }} />
+                ))}
+              </div>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════ */
+/*  MAIN SCHEDULE PAGE                                              */
+/* ══════════════════════════════════════════════════════════════════ */
 export default function SchedulePage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -244,304 +315,193 @@ export default function SchedulePage() {
   const [crew, setCrew] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState("day");
+  const [viewMode, setViewMode] = useState("day"); // "day" | "list"
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
+    check(); window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Fetch crew + jobs once
+  // fetch crew + jobs once
   useEffect(() => {
     if (!user) return;
     Promise.all([getCrew(), getJobs()])
-      .then(([c, j]) => { setCrew(Array.isArray(c) ? c : (c?.members || [])); setJobs(Array.isArray(j) ? j : (j?.jobs || [])); })
-      .catch((err) => console.error("Failed to load crew/jobs:", err));
+      .then(([c, j]) => {
+        setCrew(Array.isArray(c) ? c : (c?.members || []));
+        setJobs(Array.isArray(j) ? j : (j?.jobs || []));
+      }).catch(console.error);
   }, [user]);
 
-  // Fetch assignments for visible date range
+  // fetch assignments for visible range
   useEffect(() => {
     if (!user) return;
-    const fetchRange = async () => {
+    const run = async () => {
       setLoading(true);
-      setError(null);
-      try {
-        const dates = [];
-        if (viewMode === "day") {
-          // Fetch the full week around selected date for the calendar dots
-          const weekStart = new Date(selectedDate);
-          weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-          for (let i = 0; i < 7; i++) dates.push(new Date(+weekStart + i * DAY_MS));
-        } else {
-          // List view: fetch 14 days from selected date
-          for (let i = 0; i < 14; i++) dates.push(new Date(+selectedDate + i * DAY_MS));
-        }
-
-        const results = await Promise.all(
-          dates.map(async (d) => {
-            const key = toKey(d);
-            try {
-              const raw = await getAssignments(key);
-              const data = Array.isArray(raw) ? raw : (raw?.assignments || []);
-              return { key, data };
-            } catch {
-              return { key, data: [] };
-            }
-          })
-        );
-
-        const grouped = {};
-        results.forEach(({ key, data }) => { grouped[key] = data; });
-        setAssignmentsByDate((prev) => ({ ...prev, ...grouped }));
-      } catch (err) {
-        console.error("Schedule fetch error:", err);
-        setError("Failed to load schedule.");
-      } finally {
-        setLoading(false);
+      const dates = [];
+      if (viewMode === "day") {
+        // fetch full month for calendar dots + current week
+        const s = new Date(selectedDate); s.setDate(1);
+        const e = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+        for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) dates.push(new Date(d));
+      } else {
+        for (let i = 0; i < 14; i++) dates.push(new Date(+selectedDate + i * DAY_MS));
       }
+      const results = await Promise.allSettled(
+        dates.map(async d => {
+          const key = safeKey(d);
+          try {
+            const raw = await getAssignments(key);
+            return { key, data: Array.isArray(raw) ? raw : (raw?.assignments || []) };
+          } catch { return { key, data: [] }; }
+        })
+      );
+      const grouped = {};
+      results.forEach(r => { if (r.status === "fulfilled") grouped[r.value.key] = r.value.data; });
+      setAssignmentsByDate(prev => ({ ...prev, ...grouped }));
+      setLoading(false);
     };
-    fetchRange();
+    run();
   }, [user, selectedDate, viewMode]);
 
-  // Lookup maps
-  const crewMap = useMemo(() => {
-    const m = {};
-    crew.forEach((c) => (m[c.id || c.crewId || c.memberId] = c));
-    return m;
-  }, [crew]);
+  const crewMap = useMemo(() => { const m = {}; crew.forEach(c => (m[c.id || c.crewId || c.memberId] = c)); return m; }, [crew]);
+  const jobMap = useMemo(() => { const m = {}; jobs.forEach(j => (m[j.id || j.jobId] = j)); return m; }, [jobs]);
+  const dateCounts = useMemo(() => { const c = {}; Object.entries(assignmentsByDate).forEach(([k, v]) => { c[k] = v.length; }); return c; }, [assignmentsByDate]);
 
-  const jobMap = useMemo(() => {
-    const m = {};
-    jobs.forEach((j) => (m[j.id || j.jobId] = j));
-    return m;
-  }, [jobs]);
-
-  // Date counts for calendar dots
-  const dateCounts = useMemo(() => {
-    const counts = {};
-    Object.entries(assignmentsByDate).forEach(([key, arr]) => {
-      counts[key] = arr.length;
-    });
-    return counts;
-  }, [assignmentsByDate]);
-
-  // Cards for current view
   const dayAssignments = useMemo(() => {
-    const key = toKey(selectedDate);
-    const arr = assignmentsByDate[key] || [];
-    return [...arr].sort((a, b) => {
-      const tA = a.startTime ? new Date(a.startTime).getTime() : 0;
-      const tB = b.startTime ? new Date(b.startTime).getTime() : 0;
+    const key = safeKey(selectedDate);
+    return [...(assignmentsByDate[key] || [])].sort((a, b) => {
+      const tA = a.startTime ? new Date(a.startTime).getTime() : Infinity;
+      const tB = b.startTime ? new Date(b.startTime).getTime() : Infinity;
       return tA - tB;
     });
   }, [selectedDate, assignmentsByDate]);
 
-  const listGroups = useMemo(() => {
-    if (viewMode !== "list") return [];
-    const groups = [];
-    for (let i = 0; i < 14; i++) {
-      const d = new Date(+selectedDate + i * DAY_MS);
-      const key = toKey(d);
-      const items = assignmentsByDate[key] || [];
-      if (items.length > 0) {
-        groups.push({
-          dateLabel: d,
-          items: [...items].sort((a, b) => {
-            const tA = a.startTime ? new Date(a.startTime).getTime() : 0;
-            const tB = b.startTime ? new Date(b.startTime).getTime() : 0;
-            return tA - tB;
-          }),
-        });
-      }
-    }
-    return groups;
-  }, [viewMode, selectedDate, assignmentsByDate]);
-
-  const handleCardClick = (assignment) => {
-    const jobId = assignment.jobId || assignment.id;
-    if (jobId) router.push(`/jobs/${jobId}`);
-  };
+  const onCardClick = (a) => { const id = a.jobId || a.id; if (id) router.push(`/jobs/${id}`); };
 
   if (!user) return null;
+
+  const todayStr = safeFmt(selectedDate, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const jobCount = dayAssignments.length;
 
   return (
     <AppShell>
       <style>{`
-        .cal-nav-btn {
-          display: flex; align-items: center; justify-content: center;
-          width: 36px; height: 36px; border-radius: 10px;
-          border: 1px solid var(--border, #E5E7EB); background: var(--card, #FFF);
-          cursor: pointer; color: var(--text, #374151);
-        }
-        .cal-nav-btn:hover { background: var(--bg2, #F3F4F6); }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        @keyframes shimmer { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }
+        .skel { background: linear-gradient(90deg, var(--bg2,#F3F4F6) 25%, var(--border,#E5E7EB) 50%, var(--bg2,#F3F4F6) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 14px; }
       `}</style>
 
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: isMobile ? "16px" : "24px 32px" }}>
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+      <div className="w-full" style={{ padding: isMobile ? "12px 16px 100px" : "24px 40px 40px" }}>
+        {/* ── HEADER ─────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", margin: 0, letterSpacing: "-0.02em" }}>Schedule</h1>
-            <p style={{ fontSize: 13, color: "var(--text3, #9CA3AF)", margin: "4px 0 0" }}>
-              {fmt(selectedDate, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-            </p>
+            <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: "var(--text)" }}>Schedule</h1>
+            <p className="text-sm mt-0.5" style={{ color: "var(--text3)" }}>{todayStr}</p>
           </div>
-
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div className="flex items-center gap-2 flex-wrap">
             {/* Today */}
-            <button onClick={() => setSelectedDate(new Date())} style={{
-              padding: "8px 16px", fontSize: 13, fontWeight: 600, borderRadius: 10,
-              border: "1px solid var(--border)", background: "var(--card)", color: "var(--text)", cursor: "pointer",
-            }}>Today</button>
-
-            {/* Day/List toggle */}
-            <div style={{ display: "flex", background: "var(--bg2, #F3F4F6)", borderRadius: 10, padding: 3 }}>
-              {[
-                { key: "day", icon: <Calendar size={14} />, label: "Day" },
-                { key: "list", icon: <List size={14} />, label: "List" },
-              ].map(({ key, icon, label }) => (
-                <button key={key} onClick={() => setViewMode(key)} style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  padding: "7px 14px", fontSize: 13, fontWeight: 600, borderRadius: 8, border: "none", cursor: "pointer",
-                  background: viewMode === key ? "var(--card, #FFF)" : "transparent",
-                  color: viewMode === key ? "var(--text)" : "var(--text2, #6B7280)",
-                  boxShadow: viewMode === key ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-                  transition: "all 0.15s",
-                }}>
-                  {icon} {label}
+            <button onClick={() => setSelectedDate(new Date())}
+              className="px-4 py-2 text-sm font-semibold rounded-xl border transition-colors hover:bg-black/5"
+              style={{ borderColor: "var(--border)", color: "var(--text)", background: "var(--card)" }}>
+              Today
+            </button>
+            {/* Day / List toggle */}
+            <div className="flex rounded-xl p-0.5" style={{ background: "var(--bg2)" }}>
+              {[{ k: "day", icon: Calendar, l: "Day" }, { k: "list", icon: List, l: "List" }].map(({ k, icon: I, l }) => (
+                <button key={k} onClick={() => setViewMode(k)}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-[10px] transition-all"
+                  style={{
+                    background: viewMode === k ? "var(--card)" : "transparent",
+                    color: viewMode === k ? "var(--text)" : "var(--text3)",
+                    boxShadow: viewMode === k ? "0 1px 4px rgba(0,0,0,.06)" : "none",
+                  }}>
+                  <I size={15} /> {l}
                 </button>
               ))}
             </div>
-
-            {/* Route Optimization placeholder */}
-            <button
-              onClick={() => router.push(`/schedule/optimize?date=${toKey(selectedDate)}`)}
-              title="Optimize route"
-              style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "8px 14px", fontSize: 13, fontWeight: 600, borderRadius: 10,
-                border: "1px solid var(--border)", background: "var(--card)", color: "var(--text)", cursor: "pointer",
-              }}
-            >
+            {/* Optimize */}
+            <button onClick={() => router.push(`/schedule/optimize?date=${safeKey(selectedDate)}`)}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl border transition-colors hover:bg-black/5"
+              style={{ borderColor: "var(--border)", color: "var(--text)", background: "var(--card)" }}>
               <Navigation size={15} />
-              {!isMobile && <span>Optimize Route</span>}
+              {!isMobile && "Optimize Route"}
             </button>
           </div>
         </div>
 
-        {/* Layout: Calendar + Cards */}
-        <div style={{
-          display: isMobile ? "flex" : "grid", flexDirection: "column",
-          gridTemplateColumns: isMobile ? "1fr" : "320px 1fr",
-          gap: isMobile ? 20 : 28, alignItems: "start",
-        }}>
-          {/* Calendar panel */}
-          <div style={{
-            background: "var(--card, #FFF)", borderRadius: 16,
-            border: "1px solid var(--border, #E5E7EB)", padding: isMobile ? 16 : 20,
-            position: isMobile ? "relative" : "sticky", top: isMobile ? undefined : 24,
-          }}>
-            {isMobile ? (
-              <WeekStrip selectedDate={selectedDate} onSelectDate={setSelectedDate} dateCounts={dateCounts} />
-            ) : (
-              <MonthCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} dateCounts={dateCounts} />
-            )}
-          </div>
+        {/* ── BODY ───────────────────────────────────────────── */}
+        {viewMode === "day" ? (
+          /* ── DAY VIEW ──────────────────────────────────────── */
+          <div className={isMobile ? "space-y-4" : "grid gap-7"} style={!isMobile ? { gridTemplateColumns: "280px 1fr" } : undefined}>
+            {/* Calendar */}
+            <div className="rounded-2xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)", ...(isMobile ? {} : { position: "sticky", top: 20, alignSelf: "start" }) }}>
+              {isMobile
+                ? <WeekStrip selectedDate={selectedDate} onSelect={setSelectedDate} dateCounts={dateCounts} />
+                : <MonthCal selectedDate={selectedDate} onSelect={setSelectedDate} dateCounts={dateCounts} />
+              }
+            </div>
 
-          {/* Cards panel */}
-          <div style={{ minHeight: 200 }}>
-            {loading ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {[1,2,3].map((i) => (
-                  <div key={i} style={{
-                    height: 96, borderRadius: 12,
-                    background: "linear-gradient(90deg, var(--bg2,#F3F4F6) 25%, var(--border,#E5E7EB) 50%, var(--bg2,#F3F4F6) 75%)",
-                    backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite",
-                  }} />
-                ))}
+            {/* Day content */}
+            <div>
+              {/* Day subheader */}
+              <div className="flex items-center justify-between mb-3 px-1">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() - 1); setSelectedDate(d); }}
+                    className="p-1 rounded-lg hover:bg-black/5" style={{ color: "var(--text2)" }}><ChevronLeft size={18} /></button>
+                  <span className="text-sm font-bold" style={{ color: "var(--text)" }}>
+                    {isSameDay(selectedDate, new Date()) ? "Today" : safeFmt(selectedDate, { weekday: "short", month: "short", day: "numeric" })}
+                  </span>
+                  <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() + 1); setSelectedDate(d); }}
+                    className="p-1 rounded-lg hover:bg-black/5" style={{ color: "var(--text2)" }}><ChevronRight size={18} /></button>
+                </div>
+                <span className="text-xs font-semibold" style={{ color: "var(--text3)" }}>
+                  {jobCount} job{jobCount !== 1 ? "s" : ""}
+                </span>
               </div>
-            ) : error ? (
-              <div style={{ padding: 32, textAlign: "center", color: "#EF4444", background: "#FEF2F2", borderRadius: 12, fontSize: 14 }}>
-                {error}
-              </div>
-            ) : viewMode === "day" ? (
-              dayAssignments.length === 0 ? (
-                <EmptyState message={`No jobs scheduled for ${fmt(selectedDate, { month: "short", day: "numeric" })}`} />
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text3, #9CA3AF)", padding: "0 2px 4px", letterSpacing: "0.02em" }}>
-                    {dayAssignments.length} job{dayAssignments.length !== 1 ? "s" : ""}
+
+              {loading ? (
+                <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="skel" style={{ height: 88 }} />)}</div>
+              ) : jobCount === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: "var(--bg2)" }}>
+                    <Briefcase size={24} style={{ color: "var(--text3)" }} />
                   </div>
+                  <p className="font-semibold" style={{ color: "var(--text)" }}>No jobs on this day</p>
+                  <p className="text-sm mt-1" style={{ color: "var(--text3)" }}>Select another date or create a new job.</p>
+                </div>
+              ) : isMobile ? (
+                /* Mobile: simple card list */
+                <div className="space-y-2">
                   {dayAssignments.map((a, i) => (
-                    <JobCard
-                      key={a.id || a.assignmentId || a.memberId || i}
-                      assignment={a}
-                      job={jobMap[a.jobId] || {}}
-                      crewMap={crewMap}
-                      onClick={() => handleCardClick(a)}
-                    />
+                    <JobCard key={a.id || a.assignmentId || i} assignment={a} job={jobMap[a.jobId] || {}} crewMap={crewMap} onClick={() => onCardClick(a)} />
                   ))}
                 </div>
-              )
-            ) : (
-              listGroups.length === 0 ? (
-                <EmptyState message="No upcoming jobs in the next 14 days" />
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                  {listGroups.map((group, gi) => (
-                    <div key={gi}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, padding: "0 2px" }}>
-                        <span style={{
-                          fontSize: 14, fontWeight: 700,
-                          color: isSameDay(group.dateLabel, new Date()) ? "var(--brand, #4F46E5)" : "var(--text)",
-                        }}>
-                          {isSameDay(group.dateLabel, new Date()) ? "Today" : fmt(group.dateLabel, { weekday: "short", month: "short", day: "numeric" })}
-                        </span>
-                        <div style={{ flex: 1, height: 1, background: "var(--border, #E5E7EB)" }} />
-                        <span style={{ fontSize: 12, color: "var(--text3, #9CA3AF)", fontWeight: 600 }}>
-                          {group.items.length} job{group.items.length !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {group.items.map((a, i) => (
-                          <JobCard
-                            key={a.id || a.assignmentId || a.memberId || i}
-                            assignment={a}
-                            job={jobMap[a.jobId] || {}}
-                            crewMap={crewMap}
-                            onClick={() => handleCardClick(a)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )
-            )}
+                /* Desktop: Jobber-style time grid */
+                <DayTimeGrid assignments={dayAssignments} jobMap={jobMap} crewMap={crewMap} onCardClick={onCardClick} />
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          /* ── LIST VIEW ─────────────────────────────────────── */
+          <div className={isMobile ? "" : "grid gap-7"} style={!isMobile ? { gridTemplateColumns: "280px 1fr" } : undefined}>
+            {!isMobile && (
+              <div className="rounded-2xl p-4" style={{ background: "var(--card)", border: "1px solid var(--border)", position: "sticky", top: 20, alignSelf: "start" }}>
+                <MonthCal selectedDate={selectedDate} onSelect={setSelectedDate} dateCounts={dateCounts} />
+              </div>
+            )}
+            <div>
+              {loading ? (
+                <div className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="skel" style={{ height: 88 }} />)}</div>
+              ) : (
+                <ListView assignmentsByDate={assignmentsByDate} jobMap={jobMap} crewMap={crewMap} startDate={selectedDate} onCardClick={onCardClick} />
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
-  );
-}
-
-// ─── Empty state ────────────────────────────────────────────────────────────
-function EmptyState({ message }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 20px", textAlign: "center" }}>
-      <div style={{
-        width: 56, height: 56, borderRadius: 16, background: "var(--bg2, #F3F4F6)",
-        display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16,
-      }}>
-        <Calendar size={24} color="var(--text3, #9CA3AF)" />
-      </div>
-      <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text, #374151)", margin: 0 }}>{message}</p>
-      <p style={{ fontSize: 13, color: "var(--text3, #9CA3AF)", marginTop: 6 }}>Jobs will appear here once scheduled.</p>
-    </div>
   );
 }
