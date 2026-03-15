@@ -7,7 +7,7 @@ import {
   ArrowRight, MapPin, Users, Play, CheckCircle, Send, Camera,
   FileText, AlertCircle, Phone, MessageSquare, Navigation
 } from "lucide-react";
-import { getDashboard } from "@/lib/api";
+import { getDashboard, updateJob, createInvoice, sendInvoice } from "@/lib/api";
 import { usePlan } from "@/hooks/usePlan";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { money, moneyCompact, statusBadge, statusLabel, overdueSeverity, margin, marginColor, relDate } from "@/lib/utils";
@@ -78,10 +78,11 @@ export default function DashboardPage() {
     setView("job");
     setSeconds(0);
   };
-  const completeJob = () => {
+  const completeJob = async () => {
     clearInterval(timerRef.current);
     localStorage.removeItem("cb_active_job");
     localStorage.removeItem("cb_job_start");
+    try { await updateJob(activeJob.jobId, { status: "complete" }); } catch (e) { console.error("Failed to update job:", e); }
     setView("done");
   };
   const backToDay = () => { setView("day"); setActiveJob(null); };
@@ -365,7 +366,7 @@ function JobDone({ job, secs, data, onBack, router }) {
           <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{background:"var(--green-bg)"}}><CheckCircle size={14} style={{color:"var(--green)"}}/></div>
         </div>
       </div>
-
+      <button onClick={async () => { try { const inv = await createInvoice(job.jobId, { amount: job.bidAmount }); if (inv?.invoiceId) await sendInvoice(job.jobId, inv.invoiceId); router.push("/jobs/"+job.jobId); } catch(e) { console.error(e); router.push("/jobs/"+job.jobId); } }} className="btn btn-brand w-full text-base"><Send size={18}/> Send Invoice — {money(job.bidAmount)}</button>
       <button onClick={() => router.push("/jobs/"+job.jobId)} className="btn btn-brand w-full text-base"><Send size={18}/> Send Invoice — {money(job.bidAmount)}</button>
       <button onClick={onBack} className="btn btn-outline w-full">Back to My Day</button>
     </div>
