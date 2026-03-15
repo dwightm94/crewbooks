@@ -28,13 +28,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [showUpgrade, setShowUpgrade] = useState(null);
-  const isMobile = useIsMobile();
-  const [view, setView] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("cb_active_job");
-      if (saved) return "job";
-    }
-    return "day";
+  const [view, setView] = useState("day");
+
+
+
+
+
+
+
   });
   const [seconds, setSeconds] = useState(() => {
     if (typeof window !== "undefined") {
@@ -91,6 +92,18 @@ export default function DashboardPage() {
     setView("done");
   };
   const backToDay = () => { setView("day"); setActiveJob(null); };
+  const resumeJob = () => {
+    const saved = localStorage.getItem("cb_active_job");
+    if (saved) {
+      try {
+        setActiveJob(JSON.parse(saved));
+        const start = parseInt(localStorage.getItem("cb_job_start") || Date.now());
+        setSeconds(Math.floor((Date.now() - start) / 1000));
+        setView("job");
+      } catch {}
+    }
+  };
+  const hasActiveJob = typeof window !== "undefined" && !!localStorage.getItem("cb_active_job");
 
   const fmt = (s) => {
     const h = String(Math.floor(s/3600)).padStart(2,"0");
@@ -120,7 +133,7 @@ export default function DashboardPage() {
         <>
           {isMobile ? (
             <>
-              {view === "day" && <MyDay data={data} router={router} greeting={greeting} dayName={dayName} onStart={startJob} onNewJob={handleNewJob} />}
+              {view === "day" && <MyDay data={data} router={router} greeting={greeting} dayName={dayName} onStart={startJob} onNewJob={handleNewJob} hasActiveJob={hasActiveJob} onResume={resumeJob} />}
               {view === "job" && activeJob && <ActiveJob job={activeJob} secs={seconds} fmt={fmt} onComplete={completeJob} router={router} />}
               {view === "done" && activeJob && <JobDone job={activeJob} secs={seconds} fmt={fmt} data={data} onBack={backToDay} router={router} />}
             </>
@@ -144,7 +157,7 @@ function EmptyState({ onNewJob }) {
   );
 }
 
-function MyDay({ data, router, greeting, dayName, onStart, onNewJob }) {
+function MyDay({ data, router, greeting, dayName, onStart, onNewJob, hasActiveJob, onResume }) {
   const { totalOwed=0, totalOverdue=0, totalEarned=0, paidThisMonth=0, counts={}, overdueInvoices=[], recentJobs:rawJobs=[], profitability={} } = data;
   const recentJobs = rawJobs.filter(j => j.jobName);
   const activeJobs = recentJobs.filter(j => j.status==="active" || j.status==="in_progress");
@@ -157,6 +170,7 @@ function MyDay({ data, router, greeting, dayName, onStart, onNewJob }) {
         <h2 className="text-2xl font-extrabold" style={{color:"var(--text)",letterSpacing:"-0.02em"}}>{greeting}</h2>
         <p className="text-sm mt-1" style={{color:"var(--muted)"}}>{dayName} · {recentJobs.length} job{recentJobs.length!==1?"s":""}</p>
       </div>
+      {hasActiveJob && onResume && <button onClick={onResume} className="w-full rounded-xl p-3 flex items-center justify-between" style={{background:"var(--brand-light)",border:"2px solid var(--brand)"}}><div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full animate-pulse" style={{background:"var(--brand)"}}/><span className="text-sm font-bold" style={{color:"var(--brand)"}}>Job in progress — tap to resume</span></div><ArrowRight size={16} style={{color:"var(--brand)"}}/></button>}
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-2">
