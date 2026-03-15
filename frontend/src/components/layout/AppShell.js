@@ -16,7 +16,7 @@ const MOBILE_TABS = [
   { href: "/schedule", label: "Schedule", icon: Calendar },
   { href: "/jobs", label: "Jobs", icon: Hammer },
   { href: "/clients", label: "Clients", icon: Users },
-  { href: "/billing", label: "Invoices", icon: Receipt },
+  { href: "/more", label: "More", icon: Menu },
 ];
 
 const SIDEBAR_NAV = [
@@ -24,7 +24,7 @@ const SIDEBAR_NAV = [
   { href: "/schedule", label: "Schedule", icon: Calendar },
   { href: "/jobs", label: "Jobs", icon: Hammer },
   { href: "/clients", label: "Clients", icon: Users },
-  { href: "/billing", label: "Invoices", icon: Receipt },
+  { href: "/more", label: "More", icon: Menu },
   { href: "/crew", label: "Crew", icon: UserCircle, CheckCircle },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/compliance", label: "Compliance", icon: Shield },
