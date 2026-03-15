@@ -5,7 +5,20 @@ import { AppShell } from "@/components/layout/AppShell";
 import { getClients, createClient, updateClient, deleteClient, getJobs } from "@/lib/api";
 import { usePlan } from "@/hooks/usePlan";
 import { ProGate } from "@/components/ProGate";
-import { Users, Phone, Mail, MapPin, Clock, Plus, X, Edit2, Trash2, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { Users, Phone, Mail, MapPin, Clock, Plus, X, Edit2, Trash2, ChevronDown, ChevronUp, Search, UserPlus } from "lucide-react";
+
+const AVATAR_COLORS = [
+  { bg: "linear-gradient(135deg, #FFF0CC, #FFE0A0)", color: "#C47D0A" },
+  { bg: "#DBEAFE", color: "#2563EB" },
+  { bg: "#DCFCE7", color: "#16A34A" },
+  { bg: "#F3E8FF", color: "#9333EA" },
+  { bg: "#FFE4E6", color: "#E11D48" },
+];
+
+function getAvatarStyle(name = "") {
+  const idx = name.charCodeAt(0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[idx];
+}
 
 export default function ClientsPage() {
   const [clients, setClients] = useState([]);
@@ -24,11 +37,23 @@ export default function ClientsPage() {
 
   const load = () => {
     setLoading(true);
-    Promise.all([getClients(), getJobs()]).then(([cls, jobs]) => { setClients(cls); setAllJobs(jobs || []); }).catch(console.error).finally(() => setLoading(false));
+    Promise.all([getClients(), getJobs()])
+      .then(([cls, jobs]) => { setClients(cls); setAllJobs(jobs || []); })
+      .catch(console.error)
+      .finally(() => setLoading(false));
   };
 
-  const openAdd = () => { setForm({ name: "", phone: "", email: "", address: "", city: "", state: "", zip: "", notes: "" }); setEditingClient(null); setShowForm(true); };
-  const openEdit = (c) => { setForm({ name: c.name, phone: c.phone || "", email: c.email || "", address: c.address || "", city: c.city || "", state: c.state || "", zip: c.zip || "", notes: c.notes || "" }); setEditingClient(c); setShowForm(true); };
+  const openAdd = () => {
+    setForm({ name: "", phone: "", email: "", address: "", city: "", state: "", zip: "", notes: "" });
+    setEditingClient(null);
+    setShowForm(true);
+  };
+
+  const openEdit = (c) => {
+    setForm({ name: c.name, phone: c.phone || "", email: c.email || "", address: c.address || "", city: c.city || "", state: c.state || "", zip: c.zip || "", notes: c.notes || "" });
+    setEditingClient(c);
+    setShowForm(true);
+  };
 
   const save = async () => {
     if (!form.name.trim()) return alert("Client name is required");
@@ -61,6 +86,9 @@ export default function ClientsPage() {
     return matchSearch;
   });
 
+  const totalOutstanding = allJobs.filter(j => j.status !== "paid").reduce((s, j) => s + (Number(j.bidAmount) || 0), 0);
+  const totalCollected = allJobs.filter(j => j.status === "paid").reduce((s, j) => s + (Number(j.bidAmount) || 0), 0);
+
   if (!features.clientCRM) return (
     <AppShell title="Clients">
       <ProGate feature="Client CRM" title="Manage Your Clients" description="Keep track of all your clients, contact info, and job history. Upgrade to Pro to unlock." />
@@ -68,152 +96,229 @@ export default function ClientsPage() {
   );
 
   return (
-    <AppShell title="Clients" subtitle={`${clients.length} clients`}
-      action={<button onClick={openAdd} className="btn btn-brand btn-sm"><Plus size={16} />Add Client</button>}>
-      <div className="flex gap-2 mt-4">
-        <div className="flex-1 relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text2)" }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search clients..." className="input w-full pl-8 text-sm" />
+    <AppShell
+      title="Clients"
+      subtitle={`${clients.length} client${clients.length !== 1 ? "s" : ""}`}
+      action={
+        <button onClick={openAdd} style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 14px", borderRadius:10, background:"var(--text)", color:"#fff", fontSize:13, fontWeight:700, border:"none", cursor:"pointer", fontFamily:"inherit" }}>
+          <Plus size={14} strokeWidth={2.5} />Add Client
+        </button>
+      }
+    >
+      {/* Stats strip */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginTop:16, marginBottom:12 }}>
+        {[
+          { label: "Clients", val: clients.length, color: "var(--text)" },
+          { label: "Outstanding", val: "$" + (totalOutstanding >= 1000 ? (totalOutstanding/1000).toFixed(1)+"k" : totalOutstanding.toLocaleString()), color: "var(--brand)" },
+          { label: "Collected", val: "$" + (totalCollected >= 1000 ? (totalCollected/1000).toFixed(1)+"k" : totalCollected.toLocaleString()), color: "var(--green)" },
+        ].map(s => (
+          <div key={s.label} className="card" style={{ padding:"10px 12px", textAlign:"center" }}>
+            <p style={{ fontSize:18, fontWeight:800, color:s.color, letterSpacing:"-0.02em" }}>{s.val}</p>
+            <p style={{ fontSize:10, fontWeight:600, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.05em", marginTop:2 }}>{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Search row */}
+      <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+        <div style={{ flex:1, position:"relative" }}>
+          <Search size={14} style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:"var(--muted)" }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search clients…" className="input" style={{ width:"100%", paddingLeft:36, fontSize:13 }} />
         </div>
-        <select value={filter} onChange={e => setFilter(e.target.value)} className="input text-sm" style={{ width: "auto" }}>
+        <select value={filter} onChange={e => setFilter(e.target.value)} className="input" style={{ width:"auto", fontSize:13 }}>
           <option value="all">All</option>
-          <option value="followup">Needs Follow-up</option>
+          <option value="followup">Follow-up</option>
         </select>
       </div>
+
+      {/* List */}
       {loading ? (
-        <div className="space-y-3 mt-4">{[1,2,3].map(i => <div key={i} className="skeleton h-20" />)}</div>
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height:72 }} />)}
+        </div>
       ) : filtered.length === 0 ? (
-        <div className="mt-16 text-center">
-          <Users size={40} style={{ color: "var(--muted)", margin: "0 auto" }} />
-          <h2 className="text-2xl font-extrabold mb-2 mt-4" style={{ color: "var(--text)" }}>{clients.length === 0 ? "No clients yet" : "No results"}</h2>
-          <p style={{ color: "var(--text2)" }}>{clients.length === 0 ? "Add your first client to get started." : "Try a different search."}</p>
+        <div style={{ marginTop:64, textAlign:"center" }}>
+          <Users size={40} style={{ color:"var(--muted)", margin:"0 auto" }} />
+          <h2 style={{ fontSize:22, fontWeight:800, color:"var(--text)", marginTop:16, marginBottom:6 }}>
+            {clients.length === 0 ? "No clients yet" : "No results"}
+          </h2>
+          <p style={{ color:"var(--text2)", fontSize:14 }}>
+            {clients.length === 0 ? "Add your first client to get started." : "Try a different search."}
+          </p>
+          {clients.length === 0 && (
+            <button onClick={openAdd} className="btn btn-brand" style={{ margin:"20px auto 0" }}>
+              <Plus size={18} />Add First Client
+            </button>
+          )}
         </div>
       ) : (
-        <div className="space-y-3 mt-4">
-          {filtered.map(c => {
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {filtered.map((c) => {
             const days = daysSince(c.updatedAt);
             const needsFollowUp = days !== null && days > 90;
             const isExpanded = expanded === c.clientId;
+            const av = getAvatarStyle(c.name);
+            const clientJobs = allJobs.filter(j => j.clientId === c.clientId || j.clientName === c.name);
+            const outstanding = clientJobs.reduce((s, j) => s + (j.status !== "paid" && j.bidAmount ? Number(j.bidAmount) : 0), 0);
+            const totalEarned = clientJobs.filter(j => j.status === "paid").reduce((s, j) => s + (Number(j.bidAmount) || 0), 0);
+
             return (
-              <div key={c.clientId} className="card" style={needsFollowUp ? { borderLeft: "4px solid var(--brand)" } : {}}>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: "var(--brand)" }}>
-                      {c.name[0]?.toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold truncate" style={{ color: "var(--text)" }}>{c.name}</p>
-                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                        {c.phone && <a href={`tel:${c.phone}`} className="flex items-center gap-1 text-xs font-semibold" style={{ color: "var(--blue)" }}><Phone size={11} />{c.phone}</a>}
-                        {c.email && <a href={`mailto:${c.email}`} className="flex items-center gap-1 text-xs font-semibold" style={{ color: "var(--blue)" }}><Mail size={11} />{c.email}</a>}
-                        {c.address && <span className="flex items-center gap-1 text-xs" style={{ color: "var(--text2)" }}><MapPin size={11} />{c.address}</span>}
-                      </div>
+              <div key={c.clientId} style={{ background:"var(--card)", borderRadius:18, border:"1px solid var(--border)", overflow:"hidden", boxShadow:"0 1px 4px rgba(0,0,0,0.05)", borderLeft: needsFollowUp ? "3px solid var(--brand)" : undefined }}>
+                <div style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 14px" }}>
+                  <div style={{ width:46, height:46, borderRadius:14, background:av.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, fontWeight:800, color:av.color, flexShrink:0 }}>
+                    {c.name[0]?.toUpperCase()}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <p style={{ fontWeight:800, fontSize:15, color:"var(--text)", letterSpacing:"-0.01em" }}>{c.name}</p>
+                    <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginTop:5 }}>
+                      {c.phone && (
+                        <a href={`tel:${c.phone}`} style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:600, color:"var(--blue)", background:"rgba(37,99,235,0.08)", padding:"3px 8px", borderRadius:20, textDecoration:"none" }}>
+                          <Phone size={10} />{c.phone}
+                        </a>
+                      )}
+                      {c.email && (
+                        <a href={`mailto:${c.email}`} style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:600, color:"var(--blue)", background:"rgba(37,99,235,0.08)", padding:"3px 8px", borderRadius:20, textDecoration:"none" }}>
+                          <Mail size={10} />{c.email}
+                        </a>
+                      )}
+                      {c.address && (
+                        <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:500, color:"var(--text2)", background:"var(--input)", padding:"3px 8px", borderRadius:20 }}>
+                          <MapPin size={10} />{c.address}
+                        </span>
+                      )}
                       {needsFollowUp && (
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full mt-1 inline-block" style={{ background: "rgba(251,191,36,0.15)", color: "var(--brand)" }}>
-                          <Clock size={10} className="inline mr-1" />{days}d since last activity — follow up!
+                        <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:10, fontWeight:700, color:"#92400E", background:"#FEF3C7", padding:"3px 8px", borderRadius:20 }}>
+                          ⏰ {days}d — follow up
                         </span>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-2">
-                    <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg" style={{ background: "var(--input)", color: "var(--text2)" }}><Edit2 size={14} /></button>
-                    <button onClick={() => remove(c.clientId)} className="p-1.5 rounded-lg" style={{ background: "var(--input)", color: "var(--red)" }}><Trash2 size={14} /></button>
-                    <button onClick={() => setExpanded(isExpanded ? null : c.clientId)} className="p-1.5 rounded-lg" style={{ background: "var(--input)", color: "var(--text2)" }}>
-                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  <div style={{ display:"flex", alignItems:"center", gap:5, flexShrink:0 }}>
+                    <button onClick={() => openEdit(c)} style={{ width:32, height:32, borderRadius:9, background:"var(--input)", border:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"var(--text2)" }}>
+                      <Edit2 size={13} />
+                    </button>
+                    <button onClick={() => remove(c.clientId)} style={{ width:32, height:32, borderRadius:9, background:"var(--input)", border:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"var(--red)" }}>
+                      <Trash2 size={13} />
+                    </button>
+                    <button onClick={() => setExpanded(isExpanded ? null : c.clientId)} style={{ width:32, height:32, borderRadius:9, background: isExpanded ? "var(--brand-light)" : "var(--input)", border: isExpanded ? "1px solid rgba(245,166,35,0.3)" : "1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color: isExpanded ? "var(--brand)" : "var(--text2)" }}>
+                      {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                     </button>
                   </div>
                 </div>
-                {isExpanded && (() => {
-                  const clientJobs = allJobs.filter(j => j.clientId === c.clientId || j.clientName === c.name);
-                  const outstanding = clientJobs.reduce((s, j) => s + (j.status !== "paid" && j.bidAmount ? j.bidAmount : 0), 0);
-                  const totalEarned = clientJobs.filter(j => j.status === "paid").reduce((s, j) => s + (j.bidAmount || 0), 0);
-                  return (
-                    <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--border)" }}>
-                      {c.notes && <div className="mb-3 p-2 rounded-lg text-sm" style={{ background: "var(--input)", color: "var(--text2)" }}>📝 {c.notes}</div>}
-                      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                        <div className="p-2 rounded-lg" style={{ background: "var(--input)" }}>
-                          <p className="text-xs" style={{ color: "var(--text2)" }}>Total Earned</p>
-                          <p className="font-bold" style={{ color: "var(--green)" }}>${totalEarned.toLocaleString()}</p>
-                        </div>
-                        <div className="p-2 rounded-lg" style={{ background: outstanding > 0 ? "rgba(239,68,68,0.08)" : "var(--input)" }}>
-                          <p className="text-xs" style={{ color: "var(--text2)" }}>Outstanding</p>
-                          <p className="font-bold" style={{ color: outstanding > 0 ? "var(--red)" : "var(--text2)" }}>${outstanding.toLocaleString()}</p>
-                        </div>
+
+                {isExpanded && (
+                  <div style={{ borderTop:"1px solid var(--border)", padding:14, background:"var(--input)" }}>
+                    {c.notes && (
+                      <div style={{ marginBottom:10, padding:"8px 10px", borderRadius:10, background:"var(--card)", border:"1px solid var(--border)", fontSize:13, color:"var(--text2)" }}>
+                        📝 {c.notes}
                       </div>
-                      {clientJobs.length > 0 && (
-                        <div>
-                          <p className="text-xs font-bold mb-2" style={{ color: "var(--text2)" }}>JOB HISTORY ({clientJobs.length})</p>
-                          <div className="space-y-1">
-                            {clientJobs.map(j => (
-                              <div key={j.jobId} className="flex items-center justify-between p-2 rounded-lg" style={{ background: "var(--input)" }}>
-                                <div>
-                                  <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>{j.jobName}</p>
-                                  <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{
-                                    background: j.status === "paid" ? "rgba(34,197,94,0.1)" : j.status === "active" ? "rgba(59,130,246,0.1)" : "rgba(156,163,175,0.15)",
-                                    color: j.status === "paid" ? "var(--green)" : j.status === "active" ? "var(--blue)" : "var(--text2)"
-                                  }}>{j.status}</span>
-                                </div>
-                                <p className="text-xs font-bold" style={{ color: "var(--text)" }}>${(j.bidAmount || 0).toLocaleString()}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                    )}
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:12 }}>
+                      <div style={{ padding:"10px 12px", borderRadius:12, background:"var(--card)", border:"1px solid var(--border)" }}>
+                        <p style={{ fontSize:10, fontWeight:600, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.04em" }}>Total Earned</p>
+                        <p style={{ fontSize:18, fontWeight:800, color:"var(--green)", marginTop:2 }}>${totalEarned.toLocaleString()}</p>
+                      </div>
+                      <div style={{ padding:"10px 12px", borderRadius:12, background: outstanding > 0 ? "rgba(220,38,38,0.06)" : "var(--card)", border:"1px solid var(--border)" }}>
+                        <p style={{ fontSize:10, fontWeight:600, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.04em" }}>Outstanding</p>
+                        <p style={{ fontSize:18, fontWeight:800, color: outstanding > 0 ? "var(--red)" : "var(--text2)", marginTop:2 }}>${outstanding.toLocaleString()}</p>
+                      </div>
                     </div>
-                  );
-                })()}
+                    {clientJobs.length > 0 && (
+                      <>
+                        <p style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em", color:"var(--muted)", marginBottom:6 }}>Job History ({clientJobs.length})</p>
+                        <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+                          {clientJobs.map(j => (
+                            <div key={j.jobId} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"8px 10px", borderRadius:10, background:"var(--card)", border:"1px solid var(--border)" }}>
+                              <div>
+                                <p style={{ fontSize:12, fontWeight:700, color:"var(--text)" }}>{j.jobName}</p>
+                                <span style={{ fontSize:10, fontWeight:700, padding:"1px 6px", borderRadius:20, background: j.status==="paid" ? "var(--green-bg)" : j.status==="active"||j.status==="in_progress" ? "rgba(37,99,235,0.1)" : "rgba(156,163,175,0.15)", color: j.status==="paid" ? "var(--green)" : j.status==="active"||j.status==="in_progress" ? "var(--blue)" : "var(--text2)" }}>
+                                  {j.status}
+                                </span>
+                              </div>
+                              <p style={{ fontSize:13, fontWeight:800, color:"var(--text)" }}>${(j.bidAmount||0).toLocaleString()}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
+
+      {/* MODAL */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: "rgba(0,0,0,0.6)" }}>
-          <div className="w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-6 pb-8" style={{ background: "var(--card)", boxShadow: "0 -4px 32px rgba(0,0,0,0.15)" }}>
-            {/* Header */}
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-xl font-extrabold" style={{ color: "var(--text)" }}>{editingClient ? "Edit Client" : "New Client"}</h2>
-                <p className="text-xs mt-0.5" style={{ color: "var(--text2)" }}>Fill in the details below</p>
-              </div>
-              <button onClick={() => setShowForm(false)} className="p-2 rounded-xl" style={{ background: "var(--input)", color: "var(--text2)" }}><X size={18} /></button>
-            </div>
-            {/* Form fields */}
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>CLIENT NAME *</label>
-                <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. John Smith" className="input w-full" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>PHONE</label>
-                  <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="(555) 000-0000" className="input w-full" type="tel" />
+        <div style={{ position:"fixed", inset:0, zIndex:50, display:"flex", alignItems:"flex-end", justifyContent:"center", background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)" }}
+          onClick={e => { if (e.target === e.currentTarget) setShowForm(false); }}>
+          <div style={{ width:"100%", maxWidth:480, background:"var(--card)", borderRadius:"28px 28px 0 0", maxHeight:"92vh", display:"flex", flexDirection:"column", boxShadow:"0 -8px 40px rgba(0,0,0,0.2)" }}>
+            <div style={{ width:40, height:5, background:"var(--border)", borderRadius:3, margin:"12px auto 0", flexShrink:0 }} />
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px 20px 14px", borderBottom:"1px solid var(--border)", flexShrink:0 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                <div style={{ width:44, height:44, borderRadius:13, background:"linear-gradient(135deg, var(--brand), #C47D0A)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 14px rgba(245,166,35,0.35)" }}>
+                  <UserPlus size={20} color="white" strokeWidth={2} />
                 </div>
                 <div>
-                  <label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>EMAIL</label>
-                  <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@example.com" className="input w-full" type="email" />
+                  <p style={{ fontSize:19, fontWeight:800, color:"var(--text)", letterSpacing:"-0.02em" }}>{editingClient ? "Edit Client" : "New Client"}</p>
+                  <p style={{ fontSize:12, color:"var(--muted)", marginTop:1 }}>Fill in the details below</p>
                 </div>
               </div>
+              <button onClick={() => setShowForm(false)} style={{ width:34, height:34, borderRadius:10, background:"var(--input)", border:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"var(--text2)", fontSize:18, fontFamily:"sans-serif" }}>×</button>
+            </div>
+            <div style={{ padding:"18px 20px", overflowY:"auto", flex:1 }}>
+              <div style={{ marginBottom:14 }}>
+                <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>Client Name <span style={{ color:"var(--red)" }}>*</span></label>
+                <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. John Smith" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:10, margin:"4px 0 14px" }}>
+                <div style={{ flex:1, height:1, background:"var(--border)" }} /><span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase", color:"var(--muted)" }}>Contact</span><div style={{ flex:1, height:1, background:"var(--border)" }} />
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
+                <div>
+                  <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>Phone</label>
+                  <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="(555) 000-0000" type="tel" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+                </div>
+                <div>
+                  <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>Email</label>
+                  <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@example.com" type="email" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+                </div>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:10, margin:"4px 0 14px" }}>
+                <div style={{ flex:1, height:1, background:"var(--border)" }} /><span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase", color:"var(--muted)" }}>Address</span><div style={{ flex:1, height:1, background:"var(--border)" }} />
+              </div>
+              <div style={{ marginBottom:10 }}>
+                <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>Street</label>
+                <input value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="123 Main St" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"1.6fr 0.9fr 1fr", gap:8, marginBottom:14 }}>
+                <div>
+                  <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>City</label>
+                  <input value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder="City" className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+                </div>
+                <div>
+                  <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>State</label>
+                  <input value={form.state} onChange={e => setForm({...form, state: e.target.value})} placeholder="NJ" maxLength={2} className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+                </div>
+                <div>
+                  <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>Zip</label>
+                  <input value={form.zip} onChange={e => setForm({...form, zip: e.target.value})} placeholder="07001" maxLength={10} className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13 }} />
+                </div>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:10, margin:"4px 0 14px" }}>
+                <div style={{ flex:1, height:1, background:"var(--border)" }} /><span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase", color:"var(--muted)" }}>Notes</span><div style={{ flex:1, height:1, background:"var(--border)" }} />
+              </div>
               <div>
-                <label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>ADDRESS</label>
-                <input value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="Street address" className="input w-full" />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div><label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>CITY</label><input value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder="City" className="input w-full" /></div>
-                <div><label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>STATE</label><input value={form.state} onChange={e => setForm({...form, state: e.target.value})} placeholder="NJ" className="input w-full" maxLength={2} /></div>
-                <div><label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>ZIP</label><input value={form.zip} onChange={e => setForm({...form, zip: e.target.value})} placeholder="07001" className="input w-full" maxLength={10} /></div>
-              </div>
-              <div style={{display:"none"}}>x
-              </div>
-              <div>
-                <label className="text-xs font-bold mb-1 block" style={{ color: "var(--text2)" }}>NOTES</label>
-                <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="e.g. Slow payer, referred by John, prefers texts..." className="input w-full" rows={3} />
+                <label style={{ fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", color:"var(--muted)", display:"block", marginBottom:6 }}>Notes</label>
+                <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="e.g. Slow payer, referred by John, prefers texts…" rows={3} className="input" style={{ width:"100%", fontSize:14, padding:"13px 15px", borderRadius:13, resize:"none", lineHeight:1.55 }} />
               </div>
             </div>
-            <div className="flex gap-3 mt-5">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl font-bold text-sm" style={{ background: "var(--input)", color: "var(--text2)" }}>Cancel</button>
-              <button onClick={save} disabled={saving} className="flex-1 py-3 rounded-xl font-bold text-sm text-white" style={{ background: saving ? "var(--text2)" : "var(--brand)" }}>
-                {saving ? "Saving..." : editingClient ? "Save Changes" : "Add Client"}
+            <div style={{ padding:"14px 20px 32px", borderTop:"1px solid var(--border)", display:"flex", gap:10, flexShrink:0 }}>
+              <button onClick={() => setShowForm(false)} style={{ flex:1, padding:15, borderRadius:14, background:"var(--input)", border:"1.5px solid var(--border)", fontSize:14, fontWeight:700, color:"var(--text2)", cursor:"pointer", fontFamily:"inherit" }}>Cancel</button>
+              <button onClick={save} disabled={saving} style={{ flex:2, padding:15, borderRadius:14, background: saving ? "var(--muted)" : "linear-gradient(135deg, var(--brand), #C47D0A)", border:"none", fontSize:14, fontWeight:700, color:"#fff", cursor: saving ? "not-allowed" : "pointer", fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:7, boxShadow: saving ? "none" : "0 4px 16px rgba(245,166,35,0.4)" }}>
+                <UserPlus size={16} strokeWidth={2} />
+                {saving ? "Saving…" : editingClient ? "Save Changes" : "Add Client"}
               </button>
             </div>
           </div>
