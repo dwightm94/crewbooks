@@ -159,9 +159,62 @@ function MyDay({ data, router, greeting, dayName, onStart, onNewJob, hasActiveJo
   const activeJobs = recentJobs.filter(j => j.status==="active" || j.status==="in_progress");
   const currentJob = activeJobs[0];
   const upcomingJobs = recentJobs.filter(j => j.jobId !== currentJob?.jobId && j.jobName !== currentJob?.jobName).slice(0,4);
+  const [stripeStatus, setStripeStatus] = React.useState(null);
+  const [stripeDismissed, setStripeDismissed] = React.useState(false);
+  const [stripeConnecting, setStripeConnecting] = React.useState(false);
+
+  React.useEffect(() => {
+    import("@/lib/api").then(({ getConnectStatus }) => {
+      getConnectStatus().then(setStripeStatus).catch(() => setStripeStatus({ connected: false }));
+    });
+    if (sessionStorage.getItem("cb_stripe_banner_dismissed_mobile")) setStripeDismissed(true);
+  }, []);
+
+  const handleConnectStripe = async () => {
+    setStripeConnecting(true);
+    try {
+      const { createConnectAccount, createOnboardLink } = await import("@/lib/api");
+      const { getProfile } = await import("@/lib/api");
+      let email = "";
+      try { const p = await getProfile(); email = p.email || ""; } catch {}
+      if (!stripeStatus?.connected) await createConnectAccount(email);
+      const link = await createOnboardLink();
+      if (link.url) window.location.href = link.url;
+    } catch(e) { alert("Error: " + e.message); }
+    setStripeConnecting(false);
+  };
+
+  const showStripeBanner = !stripeDismissed && stripeStatus !== null && !(stripeStatus?.connected && stripeStatus?.onboarded);
 
   return (
     <div className="mt-4 space-y-5">
+
+      {/* ── Stripe Banner (mobile) ── */}
+      {showStripeBanner && (
+        <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl"
+          style={{background:"linear-gradient(135deg,#1C1C1E 0%,#2C2C2E 100%)",boxShadow:"0 4px 16px rgba(245,158,11,0.2)"}}>
+          <div className="flex items-center justify-center flex-shrink-0"
+            style={{width:38,height:38,borderRadius:10,background:"var(--brand)"}}>
+            <DollarSign size={18} color="#0F172A" strokeWidth={2.5}/>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-white text-xs">
+              {stripeStatus?.connected ? "Finish Stripe setup" : "Connect Stripe to get paid"}
+            </p>
+            <p className="text-[11px] mt-0.5" style={{color:"rgba(255,255,255,0.5)"}}>Collect payments through CrewBooks</p>
+          </div>
+          <button onClick={handleConnectStripe} disabled={stripeConnecting}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
+            style={{background:"var(--brand)",color:"#0F172A",border:"none",cursor:"pointer"}}>
+            {stripeConnecting ? "..." : "Set Up"}
+          </button>
+          <button onClick={() => { setStripeDismissed(true); sessionStorage.setItem("cb_stripe_banner_dismissed_mobile","1"); }}
+            style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.3)",fontSize:18,lineHeight:1,padding:"0 2px",flexShrink:0}}>
+            ×
+          </button>
+        </div>
+      )}
+
       <div>
         <h2 className="text-2xl font-extrabold" style={{color:"var(--text)",letterSpacing:"-0.02em"}}>{greeting}</h2>
         <p className="text-sm mt-1" style={{color:"var(--muted)"}}>{dayName} · {recentJobs.length} job{recentJobs.length!==1?"s":""}</p>
@@ -393,9 +446,9 @@ function DesktopDashboard({ data, router, onNewJob }) {
     setStripeConnecting(true);
     try {
       const { createConnectAccount, createOnboardLink } = await import("@/lib/api");
-      const stored = localStorage.getItem("crewbooks_tokens");
-      const tokens = stored ? JSON.parse(stored) : {};
-      const email = tokens?.email || "";
+      const { getProfile } = await import("@/lib/api");
+      let email = "";
+      try { const p = await getProfile(); email = p.email || ""; } catch {}
       if (!stripeStatus?.connected) await createConnectAccount(email);
       const link = await createOnboardLink();
       if (link.url) window.location.href = link.url;
