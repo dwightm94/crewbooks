@@ -58,7 +58,22 @@ export default function MorePage() {
 
         {/* ── Payments Setup Card ── */}
         <button
-          onClick={() => router.push("/money")}
+          onClick={async () => {
+            if (connected) {
+              const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+              if (isMobile) {
+                const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+                window.location.href = isIOS
+                  ? "https://apps.apple.com/us/app/stripe-dashboard/id978516833"
+                  : "https://play.google.com/store/apps/details?id=com.stripe.android.dashboard";
+              } else {
+                const { getConnectDashboard } = await import("@/lib/api");
+                try { const link = await getConnectDashboard(); if (link.url) window.open(link.url, "_blank"); } catch {}
+              }
+            } else {
+              router.push("/money");
+            }
+          }}
           className="w-full text-left"
           style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
         >
