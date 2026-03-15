@@ -522,22 +522,41 @@ function DesktopDashboard({ data, router, onNewJob }) {
               </button>
             ))}
 
-            {/* Connect Stripe quick action — only when not connected */}
-            {stripeStatus !== null && !(stripeStatus?.connected && stripeStatus?.onboarded) && (
-              <button
-                onClick={handleConnectStripe}
-                disabled={stripeConnecting}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-colors"
-                style={{background:"var(--brand-light)",border:"1px solid rgba(245,158,11,0.3)",cursor:"pointer"}}>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:"var(--brand)"}}>
-                  <DollarSign size={16} color="#0F172A"/>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{color:"var(--brand)"}}>Connect Stripe</p>
-                  <p className="text-xs" style={{color:"var(--muted)"}}>Enable payment collection</p>
-                </div>
-                <ArrowRight size={14} style={{color:"var(--brand)",flexShrink:0}}/>
-              </button>
+            {/* Stripe — always visible, changes state based on connection */}
+            {stripeStatus !== null && (
+              stripeStatus?.connected && stripeStatus?.onboarded ? (
+                <button
+                  onClick={() => router.push("/money")}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-colors hover:bg-[var(--bg2)]"
+                  style={{background:"transparent",border:"1px solid var(--border)",cursor:"pointer"}}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:"rgba(52,199,89,0.1)"}}>
+                    <DollarSign size={16} style={{color:"#16A34A"}}/>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold" style={{color:"var(--text)"}}>Stripe Connected</p>
+                    <p className="text-xs" style={{color:"var(--muted)"}}>View payments & payouts</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span style={{width:7,height:7,borderRadius:"50%",background:"#34C759",display:"inline-block",boxShadow:"0 0 6px #34C75988"}}/>
+                    <ArrowRight size={14} style={{color:"var(--muted)"}}/>
+                  </div>
+                </button>
+              ) : (
+                <button
+                  onClick={handleConnectStripe}
+                  disabled={stripeConnecting}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-colors"
+                  style={{background:"var(--brand-light)",border:"1px solid rgba(245,158,11,0.3)",cursor:"pointer"}}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:"var(--brand)"}}>
+                    <DollarSign size={16} color="#0F172A"/>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold" style={{color:"var(--brand)"}}>Connect Stripe</p>
+                    <p className="text-xs" style={{color:"var(--muted)"}}>Enable payment collection</p>
+                  </div>
+                  <ArrowRight size={14} style={{color:"var(--brand)",flexShrink:0}}/>
+                </button>
+              )
             )}
           </div>
         </div>
