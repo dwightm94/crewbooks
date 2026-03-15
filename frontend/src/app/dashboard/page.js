@@ -12,11 +12,23 @@ import { usePlan } from "@/hooks/usePlan";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { money, moneyCompact, statusBadge, statusLabel, overdueSeverity, margin, marginColor, relDate } from "@/lib/utils";
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setMobile(window.innerWidth < 769);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return mobile;
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
   const [showUpgrade, setShowUpgrade] = useState(null);
+  const isMobile = useIsMobile();
   const [view, setView] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("cb_active_job");
@@ -106,9 +118,15 @@ export default function DashboardPage() {
         <EmptyState onNewJob={handleNewJob} />
       ) : (
         <>
-          {view === "day" && <MyDay data={data} router={router} greeting={greeting} dayName={dayName} onStart={startJob} onNewJob={handleNewJob} />}
-          {view === "job" && activeJob && <ActiveJob job={activeJob} secs={seconds} fmt={fmt} onComplete={completeJob} router={router} />}
-          {view === "done" && activeJob && <JobDone job={activeJob} secs={seconds} fmt={fmt} data={data} onBack={backToDay} router={router} />}
+          {isMobile ? (
+            <>
+              {view === "day" && <MyDay data={data} router={router} greeting={greeting} dayName={dayName} onStart={startJob} onNewJob={handleNewJob} />}
+              {view === "job" && activeJob && <ActiveJob job={activeJob} secs={seconds} fmt={fmt} onComplete={completeJob} router={router} />}
+              {view === "done" && activeJob && <JobDone job={activeJob} secs={seconds} fmt={fmt} data={data} onBack={backToDay} router={router} />}
+            </>
+          ) : (
+            <DesktopDashboard data={data} router={router} onNewJob={handleNewJob} />
+          )}
         </>
       )}
     </AppShell>
@@ -342,6 +360,95 @@ function JobDone({ job, secs, data, onBack, router }) {
 
       <button onClick={() => router.push("/jobs/"+job.jobId)} className="btn btn-brand w-full text-base"><Send size={18}/> Send Invoice — {money(job.bidAmount)}</button>
       <button onClick={onBack} className="btn btn-outline w-full">Back to My Day</button>
+    </div>
+  );
+}
+
+function DesktopDashboard({ data, router, onNewJob }) {
+  const { totalOwed=0, totalOverdue=0, totalEarned=0, paidThisMonth=0, counts={}, overdueInvoices=[], recentJobs:rawJobs=[], profitability={} } = data;
+  const recentJobs = rawJobs.filter(j => j.jobName);
+  return (
+    <div className="mt-4 space-y-5">
+      <div className="rounded-3xl p-6 text-center" style={{background:"linear-gradient(135deg, var(--brand), var(--brand-hover))"}}>
+        <p className="text-sm font-bold uppercase tracking-wider text-white/80">You're Owed</p>
+        <p className="text-5xl font-extrabold text-white mt-1 tracking-tight">{money(totalOwed)}</p>
+        {totalOverdue > 0 && (
+          <div className="flex items-center justify-center gap-1.5 mt-3 bg-white/20 rounded-full px-4 py-1.5 mx-auto w-fit">
+            <AlertTriangle size={16} className="text-white"/>
+            <span className="text-sm font-bold text-white">{money(totalOverdue)} overdue</span>
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-4 gap-3">
+        <div className="card flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--green-bg)"}}><TrendingUp size={20} style={{color:"var(--green)"}}/></div>
+          <div><p className="text-xs font-semibold" style={{color:"var(--muted)"}}>This Month</p><p className="text-xl font-extrabold" style={{color:"var(--green)"}}>{moneyCompact(paidThisMonth)}</p></div>
+        </div>
+        <div className="card flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--blue-bg)"}}><Briefcase size={20} style={{color:"var(--blue)"}}/></div>
+          <div><p className="text-xs font-semibold" style={{color:"var(--muted)"}}>Active Jobs</p><p className="text-xl font-extrabold" style={{color:"var(--blue)"}}>{counts.active||0}</p></div>
+        </div>
+        <div className="card flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--purple-bg)"}}><DollarSign size={20} style={{color:"var(--purple)"}}/></div>
+          <div><p className="text-xs font-semibold" style={{color:"var(--muted)"}}>Total Earned</p><p className="text-xl font-extrabold" style={{color:"var(--purple)"}}>{moneyCompact(totalEarned)}</p></div>
+        </div>
+        <div className="card flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:"var(--brand-light)"}}><TrendingUp size={20} style={{color:"var(--brand)"}}/></div>
+          <div><p className="text-xs font-semibold" style={{color:"var(--muted)"}}>Avg Margin</p><p className="text-xl font-extrabold" style={{color:"var(--brand)"}}>{profitability?.avgMargin||profitability?.marginPercent||0}%</p></div>
+        </div>
+      </div>
+      {overdueInvoices.length > 0 && (
+        <section>
+          <h2 className="section-title flex items-center gap-2"><AlertTriangle size={14} style={{color:"var(--red)"}}/>Overdue Payments</h2>
+          <div className="space-y-2">
+            {overdueInvoices.map(inv => {
+              const sev = overdueSeverity(inv.daysOverdue);
+              return (
+                <button key={inv.invoiceId} onClick={() => router.push("/jobs/"+inv.jobId)} className="card-hover w-full text-left">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-base" style={{color:"var(--text)"}}>{inv.clientName}</p>
+                      <p className="text-sm" style={{color:"var(--text2)"}}>{inv.jobName}</p>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold mt-2" style={{background:sev.bg,color:sev.color}}>
+                        <Clock size={12}/>{inv.daysOverdue}d overdue
+                      </span>
+                    </div>
+                    <p className="text-2xl font-extrabold" style={{color:sev.color}}>{money(inv.amount)}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      {recentJobs.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between">
+            <h2 className="section-title">Recent Jobs</h2>
+            <button onClick={() => router.push("/jobs")} className="text-sm font-bold flex items-center gap-1" style={{color:"var(--brand)"}}>See All <ArrowRight size={14}/></button>
+          </div>
+          <div className="space-y-2">
+            {recentJobs.map(job => {
+              const m = margin(job.bidAmount, job.totalExpenses);
+              return (
+                <button key={job.jobId} onClick={() => router.push("/jobs/"+job.jobId)} className="card-hover w-full text-left">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold" style={{color:"var(--text)"}}>{job.jobName}</p>
+                      <p className="text-sm" style={{color:"var(--text2)"}}>{job.clientName}</p>
+                      <span className={statusBadge(job.status)+" mt-2"}>{statusLabel(job.status)}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-extrabold" style={{color:"var(--text)"}}>{money(job.bidAmount)}</p>
+                      {job.totalExpenses > 0 && <p className="text-xs font-bold" style={{color:marginColor(m.percent)}}>{m.percent}% margin</p>}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
