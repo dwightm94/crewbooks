@@ -1,10 +1,12 @@
 "use client";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/hooks/useAuth";
+import { getConnectStatus } from "@/lib/api";
 import {
   FileText, Users, BarChart3, ShieldCheck, Settings, CreditCard,
-  Receipt, Calculator, ChevronRight, Sparkles
+  Receipt, Calculator, ChevronRight, Sparkles, Wallet
 } from "lucide-react";
 
 const SECTIONS = [
@@ -22,7 +24,7 @@ const SECTIONS = [
     items: [
       { href: "/reports", icon: BarChart3, label: "Reports", desc: "Revenue & job analytics" },
       { href: "/compliance", icon: ShieldCheck, label: "Compliance", desc: "Licenses & certifications" },
-      { href: "/money", icon: CreditCard, label: "Billing & Payments", desc: "Stripe, subscriptions" },
+      { href: "/billing", icon: CreditCard, label: "Billing & Payments", desc: "Subscriptions & plan" },
     ],
   },
   {
@@ -37,14 +39,90 @@ const SECTIONS = [
 export default function MorePage() {
   const router = useRouter();
   const { user } = useAuth();
+  const [stripeStatus, setStripeStatus] = useState(null);
+
+  useEffect(() => {
+    getConnectStatus()
+      .then(setStripeStatus)
+      .catch(() => setStripeStatus({ connected: false }));
+  }, []);
+
   if (!user) return null;
+
+  const connected = stripeStatus?.connected && stripeStatus?.onboarded;
+  const partial = stripeStatus?.connected && !stripeStatus?.onboarded;
 
   return (
     <AppShell title="More">
       <div className="py-4 space-y-6">
-        {/* User card */}
-        <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
-          <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold" style={{ background: "var(--brand)", color: "#FFF" }}>
+
+        {/* ── Payments Setup Card ── */}
+        <button
+          onClick={() => router.push("/money")}
+          className="w-full text-left"
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
+        >
+          <div
+            className="relative overflow-hidden rounded-2xl p-4 flex items-center gap-4"
+            style={{
+              background: connected
+                ? "linear-gradient(135deg, #1A3A2A 0%, #0F2A1A 100%)"
+                : "linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%)",
+              boxShadow: connected
+                ? "0 4px 20px rgba(52,199,89,0.15)"
+                : "0 4px 20px rgba(245,158,11,0.2)",
+            }}
+          >
+            <div
+              className="flex items-center justify-center flex-shrink-0"
+              style={{
+                width: 46, height: 46, borderRadius: 13,
+                background: connected ? "#34C759" : "var(--brand)",
+              }}
+            >
+              <Wallet size={22} color={connected ? "#fff" : "#0F172A"} strokeWidth={2} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-white text-sm">Payments Setup</p>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>
+                {connected
+                  ? "Stripe connected · Ready to collect"
+                  : partial
+                  ? "Finish Stripe setup to get paid"
+                  : "Connect Stripe to get paid"}
+              </p>
+            </div>
+            <div
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full flex-shrink-0"
+              style={{
+                background: connected
+                  ? "rgba(52,199,89,0.18)"
+                  : partial
+                  ? "rgba(255,159,10,0.18)"
+                  : "rgba(255,59,48,0.18)",
+              }}
+            >
+              <div style={{
+                width: 6, height: 6, borderRadius: "50%",
+                background: connected ? "#34C759" : partial ? "#FF9F0A" : "#FF3B30",
+              }} />
+              <span
+                className="text-[11px] font-bold"
+                style={{ color: connected ? "#34C759" : partial ? "#FF9F0A" : "#FF3B30" }}
+              >
+                {connected ? "Connected" : partial ? "Incomplete" : "Not set up"}
+              </span>
+            </div>
+            <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full pointer-events-none"
+              style={{ background: "rgba(255,255,255,0.03)" }} />
+          </div>
+        </button>
+
+        {/* ── User card ── */}
+        <div className="flex items-center gap-3 p-4 rounded-2xl"
+          style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+          <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0"
+            style={{ background: "var(--brand)", color: "#0F172A" }}>
             {user?.name?.[0]?.toUpperCase() || "U"}
           </div>
           <div className="flex-1 min-w-0">
@@ -56,32 +134,38 @@ export default function MorePage() {
           </button>
         </div>
 
-        {/* QuickBooks Coming Soon */}
-        <div className="relative overflow-hidden rounded-2xl p-4" style={{ background: "linear-gradient(135deg, #2CA01C 0%, #108000 100%)" }}>
+        {/* ── QuickBooks Coming Soon ── */}
+        <div className="relative overflow-hidden rounded-2xl p-4"
+          style={{ background: "linear-gradient(135deg, #2CA01C 0%, #108000 100%)" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm" style={{ background: "rgba(255,255,255,0.2)", color: "#FFF" }}>QB</div>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm"
+                style={{ background: "rgba(255,255,255,0.2)", color: "#FFF" }}>QB</div>
               <div>
                 <p className="font-bold text-white text-sm">QuickBooks Integration</p>
                 <p className="text-xs" style={{ color: "rgba(255,255,255,0.7)" }}>Sync invoices, expenses & payments</p>
               </div>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.2)", color: "#FFF" }}>Coming Soon</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full"
+              style={{ background: "rgba(255,255,255,0.2)", color: "#FFF" }}>Coming Soon</span>
           </div>
           <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }} />
           <div className="absolute -right-2 -bottom-8 w-16 h-16 rounded-full" style={{ background: "rgba(255,255,255,0.04)" }} />
         </div>
 
-        {/* Nav sections */}
+        {/* ── Nav sections ── */}
         {SECTIONS.map((section) => (
           <div key={section.label}>
-            <p className="text-xs font-bold uppercase tracking-wider px-1 mb-2" style={{ color: "var(--text3, #9CA3AF)" }}>{section.label}</p>
-            <div className="rounded-2xl overflow-hidden" style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+            <p className="text-xs font-bold uppercase tracking-wider px-1 mb-2"
+              style={{ color: "var(--text3, #9CA3AF)" }}>{section.label}</p>
+            <div className="rounded-2xl overflow-hidden"
+              style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
               {section.items.map((item, i) => (
                 <button key={item.href} onClick={() => router.push(item.href)}
                   className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:scale-[0.99] transition-transform"
                   style={{ borderTop: i > 0 ? "1px solid var(--border)" : "none" }}>
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--bg2, #F3F4F6)" }}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: "var(--bg2, #F3F4F6)" }}>
                     <item.icon size={18} style={{ color: "var(--brand)" }} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -95,7 +179,9 @@ export default function MorePage() {
           </div>
         ))}
 
-        <p className="text-center text-xs py-4" style={{ color: "var(--text3, #9CA3AF)" }}>CrewBooks v1.0 · Made for contractors</p>
+        <p className="text-center text-xs py-4" style={{ color: "var(--text3, #9CA3AF)" }}>
+          CrewBooks v1.0 · Made for contractors
+        </p>
       </div>
     </AppShell>
   );
