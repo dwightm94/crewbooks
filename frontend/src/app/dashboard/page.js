@@ -157,7 +157,7 @@ function MyDay({ data, router, greeting, dayName, onStart, onNewJob, hasActiveJo
   const recentJobs = rawJobs.filter(j => j.jobName);
   const activeJobs = recentJobs.filter(j => j.status==="active" || j.status==="in_progress");
   const currentJob = activeJobs[0];
-  const upcomingJobs = recentJobs.filter(j => j.jobId !== currentJob?.jobId).slice(0,4);
+  const upcomingJobs = recentJobs.filter(j => j.jobId !== currentJob?.jobId && j.jobName !== currentJob?.jobName).slice(0,4);
 
   return (
     <div className="mt-4 space-y-5">
