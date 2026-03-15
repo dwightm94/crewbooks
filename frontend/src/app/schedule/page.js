@@ -419,7 +419,7 @@ export default function SchedulePage() {
 
             {/* Route Optimization placeholder */}
             <button
-              onClick={() => alert("Route optimization coming soon!")}
+              onClick={() => router.push(`/schedule/optimize?date=${toKey(selectedDate)}`)}
               title="Optimize route"
               style={{
                 display: "flex", alignItems: "center", gap: 6,
