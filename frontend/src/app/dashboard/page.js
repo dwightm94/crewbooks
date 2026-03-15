@@ -95,7 +95,8 @@ export default function DashboardPage() {
       } catch {}
     }
   };
-  const hasActiveJob = typeof window !== "undefined" && !!localStorage.getItem("cb_active_job");
+  const [hasActiveJob, setHasActiveJob] = useState(false);
+  useEffect(() => { setHasActiveJob(!!localStorage.getItem("cb_active_job")); }, [view]);
 
   const fmt = (s) => {
     const h = String(Math.floor(s/3600)).padStart(2,"0");
